@@ -71,10 +71,22 @@ SYNC_INTERVAL_MS=300000
 
 ## 2) Run it
 
+### Option A: Docker Compose (recommended)
+
 From the repo root:
 
 ```bash
 docker compose up -d --build
+```
+
+### Option B: Docker Hub images
+
+```bash
+docker network create immich-places-net
+
+docker run -d --name immich-places-backend --network immich-places-net --env-file .env -v immich-places-data:/data majorfi/immich-places-backend
+
+docker run -d --name immich-places --network immich-places-net -p 3032:3032 -e PORT=3032 -e BACKEND_URL=http://immich-places-backend:8082 majorfi/immich-places
 ```
 
 Then open:
@@ -82,8 +94,6 @@ Then open:
 ```text
 http://localhost:3032
 ```
-
-The backend is internal to compose and does not need to be exposed.
 
 ## 3) First run flow (fast path)
 
