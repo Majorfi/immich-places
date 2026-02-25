@@ -11,7 +11,6 @@ on:
 env:
     GHCR_REGISTRY: ghcr.io
     DOCKERHUB_REGISTRY: docker.io
-    IMAGE_NAME: ${{ github.repository }}
 
 jobs:
     build-and-push:
@@ -19,6 +18,17 @@ jobs:
         permissions:
             contents: read
             packages: write
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - image: immich-places
+                      context: .
+                      dockerfile: ./Dockerfile
+                    - image: immich-places-backend
+                      context: ./backend
+                      dockerfile: ./backend/Dockerfile
 
         steps:
             - name: Checkout repository
@@ -49,8 +59,8 @@ jobs:
               uses: docker/metadata-action@v5
               with:
                   images: |
-                      ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_NAME }}
-                      ${{ secrets.DOCKERHUB_USERNAME }}/immich-places
+                      ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+                      ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}
                   tags: |
                       type=raw,value=latest,enable={{is_default_branch}}
                       type=ref,event=branch
@@ -62,10 +72,11 @@ jobs:
             - name: Build and push Docker image
               uses: docker/build-push-action@v5
               with:
-                  context: .
+                  context: ${{ matrix.context }}
+                  file: ${{ matrix.dockerfile }}
                   push: ${{ github.event_name != 'pull_request' }}
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   platforms: linux/amd64,linux/arm64
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  cache-from: type=gha,scope=${{ matrix.image }}
+                  cache-to: type=gha,mode=max,scope=${{ matrix.image }}
