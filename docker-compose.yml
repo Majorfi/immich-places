@@ -1,6 +1,6 @@
 services:
     frontend:
-        build: .
+        image: majorfi/immich-places:latest
         ports:
             - '${FRONTEND_PORT:-3032}:3032'
         environment:
@@ -11,7 +11,7 @@ services:
         restart: unless-stopped
 
     backend:
-        build: ./backend
+        image: majorfi/immich-places-backend:latest
         expose:
             - '8082'
         environment:
