@@ -16,14 +16,14 @@ import {
 } from '@/shared/services/backendApi.guards';
 import {getBackendBaseURL} from '@/utils/backendUrls';
 import {normalizePositiveInteger} from '@/utils/math';
-import {DEFAULT_PAGE_SIZE} from '@/utils/view';
+import {DEFAULT_PAGE_SIZE, DEFAULT_VISIBLE_MARKER_LIMIT} from '@/utils/view';
 
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TAuthErrorCode} from '@/shared/types/auth';
 import type {THealthResponse} from '@/shared/types/health';
-import type {TGPSFilter, TMapMarker} from '@/shared/types/map';
+import type {TGPSFilter, TMapMarker, TMapMarkersResult} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionsResponse} from '@/shared/types/suggestion';
 
 const BASE = getBackendBaseURL();
@@ -147,18 +147,38 @@ export async function fetchAlbums(gpsFilter: TGPSFilter, opts: TRequestOptions =
  *
  * @param albumID - Optional album id to filter map markers.
  * @param bounds - Optional viewport bounds to reduce marker fetch scope.
+ * @param limit - Maximum number of markers to return.
+ * @param includeTotal - When true, the response includes the total marker count via X-Total-Count header.
  * @param opts - Optional request options such as abort signal and timeout override.
- * @returns Array of map marker objects.
+ * @returns Map markers result containing the markers array and optional total count.
  * @throws Error when the request fails or response payload is invalid.
  */
+function parseTotalCountHeader(response: Response): number | null {
+	const totalHeader = response.headers.get('X-Total-Count');
+	if (!totalHeader) {
+		return null;
+	}
+	const parsed = Number.parseInt(totalHeader, 10);
+	if (!Number.isFinite(parsed) || parsed < 0) {
+		return null;
+	}
+	return parsed;
+}
+
 export async function fetchMapMarkers(
 	albumID?: string,
 	bounds?: TViewportBounds | null,
+	limit: number = DEFAULT_VISIBLE_MARKER_LIMIT,
+	includeTotal = false,
 	opts: TRequestOptions = {}
-): Promise<TMapMarker[]> {
+): Promise<TMapMarkersResult> {
 	const params = new URLSearchParams();
 	if (albumID) {
 		params.set('albumID', albumID);
+	}
+	addIfNumber(params, 'limit', limit);
+	if (includeTotal) {
+		params.set('includeTotal', 'true');
 	}
 	if (bounds) {
 		addIfNumber(params, 'north', bounds.north);
@@ -181,11 +201,16 @@ export async function fetchMapMarkers(
 		}
 		throw new Error(`Failed to fetch map markers: ${response.status}`);
 	}
-	return parseJSON(
+	const markers = await parseJSON(
 		response,
 		(value): value is TMapMarker[] => Array.isArray(value) && value.every(isMapMarker),
 		'Invalid map markers response payload'
 	);
+	const totalCount = parseTotalCountHeader(response) ?? markers.length;
+	return {
+		markers,
+		totalCount
+	};
 }
 
 /**

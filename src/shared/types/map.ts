@@ -4,6 +4,11 @@ export type TMapMarker = {
 	longitude: number;
 };
 
+export type TMapMarkersResult = {
+	markers: TMapMarker[];
+	totalCount: number;
+};
+
 export type TGPSFilter = 'no-gps' | 'with-gps';
 
 export type TPendingLocation = {
