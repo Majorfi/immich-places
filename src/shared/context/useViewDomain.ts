@@ -3,6 +3,7 @@
 import {useCallback} from 'react';
 
 import {useURLState} from '@/features/filterBar/useURLState';
+import {clampVisibleMarkerLimit} from '@/utils/view';
 
 import type {TViewContextValue} from '@/shared/types/context';
 import type {TGPSFilter} from '@/shared/types/map';
@@ -17,6 +18,8 @@ type TViewDomain = {
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;
 	setGridColumnsAction: (cols: number) => void;
+	visibleMarkerLimit: number;
+	setVisibleMarkerLimitAction: (limit: number) => void;
 	viewMode: TViewMode;
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
@@ -46,6 +49,8 @@ export function useViewDomain(): TViewDomain {
 		setPageSizeAction,
 		gridColumns,
 		setGridColumnsAction,
+		visibleMarkerLimit,
+		setVisibleMarkerLimitAction,
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
@@ -97,6 +102,23 @@ export function useViewDomain(): TViewDomain {
 	);
 
 	/**
+	 * Update visible marker limit only when changed and sync it to URL.
+	 *
+	 * @param limit - New visible marker cap.
+	 */
+	const handleSetVisibleMarkerLimit = useCallback(
+		(limit: number) => {
+			const normalizedLimit = clampVisibleMarkerLimit(limit);
+			if (normalizedLimit === visibleMarkerLimit) {
+				return;
+			}
+			setVisibleMarkerLimitAction(normalizedLimit);
+			syncURLAction({visibleMarkerLimit: normalizedLimit});
+		},
+		[visibleMarkerLimit, setVisibleMarkerLimitAction, syncURLAction]
+	);
+
+	/**
 	 * Update view mode only when changed and sync it to URL.
 	 *
 	 * @param mode - New timeline/album view mode.
@@ -132,6 +154,8 @@ export function useViewDomain(): TViewDomain {
 		setPageSizeAction: handleSetPageSize,
 		gridColumns,
 		setGridColumnsAction: handleSetGridColumns,
+		visibleMarkerLimit,
+		setVisibleMarkerLimitAction: handleSetVisibleMarkerLimit,
 		viewMode,
 		setViewModeAction: handleSetViewMode,
 		selectedAlbumID,

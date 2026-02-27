@@ -50,6 +50,8 @@ export function useViewValue(input: TViewContextValue): TViewContextValue {
 			setPageSizeAction: input.setPageSizeAction,
 			gridColumns: input.gridColumns,
 			setGridColumnsAction: input.setGridColumnsAction,
+			visibleMarkerLimit: input.visibleMarkerLimit,
+			setVisibleMarkerLimitAction: input.setVisibleMarkerLimitAction,
 			viewMode: input.viewMode,
 			setViewModeAction: input.setViewModeAction,
 			selectedAlbumID: input.selectedAlbumID,
@@ -62,6 +64,8 @@ export function useViewValue(input: TViewContextValue): TViewContextValue {
 			input.setPageSizeAction,
 			input.gridColumns,
 			input.setGridColumnsAction,
+			input.visibleMarkerLimit,
+			input.setVisibleMarkerLimitAction,
 			input.viewMode,
 			input.setViewModeAction,
 			input.selectedAlbumID,
@@ -156,6 +160,10 @@ export function useUIMapValue(input: TUIMapContextValue): TUIMapContextValue {
 			lightboxAssetID: input.lightboxAssetID,
 			openLightboxAction: input.openLightboxAction,
 			closeLightboxAction: input.closeLightboxAction,
+			visibleMarkerTotalCount: input.visibleMarkerTotalCount,
+			isVisibleMarkerTotalCountStale: input.isVisibleMarkerTotalCountStale,
+			setVisibleMarkerTotalCountAction: input.setVisibleMarkerTotalCountAction,
+			markVisibleMarkerTotalCountStaleAction: input.markVisibleMarkerTotalCountStaleAction,
 			mapMarkersVersion: input.mapMarkersVersion
 		}),
 		[
@@ -165,6 +173,10 @@ export function useUIMapValue(input: TUIMapContextValue): TUIMapContextValue {
 			input.lightboxAssetID,
 			input.openLightboxAction,
 			input.closeLightboxAction,
+			input.visibleMarkerTotalCount,
+			input.isVisibleMarkerTotalCountStale,
+			input.setVisibleMarkerTotalCountAction,
+			input.markVisibleMarkerTotalCountStaleAction,
 			input.mapMarkersVersion
 		]
 	);

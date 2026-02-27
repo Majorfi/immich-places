@@ -72,6 +72,8 @@ export function useAppProviderState(): TAppProviderState {
 		setPageSizeAction,
 		gridColumns,
 		setGridColumnsAction,
+		visibleMarkerLimit,
+		setVisibleMarkerLimitAction,
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
@@ -118,7 +120,11 @@ export function useAppProviderState(): TAppProviderState {
 		focusMapAssetAction,
 		lightboxAssetID,
 		openLightboxAction,
-		closeLightboxAction
+		closeLightboxAction,
+		visibleMarkerTotalCount,
+		isVisibleMarkerTotalCountStale,
+		setVisibleMarkerTotalCountAction,
+		markVisibleMarkerTotalCountStaleAction
 	} = useUIMapController({
 		gpsFilter,
 		setGPSFilterRawAction,
@@ -170,6 +176,8 @@ export function useAppProviderState(): TAppProviderState {
 		setPageSizeAction,
 		gridColumns,
 		setGridColumnsAction,
+		visibleMarkerLimit,
+		setVisibleMarkerLimitAction,
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
@@ -217,6 +225,10 @@ export function useAppProviderState(): TAppProviderState {
 		lightboxAssetID,
 		openLightboxAction,
 		closeLightboxAction,
+		visibleMarkerTotalCount,
+		isVisibleMarkerTotalCountStale,
+		setVisibleMarkerTotalCountAction,
+		markVisibleMarkerTotalCountStaleAction,
 		mapMarkersVersion
 	});
 
