@@ -19,7 +19,6 @@ import {cn} from '@/utils/cn';
 import {
 	GRID_COLUMN_OPTIONS,
 	PAGE_SIZE_OPTIONS,
-	VISIBLE_MARKER_LIMIT_INCREMENT,
 	buildVisibleMarkerLimitOptions,
 	formatMarkerLimitOption,
 	resolveActiveVisibleMarkerLimit
@@ -111,7 +110,18 @@ export function FilterBar({
 	const canDecreaseVisibleMarkerLimit = activeVisibleMarkerLimitIndex > 0;
 	const canIncreaseVisibleMarkerLimit =
 		activeVisibleMarkerLimitIndex >= 0 && activeVisibleMarkerLimitIndex < visibleMarkerLimitOptions.length - 1;
-	const markerStepLabel = formatMarkerLimitOption(VISIBLE_MARKER_LIMIT_INCREMENT);
+	let decreaseStepLabel = '';
+	if (canDecreaseVisibleMarkerLimit) {
+		decreaseStepLabel = formatMarkerLimitOption(
+			activeVisibleMarkerLimit - visibleMarkerLimitOptions[activeVisibleMarkerLimitIndex - 1]
+		);
+	}
+	let increaseStepLabel = '';
+	if (canIncreaseVisibleMarkerLimit) {
+		increaseStepLabel = formatMarkerLimitOption(
+			visibleMarkerLimitOptions[activeVisibleMarkerLimitIndex + 1] - activeVisibleMarkerLimit
+		);
+	}
 	let markerMaxLabel = '';
 	if (visibleMarkerLimitOptions.length > 0) {
 		markerMaxLabel = formatMarkerLimitOption(visibleMarkerLimitOptions[visibleMarkerLimitOptions.length - 1]);
@@ -255,7 +265,7 @@ export function FilterBar({
 											'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)',
 											'disabled:cursor-default disabled:opacity-40'
 										)}>
-										{`-${markerStepLabel}`}
+										{`-${decreaseStepLabel}`}
 									</button>
 									<div
 										className={
@@ -271,7 +281,7 @@ export function FilterBar({
 											'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)',
 											'disabled:cursor-default disabled:opacity-40'
 										)}>
-										{`+${markerStepLabel}`}
+										{`+${increaseStepLabel}`}
 									</button>
 									<div className={'ml-auto text-[0.625rem] text-(--color-text-secondary)'}>
 										{markerMaxText}
