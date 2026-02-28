@@ -19,6 +19,7 @@ type TUseAlbumsReturnProps = {
 	isLoading: boolean;
 	error: string | null;
 	load: () => Promise<void>;
+	clear: () => void;
 };
 
 /**
@@ -83,5 +84,14 @@ export function useAlbums(gpsFilter: TGPSFilter): TUseAlbumsReturnProps {
 		};
 	}, []);
 
-	return {albums, isLoading, error, load};
+	const clear = useCallback(() => {
+		abortRef.current?.abort();
+		abortRef.current = null;
+		requestIDRef.current += 1;
+		setAlbums([]);
+		setIsLoading(false);
+		setError(null);
+	}, []);
+
+	return {albums, isLoading, error, load, clear};
 }

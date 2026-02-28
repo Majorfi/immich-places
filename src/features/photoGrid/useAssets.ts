@@ -21,6 +21,7 @@ type TUseAssetsReturn = {
 	error: string | null;
 	removeAsset: (assetID: string) => void;
 	loadPageAction: (page: number) => Promise<void>;
+	clear: () => void;
 };
 
 /**
@@ -134,6 +135,17 @@ export function useAssets(
 		});
 	}, []);
 
+	const clear = useCallback(() => {
+		abortRef.current?.abort();
+		abortRef.current = null;
+		requestIDRef.current += 1;
+		setAssets([]);
+		setTotal(0);
+		setCurrentPage(1);
+		setIsLoading(false);
+		setError(null);
+	}, []);
+
 	return {
 		assets,
 		total,
@@ -141,6 +153,7 @@ export function useAssets(
 		isLoading,
 		error,
 		removeAsset,
-		loadPageAction
+		loadPageAction,
+		clear
 	};
 }
