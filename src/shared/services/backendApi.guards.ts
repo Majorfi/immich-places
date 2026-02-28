@@ -3,6 +3,7 @@ import {isFiniteNumber, isNullableFiniteNumber, isNullableString, isRecord, isSt
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {THealthResponse} from '@/shared/types/health';
+import type {TLibraryRow} from '@/shared/types/library';
 import type {TMapMarker} from '@/shared/types/map';
 import type {TLocationCluster, TRawSuggestionsResponse, TSuggestionsResponse} from '@/shared/types/suggestion';
 
@@ -188,4 +189,17 @@ export function isAssetPageInfo(value: unknown): value is TAssetPageInfo {
  */
 export function isSyncStatus(value: unknown): value is {syncing: boolean} {
 	return isRecord(value) && typeof value.syncing === 'boolean';
+}
+
+export function isLibraryRow(value: unknown): value is TLibraryRow {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		isString(value.libraryID) &&
+		isString(value.name) &&
+		isFiniteNumber(value.assetCount) &&
+		typeof value.isHidden === 'boolean' &&
+		isString(value.syncedAt)
+	);
 }

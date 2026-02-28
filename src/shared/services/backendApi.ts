@@ -7,6 +7,7 @@ import {
 	isAlbumRow,
 	isAssetPageInfo,
 	isHealthResponse,
+	isLibraryRow,
 	isMapMarker,
 	isPaginatedAssets,
 	isSyncStatus,
@@ -23,6 +24,7 @@ import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TAuthErrorCode} from '@/shared/types/auth';
 import type {THealthResponse} from '@/shared/types/health';
+import type {TLibraryRow} from '@/shared/types/library';
 import type {TGPSFilter, TMapMarker} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionsResponse} from '@/shared/types/suggestion';
 
@@ -344,4 +346,43 @@ export async function fetchSyncStatus(opts: TRequestOptions = {}): Promise<{sync
 		throw new Error(`Failed to fetch sync status: ${response.status}`);
 	}
 	return parseJSON(response, isSyncStatus, 'Invalid sync status response payload');
+}
+
+export async function fetchLibraries(opts: TRequestOptions = {}): Promise<TLibraryRow[]> {
+	const response = await backendFetch(`${BASE}/libraries`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch libraries: ${response.status}`);
+	}
+	return parseJSON(
+		response,
+		(value): value is TLibraryRow[] => Array.isArray(value) && value.every(isLibraryRow),
+		'Invalid libraries response payload'
+	);
+}
+
+export async function updateLibrary(libraryID: string, isHidden: boolean, opts: TRequestOptions = {}): Promise<void> {
+	const response = await backendFetch(
+		`${BASE}/libraries/${encodeURIComponent(libraryID)}`,
+		{
+			method: 'PUT',
+			headers: {'Content-Type': 'application/json'}, //eslint-disable-line
+			body: JSON.stringify({isHidden})
+		},
+		opts
+	);
+	if (!response.ok) {
+		throw new Error(`Failed to update library: ${response.status}`);
+	}
+}
+
+export async function refreshLibraries(opts: TRequestOptions = {}): Promise<TLibraryRow[]> {
+	const response = await backendFetch(`${BASE}/libraries/refresh`, {method: 'POST'}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to refresh libraries: ${response.status}`);
+	}
+	return parseJSON(
+		response,
+		(value): value is TLibraryRow[] => Array.isArray(value) && value.every(isLibraryRow),
+		'Invalid libraries response payload'
+	);
 }
