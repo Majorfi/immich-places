@@ -641,8 +641,8 @@ func TestDeleteUserSyncData(t *testing.T) {
 	db.replaceFrequentLocations(ctx, testUserID, []FrequentLocationRow{
 		{Latitude: 48.85, Longitude: 2.35, Label: "Paris", AssetCount: 10},
 	})
-	db.upsertLibrary(ctx, "lib1", "My Library", 5)
-	db.updateLibraryVisibility(ctx, "lib1", true)
+	db.upsertLibrary(ctx, testUserID, "lib1", "My Library", 5)
+	db.updateLibraryVisibility(ctx, testUserID, "lib1", true)
 	db.setSyncState(ctx, testUserID, "lastSyncAt", "2024-01-01T00:00:00Z")
 
 	otherUserID := "other-user-id"
@@ -670,11 +670,8 @@ func TestDeleteUserSyncData(t *testing.T) {
 		t.Errorf("expected 0 frequent locations for target user, got %d", len(locs))
 	}
 	libs, _ := db.getLibraries(ctx, testUserID)
-	if len(libs) != 1 {
-		t.Errorf("expected 1 library (shared, not deleted), got %d", len(libs))
-	}
-	if !libs[0].IsHidden {
-		t.Error("expected shared library visibility to be preserved")
+	if len(libs) != 0 {
+		t.Errorf("expected 0 libraries for target user, got %d", len(libs))
 	}
 	syncVal, _ := db.getSyncState(ctx, testUserID, "lastSyncAt")
 	if syncVal != nil {
