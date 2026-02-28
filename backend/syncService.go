@@ -531,12 +531,12 @@ func (s *SyncService) syncLibraries(ctx context.Context, userID string, immich S
 	libraryIDs := make([]string, 0, len(libraries))
 	for _, lib := range libraries {
 		libraryIDs = append(libraryIDs, lib.ID)
-		if err := s.db.upsertLibrary(ctx, userID, lib.ID, lib.Name, lib.AssetCount); err != nil {
+		if err := s.db.upsertLibrary(ctx, lib.ID, lib.Name, lib.AssetCount); err != nil {
 			log.Printf("Failed to upsert library %s for user %s: %v", lib.ID, userID, err)
 		}
 	}
 
-	if err := s.db.deleteLibrariesNotIn(ctx, userID, libraryIDs); err != nil {
+	if err := s.db.deleteLibrariesNotIn(ctx, libraryIDs); err != nil {
 		log.Printf("Failed to clean up stale libraries for user %s: %v", userID, err)
 	}
 
