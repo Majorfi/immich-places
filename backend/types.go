@@ -15,6 +15,7 @@ type AssetRow struct {
 	StackID             *string  `json:"stackID,omitempty"`
 	StackPrimaryAssetID *string  `json:"stackPrimaryAssetID,omitempty"`
 	StackAssetCount     *int     `json:"stackAssetCount,omitempty"`
+	LibraryID           *string  `json:"libraryID,omitempty"`
 }
 
 type FrequentLocationRow struct {
@@ -75,8 +76,8 @@ type LocationUpdateRequest struct {
 type TViewportBoundsRequest struct {
 	North float64 `validate:"min=-90,max=90"`
 	South float64 `validate:"min=-90,max=90,ltefield=North"`
-	East  float64 `validate:"min=-180,max=180"`
-	West  float64 `validate:"min=-180,max=180"`
+	East  float64
+	West  float64
 }
 
 type ImmichExifInfo struct {
@@ -94,6 +95,7 @@ type ImmichAssetResponse struct {
 	OriginalFileName string          `json:"originalFileName"`
 	FileCreatedAt    string          `json:"fileCreatedAt"`
 	ExifInfo         *ImmichExifInfo `json:"exifInfo"`
+	LibraryID        *string         `json:"libraryId"`
 }
 
 type ImmichStackResponse struct {
@@ -175,8 +177,27 @@ type UpdateAPIKeyRequest struct {
 type TMeResponse struct {
 	User            UserRow `json:"user"`
 	HasImmichAPIKey bool    `json:"hasImmichAPIKey"`
+	HasLibraries    bool    `json:"hasLibraries"`
 }
 
 type AuthStatusResponse struct {
 	RegistrationEnabled bool `json:"registrationEnabled"`
+}
+
+type LibraryRow struct {
+	LibraryID  string `json:"libraryID"`
+	Name       string `json:"name"`
+	AssetCount int    `json:"assetCount"`
+	IsHidden   bool   `json:"isHidden"`
+	SyncedAt   string `json:"syncedAt"`
+}
+
+type ImmichLibraryResponse struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	AssetCount int    `json:"assetCount"`
+}
+
+type LibraryUpdateRequest struct {
+	IsHidden *bool `json:"isHidden" validate:"required"`
 }

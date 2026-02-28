@@ -19,10 +19,10 @@ const (
 )
 
 const assetColumns = `immichID, type, originalFileName, fileCreatedAt, latitude, longitude,
-		city, state, country, dateTimeOriginal, syncedAt, stackID, stackPrimaryAssetID, stackAssetCount`
+		city, state, country, dateTimeOriginal, syncedAt, stackID, stackPrimaryAssetID, stackAssetCount, libraryID`
 
 const assetColumnsAliased = `a.immichID, a.type, a.originalFileName, a.fileCreatedAt, a.latitude, a.longitude,
-		a.city, a.state, a.country, a.dateTimeOriginal, a.syncedAt, a.stackID, a.stackPrimaryAssetID, a.stackAssetCount`
+		a.city, a.state, a.country, a.dateTimeOriginal, a.syncedAt, a.stackID, a.stackPrimaryAssetID, a.stackAssetCount, a.libraryID`
 
 type Database struct {
 	db            *sql.DB
@@ -85,16 +85,31 @@ func (d *Database) deleteSyncState(ctx context.Context, userID, key string) {
 	d.db.ExecContext(ctx, "DELETE FROM syncState WHERE userID = ? AND key = ?", userID, key)
 }
 
+const hiddenLibraryFilter = ` AND (libraryID IS NULL OR libraryID NOT IN (
+		SELECT libraryID FROM libraries WHERE isHidden = 1
+	))`
+
+const hiddenLibraryFilterAliased = ` AND (a.libraryID IS NULL OR a.libraryID NOT IN (
+		SELECT libraryID FROM libraries WHERE isHidden = 1
+	))`
+
+const hiddenLibraryFilterAliasedAST = ` AND (ast.libraryID IS NULL OR ast.libraryID NOT IN (
+		SELECT libraryID FROM libraries WHERE isHidden = 1
+	))`
+
 func (d *Database) countAssets(ctx context.Context, userID string) (int, error) {
 	var count int
-	err := d.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM assets WHERE userID = ?", userID).Scan(&count)
+	err := d.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM assets WHERE userID = ?"+hiddenLibraryFilter,
+		userID,
+	).Scan(&count)
 	return count, err
 }
 
 func (d *Database) countNoGPSAssets(ctx context.Context, userID string) (int, error) {
 	var count int
 	err := d.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM assets WHERE userID = ? AND (latitude IS NULL OR longitude IS NULL) AND stackPrimaryAssetID IS NULL",
+		"SELECT COUNT(*) FROM assets WHERE userID = ? AND (latitude IS NULL OR longitude IS NULL) AND stackPrimaryAssetID IS NULL"+hiddenLibraryFilter,
 		userID,
 	).Scan(&count)
 	return count, err
@@ -120,6 +135,7 @@ func buildAssetFilter(userID, albumID string, withGPS bool) assetFilter {
 			f.fromClause += ` AND (a.latitude IS NULL OR a.longitude IS NULL)`
 		}
 		f.fromClause += ` AND a.stackPrimaryAssetID IS NULL`
+		f.fromClause += hiddenLibraryFilterAliased
 	} else {
 		f.fromClause = `FROM assets WHERE userID = ? AND`
 		f.args = append(f.args, userID)
@@ -129,6 +145,7 @@ func buildAssetFilter(userID, albumID string, withGPS bool) assetFilter {
 			f.fromClause += ` (latitude IS NULL OR longitude IS NULL)`
 		}
 		f.fromClause += ` AND stackPrimaryAssetID IS NULL`
+		f.fromClause += hiddenLibraryFilter
 	}
 	return f
 }
@@ -174,13 +191,13 @@ func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bo
 			FROM assets a
 			JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID
 			WHERE a.userID = ? AND aa.albumID = ? AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
-				AND a.stackPrimaryAssetID IS NULL`
+				AND a.stackPrimaryAssetID IS NULL` + hiddenLibraryFilterAliased
 		args = append(args, userID, albumID)
 	} else {
 		query = `SELECT immichID, latitude, longitude
 			FROM assets
 			WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
-				AND stackPrimaryAssetID IS NULL`
+				AND stackPrimaryAssetID IS NULL` + hiddenLibraryFilter
 		args = append(args, userID)
 	}
 
@@ -221,7 +238,7 @@ func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bo
 func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*AssetRow, error) {
 	row := d.db.QueryRowContext(ctx,
 		`SELECT `+assetColumns+`
-		FROM assets WHERE userID = ? AND immichID = ?`,
+		FROM assets WHERE userID = ? AND immichID = ?`+hiddenLibraryFilter,
 		userID, immichID,
 	)
 
@@ -229,7 +246,7 @@ func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*
 	err := row.Scan(
 		&a.ImmichID, &a.Type, &a.OriginalFileName, &a.FileCreatedAt,
 		&a.Latitude, &a.Longitude, &a.City, &a.State, &a.Country,
-		&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount,
+		&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount, &a.LibraryID,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -240,8 +257,8 @@ func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*
 	return &a, nil
 }
 
-const upsertAssetSQL = `INSERT INTO assets (immichID, userID, type, originalFileName, fileCreatedAt, latitude, longitude, city, state, country, dateTimeOriginal, stackID, stackPrimaryAssetID, stackAssetCount, syncedAt)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+const upsertAssetSQL = `INSERT INTO assets (immichID, userID, type, originalFileName, fileCreatedAt, latitude, longitude, city, state, country, dateTimeOriginal, stackID, stackPrimaryAssetID, stackAssetCount, libraryID, syncedAt)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
 	ON CONFLICT(userID, immichID) DO UPDATE SET
 		type = excluded.type,
 		originalFileName = excluded.originalFileName,
@@ -255,6 +272,7 @@ const upsertAssetSQL = `INSERT INTO assets (immichID, userID, type, originalFile
 		stackID = excluded.stackID,
 		stackPrimaryAssetID = excluded.stackPrimaryAssetID,
 		stackAssetCount = excluded.stackAssetCount,
+		libraryID = excluded.libraryID,
 		syncedAt = datetime('now')`
 
 func (d *Database) upsertAssets(ctx context.Context, userID string, assets []AssetRow) error {
@@ -274,7 +292,7 @@ func (d *Database) upsertAssets(ctx context.Context, userID string, assets []Ass
 		if _, err := stmt.ExecContext(ctx,
 			a.ImmichID, userID, a.Type, a.OriginalFileName, a.FileCreatedAt,
 			a.Latitude, a.Longitude, a.City, a.State, a.Country, a.DateTimeOriginal,
-			a.StackID, a.StackPrimaryAssetID, a.StackAssetCount,
+			a.StackID, a.StackPrimaryAssetID, a.StackAssetCount, a.LibraryID,
 		); err != nil {
 			return err
 		}
@@ -305,7 +323,7 @@ func (d *Database) getSameDayAssets(ctx context.Context, userID, dateTimeOrigina
 		WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
 			AND dateTimeOriginal IS NOT NULL
 			AND stackPrimaryAssetID IS NULL
-			AND dateTimeOriginal BETWEEN ? AND ?`,
+			AND dateTimeOriginal BETWEEN ? AND ?`+hiddenLibraryFilter,
 		userID, rangeStart, rangeEnd,
 	)
 	if err != nil {
@@ -365,7 +383,7 @@ func (d *Database) computeFrequentLocationClusters(ctx context.Context, userID s
 		`SELECT ROUND(latitude, 2) as lat, ROUND(longitude, 2) as lon, COUNT(*) as cnt
 		FROM assets
 		WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
-			AND stackPrimaryAssetID IS NULL
+			AND stackPrimaryAssetID IS NULL`+hiddenLibraryFilter+`
 		GROUP BY ROUND(latitude, 2), ROUND(longitude, 2)
 		ORDER BY cnt DESC
 		LIMIT 20`,
@@ -389,7 +407,7 @@ func (d *Database) computeFrequentLocationClusters(ctx context.Context, userID s
 
 func (d *Database) getAssetPageInfo(ctx context.Context, userID, assetID string, albumID string, pageSize int) (*AssetPageInfo, error) {
 	var fileCreatedAt string
-	err := d.db.QueryRowContext(ctx, "SELECT fileCreatedAt FROM assets WHERE immichID = ? AND userID = ?", assetID, userID).Scan(&fileCreatedAt)
+	err := d.db.QueryRowContext(ctx, "SELECT fileCreatedAt FROM assets WHERE immichID = ? AND userID = ?"+hiddenLibraryFilter, assetID, userID).Scan(&fileCreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("asset not found: %w", err)
 	}
@@ -412,7 +430,7 @@ func (d *Database) getAssetPageInfo(ctx context.Context, userID, assetID string,
 			WHERE a.userID = ? AND aa.albumID = ?
 				AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
 				AND a.stackPrimaryAssetID IS NULL
-				AND (a.fileCreatedAt > ? OR (a.fileCreatedAt = ? AND a.immichID > ?))`,
+				AND (a.fileCreatedAt > ? OR (a.fileCreatedAt = ? AND a.immichID > ?))`+hiddenLibraryFilterAliased,
 			userID, albumID, fileCreatedAt, fileCreatedAt, assetID,
 		).Scan(&position)
 	} else {
@@ -420,7 +438,7 @@ func (d *Database) getAssetPageInfo(ctx context.Context, userID, assetID string,
 			`SELECT COUNT(*) FROM assets
 			WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
 				AND stackPrimaryAssetID IS NULL
-				AND (fileCreatedAt > ? OR (fileCreatedAt = ? AND immichID > ?))`,
+				AND (fileCreatedAt > ? OR (fileCreatedAt = ? AND immichID > ?))`+hiddenLibraryFilter,
 			userID, fileCreatedAt, fileCreatedAt, assetID,
 		).Scan(&position)
 	}
@@ -548,6 +566,29 @@ func (d *Database) isAssetInAlbum(ctx context.Context, userID, assetID, albumID 
 	return exists, nil
 }
 
+func (d *Database) deleteUserSyncData(ctx context.Context, userID string) error {
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	tables := []string{
+		"albumAssets",
+		"albums",
+		"frequentLocations",
+		"assets",
+		"syncState",
+	}
+	for _, table := range tables {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table+" WHERE userID = ?", userID); err != nil {
+			return fmt.Errorf("delete from %s: %w", table, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (d *Database) close() error {
 	return d.db.Close()
 }
@@ -559,7 +600,7 @@ func scanAssetRows(rows *sql.Rows) ([]AssetRow, error) {
 		if err := rows.Scan(
 			&a.ImmichID, &a.Type, &a.OriginalFileName, &a.FileCreatedAt,
 			&a.Latitude, &a.Longitude, &a.City, &a.State, &a.Country,
-			&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount,
+			&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount, &a.LibraryID,
 		); err != nil {
 			return nil, err
 		}

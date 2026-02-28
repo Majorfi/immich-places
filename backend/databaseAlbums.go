@@ -81,7 +81,7 @@ func (d *Database) getAlbumsWithNoGPSCount(ctx context.Context, userID string) (
 		`SELECT a.immichID, a.albumName, a.thumbnailAssetID, a.assetCount, a.updatedAt, a.startDate,
 			COUNT(CASE WHEN ast.immichID IS NOT NULL
 				AND (ast.latitude IS NULL OR ast.longitude IS NULL)
-				AND ast.stackPrimaryAssetID IS NULL THEN 1 END) as filteredCount
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+` THEN 1 END) as filteredCount
 		FROM albums a
 		LEFT JOIN albumAssets aa ON aa.userID = a.userID AND aa.albumID = a.immichID
 		LEFT JOIN assets ast ON ast.userID = a.userID AND ast.immichID = aa.assetID
@@ -111,9 +111,9 @@ func (d *Database) getAlbumsWithGPSCount(ctx context.Context, userID string) ([]
 	rows, err := d.db.QueryContext(ctx,
 		`SELECT a.immichID, a.albumName, a.thumbnailAssetID, a.assetCount, a.updatedAt, a.startDate,
 			COUNT(CASE WHEN ast.latitude IS NOT NULL AND ast.longitude IS NOT NULL
-				AND ast.stackPrimaryAssetID IS NULL THEN 1 END) as filteredCount,
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+` THEN 1 END) as filteredCount,
 			COUNT(CASE WHEN (ast.latitude IS NULL OR ast.longitude IS NULL)
-				AND ast.stackPrimaryAssetID IS NULL THEN 1 END) as noGPSCount
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+` THEN 1 END) as noGPSCount
 		FROM albums a
 		JOIN albumAssets aa ON aa.userID = a.userID AND aa.albumID = a.immichID
 		JOIN assets ast ON ast.userID = a.userID AND ast.immichID = aa.assetID
@@ -145,7 +145,7 @@ func (d *Database) getGeolocatedAssetsByAlbum(ctx context.Context, userID, album
 		FROM assets a
 		JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID
 		WHERE a.userID = ? AND aa.albumID = ? AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
-			AND a.stackPrimaryAssetID IS NULL`,
+			AND a.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliased,
 		userID, albumID,
 	)
 	if err != nil {
