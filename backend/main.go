@@ -41,6 +41,7 @@ func main() {
 	syncService := newSyncService(db, immichFactory, nominatim)
 	suggestions := newSuggestionService(db)
 	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions)
+	libraryHandlers := newLibraryHandlers(db, immichFactory, syncService)
 	authHandlers := newAuthHandlers(db, immichFactory, syncService, cfg.RegistrationEnabled, !cfg.AllowInsecure)
 
 	authMux := http.NewServeMux()
@@ -63,6 +64,9 @@ func main() {
 	protectedMux.HandleFunc("GET /assets/{assetID}/page-info", handlers.handleGetAssetPageInfo)
 	protectedMux.HandleFunc("POST /sync", handlers.handleTriggerSync)
 	protectedMux.HandleFunc("GET /sync/status", handlers.handleSyncStatus)
+	protectedMux.HandleFunc("GET /libraries", libraryHandlers.handleGetLibraries)
+	protectedMux.HandleFunc("PUT /libraries/{libraryID}", libraryHandlers.handleUpdateLibrary)
+	protectedMux.HandleFunc("POST /libraries/refresh", libraryHandlers.handleRefreshLibraries)
 
 	mainMux := http.NewServeMux()
 	mainMux.HandleFunc("GET /health", handlers.handleHealth)
@@ -80,12 +84,7 @@ func main() {
 	if err != nil {
 		log.Printf("Failed to load users for startup sync: %v", err)
 	} else {
-		for _, u := range users {
-			if u.ImmichAPIKey == nil {
-				continue
-			}
-			syncService.triggerUserSync(u.ID, *u.ImmichAPIKey)
-		}
+		syncService.runStartupSyncs(ctx, users)
 	}
 
 	syncService.startPeriodicSync(ctx, cfg.SyncIntervalMS)

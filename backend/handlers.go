@@ -206,6 +206,10 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		boundsReq := TViewportBoundsRequest{North: n, South: s, East: e, West: w2}
+		if err := validate.Struct(boundsReq); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid bounds: latitude must be between -90 and 90, south must be <= north")
+			return
+		}
 		bounds = &TViewportBounds{North: n, South: s, East: boundsReq.East, West: boundsReq.West}
 	}
 
@@ -437,11 +441,7 @@ func (h *Handlers) handleTriggerSync(w http.ResponseWriter, r *http.Request) {
 
 	reason, ok := h.syncService.triggerUserSync(user.ID, *user.ImmichAPIKey)
 	if !ok {
-		status := http.StatusOK
-		if reason == "cooldown active" {
-			status = http.StatusTooManyRequests
-		}
-		writeJSON(w, status, map[string]string{"status": reason})
+		writeJSON(w, http.StatusOK, map[string]string{"status": reason})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": reason})
