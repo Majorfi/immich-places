@@ -122,6 +122,57 @@ func TestMapMarkersBoundsValidation(t *testing.T) {
 	}
 }
 
+func TestMapMarkersLimitValidation(t *testing.T) {
+	_, mux := newTestHandlers(t)
+
+	tests := []struct {
+		name   string
+		query  string
+		status int
+	}{
+		{"valid limit returns 200", "/map-markers?limit=10000", 200},
+		{"non-numeric limit returns 400", "/map-markers?limit=abc", 400},
+		{"negative limit returns 400", "/map-markers?limit=-1", 400},
+		{"zero limit returns 400", "/map-markers?limit=0", 400},
+		{"too large limit returns 400", "/map-markers?limit=100001", 400},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := withTestUser(httptest.NewRequest("GET", tt.query, nil))
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.status {
+				t.Errorf("expected %d, got %d (body: %s)", tt.status, rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestMapMarkersLimitApplied(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	d := handlers.db.(*Database)
+	seedAsset(t, d, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, d, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+
+	req := withTestUser(httptest.NewRequest("GET", "/map-markers?limit=1", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	var markers []MapMarker
+	if err := json.NewDecoder(rec.Body).Decode(&markers); err != nil {
+		t.Fatalf("decode map markers response: %v", err)
+	}
+	if len(markers) != 1 {
+		t.Errorf("expected 1 marker in response body due to limit=1, got %d", len(markers))
+	}
+}
+
 func TestLocationUpdateValidation(t *testing.T) {
 	_, mux := newTestHandlers(t)
 

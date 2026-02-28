@@ -23,6 +23,7 @@ const (
 	defaultPageInfoPageSize = 90
 	frequentLocationsLimit  = 5
 	maxClusterResults       = 5
+	defaultMapMarkersLimit  = maxMapMarkers
 )
 
 var (
@@ -194,6 +195,15 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	albumID := r.URL.Query().Get("albumID")
+	limit, err := queryInt(r, "limit", defaultMapMarkersLimit)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if limit < 1 || limit > maxMapMarkers {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("limit must be between 1 and %d", maxMapMarkers))
+		return
+	}
 
 	var bounds *TViewportBounds
 	q := r.URL.Query()
@@ -207,16 +217,16 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		n, errN := strconv.ParseFloat(northStr, 64)
 		s, errS := strconv.ParseFloat(southStr, 64)
 		e, errE := strconv.ParseFloat(eastStr, 64)
-		w2, errW := strconv.ParseFloat(westStr, 64)
+		west, errW := strconv.ParseFloat(westStr, 64)
 		if errN != nil || errS != nil || errE != nil || errW != nil {
 			writeError(w, http.StatusBadRequest, "bounds must be valid numbers")
 			return
 		}
-		if math.IsNaN(n) || math.IsNaN(s) || math.IsNaN(e) || math.IsNaN(w2) || math.IsInf(n, 0) || math.IsInf(s, 0) || math.IsInf(e, 0) || math.IsInf(w2, 0) {
+		if math.IsNaN(n) || math.IsNaN(s) || math.IsNaN(e) || math.IsNaN(west) || math.IsInf(n, 0) || math.IsInf(s, 0) || math.IsInf(e, 0) || math.IsInf(west, 0) {
 			writeError(w, http.StatusBadRequest, "bounds must be valid finite numbers")
 			return
 		}
-		boundsReq := TViewportBoundsRequest{North: n, South: s, East: e, West: w2}
+		boundsReq := TViewportBoundsRequest{North: n, South: s, East: e, West: west}
 		if err := validate.Struct(boundsReq); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid bounds: latitude must be between -90 and 90, south must be <= north")
 			return
@@ -224,7 +234,7 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		bounds = &TViewportBounds{North: n, South: s, East: boundsReq.East, West: boundsReq.West}
 	}
 
-	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, bounds)
+	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, bounds, limit)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query map markers")
 		return

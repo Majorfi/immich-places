@@ -15,7 +15,7 @@ import (
 
 const (
 	sqliteChunkSize = 500
-	maxMapMarkers   = 50000
+	maxMapMarkers   = 100000
 )
 
 const assetColumns = `immichID, type, originalFileName, fileCreatedAt, latitude, longitude,
@@ -182,41 +182,52 @@ func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID stri
 	return count, err
 }
 
-func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds) ([]MapMarker, error) {
-	var query string
-	var args []interface{}
+type markerFilter struct {
+	fromClause string
+	args       []interface{}
+	prefix     string
+}
 
+func buildMarkerFilter(userID, albumID string, bounds *TViewportBounds) markerFilter {
+	var f markerFilter
 	if albumID != "" {
-		query = `SELECT a.immichID, a.latitude, a.longitude
-			FROM assets a
+		f.prefix = "a."
+		f.fromClause = `FROM assets a
 			JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID
 			WHERE a.userID = ? AND aa.albumID = ? AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
 				AND a.stackPrimaryAssetID IS NULL` + hiddenLibraryFilterAliased
-		args = append(args, userID, albumID)
+		f.args = append(f.args, userID, albumID)
 	} else {
-		query = `SELECT immichID, latitude, longitude
-			FROM assets
+		f.fromClause = `FROM assets
 			WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
 				AND stackPrimaryAssetID IS NULL` + hiddenLibraryFilter
-		args = append(args, userID)
+		f.args = append(f.args, userID)
 	}
 
 	if bounds != nil {
-		prefix := ""
-		if albumID != "" {
-			prefix = "a."
-		}
-		query += fmt.Sprintf(` AND %slatitude BETWEEN ? AND ?`, prefix)
-		args = append(args, bounds.South, bounds.North)
+		f.fromClause += fmt.Sprintf(` AND %slatitude BETWEEN ? AND ?`, f.prefix)
+		f.args = append(f.args, bounds.South, bounds.North)
 		if bounds.West > bounds.East {
-			query += fmt.Sprintf(` AND (%slongitude >= ? OR %slongitude <= ?)`, prefix, prefix)
+			f.fromClause += fmt.Sprintf(` AND (%slongitude >= ? OR %slongitude <= ?)`, f.prefix, f.prefix)
 		} else {
-			query += fmt.Sprintf(` AND %slongitude BETWEEN ? AND ?`, prefix)
+			f.fromClause += fmt.Sprintf(` AND %slongitude BETWEEN ? AND ?`, f.prefix)
 		}
-		args = append(args, bounds.West, bounds.East)
+		f.args = append(f.args, bounds.West, bounds.East)
+	}
+	return f
+}
+
+func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds, limit int) ([]MapMarker, error) {
+	f := buildMarkerFilter(userID, albumID, bounds)
+
+	selectCols := "immichID, latitude, longitude"
+	if f.prefix != "" {
+		selectCols = "a.immichID, a.latitude, a.longitude"
 	}
 
-	query += fmt.Sprintf(" LIMIT %d", maxMapMarkers)
+	query := fmt.Sprintf("SELECT %s %s ORDER BY %sfileCreatedAt DESC, %simmichID DESC LIMIT ?",
+		selectCols, f.fromClause, f.prefix, f.prefix)
+	args := append(f.args, limit)
 
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -233,6 +244,15 @@ func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bo
 		markers = append(markers, m)
 	}
 	return markers, rows.Err()
+}
+
+func (d *Database) countMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds) (int, error) {
+	f := buildMarkerFilter(userID, albumID, bounds)
+	query := "SELECT COUNT(*) " + f.fromClause
+
+	var count int
+	err := d.db.QueryRowContext(ctx, query, f.args...).Scan(&count)
+	return count, err
 }
 
 func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*AssetRow, error) {

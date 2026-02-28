@@ -23,6 +23,7 @@ type TAuthContextValueProps = {
 	user: TAuthUser | null;
 	hasImmichAPIKey: boolean;
 	hasLibraries: boolean;
+	mapMarkerCount: number;
 	isLoading: boolean;
 	error: string | null;
 	login: (email: string, password: string) => Promise<boolean>;
@@ -69,6 +70,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 	const [user, setUser] = useState<TAuthUser | null>(null);
 	const [hasImmichAPIKey, setHasImmichAPIKey] = useState(false);
 	const [hasLibraries, setHasLibraries] = useState(false);
+	const [mapMarkerCount, setMapMarkerCount] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +78,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 		setUser(me.user);
 		setHasImmichAPIKey(me.hasImmichAPIKey);
 		setHasLibraries(me.hasLibraries);
+		setMapMarkerCount(me.mapMarkerCount);
 		setError(null);
 	}, []);
 
@@ -83,6 +86,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 		setUser(null);
 		setHasImmichAPIKey(false);
 		setHasLibraries(false);
+		setMapMarkerCount(0);
 		setError(null);
 		clearAuthStorage();
 	}, []);
@@ -192,6 +196,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 				user,
 				hasImmichAPIKey,
 				hasLibraries,
+				mapMarkerCount,
 				isLoading,
 				error,
 				login,

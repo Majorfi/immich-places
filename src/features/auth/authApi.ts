@@ -81,7 +81,10 @@ function isMeResponse(value: unknown): value is TMeResponse {
 		return false;
 	}
 	return (
-		isAuthUser(value.user) && typeof value.hasImmichAPIKey === 'boolean' && typeof value.hasLibraries === 'boolean'
+		isAuthUser(value.user) &&
+		typeof value.hasImmichAPIKey === 'boolean' &&
+		typeof value.hasLibraries === 'boolean' &&
+		typeof value.mapMarkerCount === 'number'
 	);
 }
 

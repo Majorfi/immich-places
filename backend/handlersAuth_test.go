@@ -309,6 +309,29 @@ func TestMeWithUser(t *testing.T) {
 	}
 }
 
+func TestMeIncludesMapMarkerCount(t *testing.T) {
+	h, db := newTestAuthHandlers(t)
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+
+	req := withTestUser(httptest.NewRequest("GET", "/auth/me", nil))
+	rec := httptest.NewRecorder()
+
+	h.handleMe(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	var resp TMeResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode me response: %v", err)
+	}
+	if resp.MapMarkerCount != 2 {
+		t.Errorf("expected mapMarkerCount=2, got %d", resp.MapMarkerCount)
+	}
+}
+
 func TestAuthStatus(t *testing.T) {
 	h, _ := newTestAuthHandlers(t)
 

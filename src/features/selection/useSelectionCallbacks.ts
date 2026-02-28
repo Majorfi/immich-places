@@ -5,6 +5,7 @@ import {useCallback} from 'react';
 type TUseSelectionCallbacksArgs = {
 	removeAsset: (assetID: string) => void;
 	refreshHealth: () => Promise<void>;
+	refreshUser: () => Promise<void>;
 	loadAlbumsAction: () => Promise<void>;
 };
 
@@ -28,6 +29,7 @@ type TUseSelectionCallbacksResult = {
 export function useSelectionCallbacks({
 	removeAsset,
 	refreshHealth,
+	refreshUser,
 	loadAlbumsAction
 }: TUseSelectionCallbacksArgs): TUseSelectionCallbacksResult {
 	const onAssetSavedAction = useCallback(
@@ -38,8 +40,8 @@ export function useSelectionCallbacks({
 	);
 
 	const onBatchSavedAction = useCallback(async () => {
-		await Promise.all([refreshHealth(), loadAlbumsAction()]);
-	}, [refreshHealth, loadAlbumsAction]);
+		await Promise.all([refreshHealth(), refreshUser(), loadAlbumsAction()]);
+	}, [refreshHealth, refreshUser, loadAlbumsAction]);
 
 	return {onAssetSavedAction, onBatchSavedAction};
 }

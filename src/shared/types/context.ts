@@ -24,6 +24,8 @@ export type TViewContextValue = {
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;
 	setGridColumnsAction: (cols: number) => void;
+	visibleMarkerLimit: number;
+	setVisibleMarkerLimitAction: (limit: number) => void;
 	viewMode: TViewMode;
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
@@ -93,6 +95,11 @@ export type TUIMapContextValue = {
 	lightboxAssetID: string | null;
 	openLightboxAction: (assetID: string) => void;
 	closeLightboxAction: () => void;
+
+	visibleMarkerTotalCount: number | null;
+	isVisibleMarkerTotalCountStale: boolean;
+	setVisibleMarkerTotalCountAction: (totalCount: number | null) => void;
+	markVisibleMarkerTotalCountStaleAction: () => void;
 
 	mapMarkersVersion: number;
 };

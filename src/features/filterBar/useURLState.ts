@@ -6,15 +6,18 @@ import {ALLOWED_GRID_COLUMNS, ALLOWED_PAGE_SIZES} from '@/features/filterBar/con
 import {
 	DEFAULT_GRID_COLUMNS,
 	DEFAULT_PAGE_SIZE,
+	DEFAULT_VISIBLE_MARKER_LIMIT,
 	GPS_FILTER_DEFAULT,
 	GPS_FILTER_NO_GPS,
 	GPS_FILTER_WITH_GPS,
 	URL_PARAM_ALBUM_ID,
 	URL_PARAM_GPS_FILTER,
 	URL_PARAM_GRID_COLUMNS,
+	URL_PARAM_MARKER_LIMIT,
 	URL_PARAM_PAGE_SIZE,
 	URL_PARAM_VIEW_MODE,
-	VIEW_MODE_DEFAULT
+	VIEW_MODE_DEFAULT,
+	clampVisibleMarkerLimit
 } from '@/utils/view';
 
 import type {TGPSFilter} from '@/shared/types/map';
@@ -29,6 +32,7 @@ type TURLSyncState = {
 	selectedAlbumID: string | null;
 	pageSize: number;
 	gridColumns: number;
+	visibleMarkerLimit: number;
 };
 
 /**
@@ -41,6 +45,8 @@ type TURLState = {
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;
 	setGridColumnsAction: (cols: number) => void;
+	visibleMarkerLimit: number;
+	setVisibleMarkerLimitAction: (limit: number) => void;
 	viewMode: TViewMode;
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
@@ -132,6 +138,20 @@ function normalizePageParam(value: string | null, defaultsTo: number, allowed: S
 }
 
 /**
+ * Converts a raw URL marker-limit parameter into a valid marker limit.
+ *
+ * @param value - Raw marker-limit query value.
+ * @returns Marker-limit value clamped to supported bounds.
+ */
+function normalizeVisibleMarkerLimitParam(value: string | null): number {
+	const parsed = Number.parseInt(value ?? '', 10);
+	if (!Number.isFinite(parsed)) {
+		return DEFAULT_VISIBLE_MARKER_LIMIT;
+	}
+	return clampVisibleMarkerLimit(parsed);
+}
+
+/**
  * Parses and validates URL GPS filter parameter.
  *
  * @param value - Candidate GPS filter value.
@@ -172,6 +192,9 @@ export function buildURLFromState(state: TURLSyncState): string {
 	if (state.gridColumns !== DEFAULT_GRID_COLUMNS) {
 		params.set(URL_PARAM_GRID_COLUMNS, String(state.gridColumns));
 	}
+	if (state.visibleMarkerLimit !== DEFAULT_VISIBLE_MARKER_LIMIT) {
+		params.set(URL_PARAM_MARKER_LIMIT, String(state.visibleMarkerLimit));
+	}
 	const query = params.toString();
 	return query ? `?${query}` : '';
 }
@@ -194,7 +217,8 @@ function applyURLToState(
 	setViewModeAction: (mode: TViewMode) => void,
 	setSelectedAlbumIDAction: (albumID: string | null) => void,
 	setPageSizeAction: (size: number) => void,
-	setGridColumnsAction: (cols: number) => void
+	setGridColumnsAction: (cols: number) => void,
+	setVisibleMarkerLimitAction: (limit: number) => void
 ): void {
 	if (typeof window === 'undefined') {
 		return;
@@ -218,6 +242,9 @@ function applyURLToState(
 
 	const urlGridCols = params.get(URL_PARAM_GRID_COLUMNS);
 	setGridColumnsAction(normalizePageParam(urlGridCols, DEFAULT_GRID_COLUMNS, ALLOWED_GRID_COLUMNS));
+
+	const urlVisibleMarkerLimit = params.get(URL_PARAM_MARKER_LIMIT);
+	setVisibleMarkerLimitAction(normalizeVisibleMarkerLimitParam(urlVisibleMarkerLimit));
 }
 
 /**
@@ -233,6 +260,7 @@ export function useURLState(): TURLState {
 	const [gpsFilter, setGPSFilterRawAction] = useState<TGPSFilter>(GPS_FILTER_DEFAULT);
 	const [pageSize, setPageSizeAction] = useState(DEFAULT_PAGE_SIZE);
 	const [gridColumns, setGridColumnsAction] = useState(DEFAULT_GRID_COLUMNS);
+	const [visibleMarkerLimit, setVisibleMarkerLimitAction] = useState(DEFAULT_VISIBLE_MARKER_LIMIT);
 	const [viewMode, setViewModeAction] = useState<TViewMode>(VIEW_MODE_DEFAULT);
 	const [selectedAlbumID, setSelectedAlbumIDAction] = useState<string | null>(null);
 
@@ -245,11 +273,12 @@ export function useURLState(): TURLState {
 				viewMode: state?.viewMode ?? viewMode,
 				selectedAlbumID: hasSelectedAlbumID ? (state.selectedAlbumID ?? null) : selectedAlbumID,
 				pageSize: state?.pageSize ?? pageSize,
-				gridColumns: state?.gridColumns ?? gridColumns
+				gridColumns: state?.gridColumns ?? gridColumns,
+				visibleMarkerLimit: state?.visibleMarkerLimit ?? visibleMarkerLimit
 			};
 			return buildURLFromState(nextState);
 		},
-		[gpsFilter, viewMode, selectedAlbumID, pageSize, gridColumns]
+		[gpsFilter, viewMode, selectedAlbumID, pageSize, gridColumns, visibleMarkerLimit]
 	);
 
 	const syncURLAction = useCallback(
@@ -277,7 +306,8 @@ export function useURLState(): TURLState {
 			setViewModeAction,
 			setSelectedAlbumIDAction,
 			setPageSizeAction,
-			setGridColumnsAction
+			setGridColumnsAction,
+			setVisibleMarkerLimitAction
 		);
 
 		function handlePopstate(): void {
@@ -287,7 +317,8 @@ export function useURLState(): TURLState {
 				setViewModeAction,
 				setSelectedAlbumIDAction,
 				setPageSizeAction,
-				setGridColumnsAction
+				setGridColumnsAction,
+				setVisibleMarkerLimitAction
 			);
 		}
 
@@ -304,6 +335,8 @@ export function useURLState(): TURLState {
 		setPageSizeAction,
 		gridColumns,
 		setGridColumnsAction,
+		visibleMarkerLimit,
+		setVisibleMarkerLimitAction,
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,

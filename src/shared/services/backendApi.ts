@@ -17,7 +17,7 @@ import {
 } from '@/shared/services/backendApi.guards';
 import {getBackendBaseURL} from '@/utils/backendUrls';
 import {normalizePositiveInteger} from '@/utils/math';
-import {DEFAULT_PAGE_SIZE} from '@/utils/view';
+import {DEFAULT_PAGE_SIZE, DEFAULT_VISIBLE_MARKER_LIMIT} from '@/utils/view';
 
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
@@ -149,19 +149,22 @@ export async function fetchAlbums(gpsFilter: TGPSFilter, opts: TRequestOptions =
  *
  * @param albumID - Optional album id to filter map markers.
  * @param bounds - Optional viewport bounds to reduce marker fetch scope.
+ * @param limit - Maximum number of markers to return.
  * @param opts - Optional request options such as abort signal and timeout override.
- * @returns Array of map marker objects.
+ * @returns Map markers array.
  * @throws Error when the request fails or response payload is invalid.
  */
 export async function fetchMapMarkers(
 	albumID?: string,
 	bounds?: TViewportBounds | null,
+	limit: number = DEFAULT_VISIBLE_MARKER_LIMIT,
 	opts: TRequestOptions = {}
 ): Promise<TMapMarker[]> {
 	const params = new URLSearchParams();
 	if (albumID) {
 		params.set('albumID', albumID);
 	}
+	addIfNumber(params, 'limit', limit);
 	if (bounds) {
 		addIfNumber(params, 'north', bounds.north);
 		addIfNumber(params, 'south', bounds.south);

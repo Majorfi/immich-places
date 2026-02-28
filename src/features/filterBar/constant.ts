@@ -1,14 +1,6 @@
 import {GRID_COLUMN_OPTIONS, PAGE_SIZE_OPTIONS} from '@/utils/view';
 
 /**
- * Maximum panel height (open) for animated filter expansion.
- */
-export const FILTER_BAR_OPEN_MAX_HEIGHT_PX = 160;
-/**
- * Minimum panel height (collapsed) for animated filter expansion.
- */
-export const FILTER_BAR_CLOSED_MAX_HEIGHT_PX = 0;
-/**
  * Shared CSS transition preset for the filter expand/collapse panel.
  */
 export const FILTER_BAR_TRANSITION_CLASS = 'overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out';

@@ -140,6 +140,10 @@ func (h *AuthHandlers) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	markerCount, err := h.db.countMapMarkers(r.Context(), userID, "", nil)
+	if err != nil {
+		log.Printf("Register: failed to count map markers for user %s: %v", userID, err)
+	}
 	writeJSON(w, http.StatusCreated, TMeResponse{
 		User: UserRow{
 			ID:    userID,
@@ -147,6 +151,7 @@ func (h *AuthHandlers) handleRegister(w http.ResponseWriter, r *http.Request) {
 		},
 		HasImmichAPIKey: false,
 		HasLibraries:    false,
+		MapMarkerCount:  markerCount,
 	})
 }
 
@@ -189,10 +194,15 @@ func (h *AuthHandlers) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Login: failed to get hasLibraryAccess for user %s: %v", user.ID, err)
 	}
+	markerCount, markerErr := h.db.countMapMarkers(r.Context(), user.ID, "", nil)
+	if markerErr != nil {
+		log.Printf("Login: failed to count map markers for user %s: %v", user.ID, markerErr)
+	}
 	writeJSON(w, http.StatusOK, TMeResponse{
 		User:            *user,
 		HasImmichAPIKey: user.ImmichAPIKey != nil,
 		HasLibraries:    hasLibAccess != nil && *hasLibAccess == "true",
+		MapMarkerCount:  markerCount,
 	})
 }
 
@@ -217,10 +227,15 @@ func (h *AuthHandlers) handleMe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Me: failed to get hasLibraryAccess for user %s: %v", user.ID, err)
 	}
+	markerCount, markerErr := h.db.countMapMarkers(r.Context(), user.ID, "", nil)
+	if markerErr != nil {
+		log.Printf("Me: failed to count map markers for user %s: %v", user.ID, markerErr)
+	}
 	writeJSON(w, http.StatusOK, TMeResponse{
 		User:            *user,
 		HasImmichAPIKey: user.ImmichAPIKey != nil,
 		HasLibraries:    hasLibAccess != nil && *hasLibAccess == "true",
+		MapMarkerCount:  markerCount,
 	})
 }
 
@@ -320,9 +335,14 @@ func (h *AuthHandlers) handleUpdateSettings(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		log.Printf("UpdateSettings: failed to get hasLibraryAccess for user %s: %v", user.ID, err)
 	}
+	markerCount, markerErr := h.db.countMapMarkers(r.Context(), user.ID, "", nil)
+	if markerErr != nil {
+		log.Printf("UpdateSettings: failed to count map markers for user %s: %v", user.ID, markerErr)
+	}
 	writeJSON(w, http.StatusOK, TMeResponse{
 		User:            *updated,
 		HasImmichAPIKey: updated.ImmichAPIKey != nil,
 		HasLibraries:    hasLibAccess != nil && *hasLibAccess == "true",
+		MapMarkerCount:  markerCount,
 	})
 }

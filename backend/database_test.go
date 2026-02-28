@@ -90,12 +90,48 @@ func TestGetMapMarkersNoBounds(t *testing.T) {
 	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 	seedAsset(t, db, "a3", nil, nil, "2024-01-03T12:00:00Z")
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "", nil)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", nil, maxMapMarkers)
 	if err != nil {
 		t.Fatalf("getMapMarkers: %v", err)
 	}
 	if len(markers) != 2 {
 		t.Errorf("expected 2 markers, got %d", len(markers))
+	}
+}
+
+func TestGetMapMarkersRespectsLimit(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+
+	markers, err := db.getMapMarkers(ctx, testUserID, "", nil, 1)
+	if err != nil {
+		t.Fatalf("getMapMarkers with limit: %v", err)
+	}
+	if len(markers) != 1 {
+		t.Errorf("expected 1 marker when limit=1, got %d", len(markers))
+	}
+	if len(markers) == 1 && markers[0].ImmichID != "a2" {
+		t.Errorf("expected latest marker a2, got %s", markers[0].ImmichID)
+	}
+}
+
+func TestCountMapMarkers(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+	seedAsset(t, db, "a3", nil, nil, "2024-01-03T12:00:00Z")
+
+	count, err := db.countMapMarkers(ctx, testUserID, "", nil)
+	if err != nil {
+		t.Fatalf("countMapMarkers: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected map marker count 2, got %d", count)
 	}
 }
 
@@ -107,7 +143,7 @@ func TestGetMapMarkersWithBounds(t *testing.T) {
 	seedAsset(t, db, "nyc", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 
 	bounds := &TViewportBounds{North: 50, South: 45, East: 10, West: -5}
-	markers, err := db.getMapMarkers(ctx, testUserID, "", bounds)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", bounds, maxMapMarkers)
 	if err != nil {
 		t.Fatalf("getMapMarkers with bounds: %v", err)
 	}
@@ -128,7 +164,7 @@ func TestGetMapMarkersDatelineCrossing(t *testing.T) {
 	seedAsset(t, db, "paris", ptr(48.85), ptr(2.35), "2024-01-03T12:00:00Z")
 
 	bounds := &TViewportBounds{North: -10, South: -20, East: -170, West: 170}
-	markers, err := db.getMapMarkers(ctx, testUserID, "", bounds)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", bounds, maxMapMarkers)
 	if err != nil {
 		t.Fatalf("getMapMarkers dateline: %v", err)
 	}
@@ -585,7 +621,7 @@ func TestGetMapMarkersWithAlbum(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 1, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1"})
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "album1", nil)
+	markers, err := db.getMapMarkers(ctx, testUserID, "album1", nil, maxMapMarkers)
 	if err != nil {
 		t.Fatalf("getMapMarkers with album: %v", err)
 	}
@@ -604,7 +640,7 @@ func TestGetMapMarkersWithAlbumAndBounds(t *testing.T) {
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
 	bounds := &TViewportBounds{North: 50, South: 45, East: 10, West: -5}
-	markers, err := db.getMapMarkers(ctx, testUserID, "album1", bounds)
+	markers, err := db.getMapMarkers(ctx, testUserID, "album1", bounds, maxMapMarkers)
 	if err != nil {
 		t.Fatalf("getMapMarkers album+bounds: %v", err)
 	}

@@ -286,7 +286,7 @@ func TestHiddenLibraryAssetsExcludedFromMapMarkers(t *testing.T) {
 	db.upsertLibrary(ctx, "lib1", "External", 1)
 	db.updateLibraryVisibility(ctx, "lib1", true)
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "", nil)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", nil, maxMapMarkers)
 	if err != nil {
 		t.Fatalf("getMapMarkers: %v", err)
 	}
@@ -352,7 +352,7 @@ func TestUnknownLibraryAssetsVisible(t *testing.T) {
 		t.Errorf("expected 3 assets, got %d", total)
 	}
 
-	markers, _ := db.getMapMarkers(ctx, testUserID, "", nil)
+	markers, _ := db.getMapMarkers(ctx, testUserID, "", nil, maxMapMarkers)
 	if len(markers) != 3 {
 		t.Errorf("expected 3 markers, got %d", len(markers))
 	}

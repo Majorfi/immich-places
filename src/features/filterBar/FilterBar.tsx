@@ -1,19 +1,28 @@
 'use client';
 
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
+import {FILTER_BAR_TRANSITION_CLASS} from '@/features/filterBar/constant';
 import {
-	FILTER_BAR_CLOSED_MAX_HEIGHT_PX,
-	FILTER_BAR_OPEN_MAX_HEIGHT_PX,
-	FILTER_BAR_TRANSITION_CLASS
-} from '@/features/filterBar/constant';
-import {filterButtonClass, oppositeMode, toolButtonClass, viewIcon, viewTitle} from '@/features/filterBar/constants';
+	filterButtonClass,
+	oppositeMode,
+	optionButtonClass,
+	toolButtonClass,
+	viewIcon,
+	viewTitle
+} from '@/features/filterBar/constants';
 import {FilterIcon} from '@/features/filterBar/FilterIcon';
 import {GPSFilterGroup} from '@/features/filterBar/GPSFilterGroup';
 import {HeaderTitle} from '@/features/filterBar/HeaderTitle';
 import {NumericOptionGroup} from '@/features/filterBar/NumericOptionGroup';
 import {cn} from '@/utils/cn';
-import {GRID_COLUMN_OPTIONS, PAGE_SIZE_OPTIONS} from '@/utils/view';
+import {
+	GRID_COLUMN_OPTIONS,
+	PAGE_SIZE_OPTIONS,
+	buildVisibleMarkerLimitOptions,
+	formatMarkerLimitOption,
+	resolveActiveVisibleMarkerLimit
+} from '@/utils/view';
 
 import type {TGPSFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
@@ -30,6 +39,9 @@ type TFilterBarProps = {
 	onPageSizeAction: (size: number) => void;
 	gridColumns: number;
 	onGridColumnsAction: (cols: number) => void;
+	visibleMarkerLimit: number;
+	visibleMarkerTotalCount: number;
+	onVisibleMarkerLimitAction: (limit: number) => void;
 	viewMode: TViewMode;
 	onViewModeAction: (mode: TViewMode) => void;
 	isSyncing: boolean;
@@ -74,6 +86,9 @@ export function FilterBar({
 	onPageSizeAction,
 	gridColumns,
 	onGridColumnsAction,
+	visibleMarkerLimit,
+	visibleMarkerTotalCount,
+	onVisibleMarkerLimitAction,
 	viewMode,
 	onViewModeAction,
 	isSyncing,
@@ -84,7 +99,75 @@ export function FilterBar({
 	trailingAction
 }: TFilterBarProps): ReactElement {
 	const [isOpen, setIsOpen] = useState(true);
+	const [openPanelHeightPx, setOpenPanelHeightPx] = useState(160);
+	const panelBodyRef = useRef<HTMLDivElement | null>(null);
 	const nextMode = oppositeMode[viewMode];
+	const visibleMarkerLimitOptions = buildVisibleMarkerLimitOptions(visibleMarkerTotalCount);
+	const activeVisibleMarkerLimit = resolveActiveVisibleMarkerLimit(visibleMarkerLimit, visibleMarkerLimitOptions);
+	const activeVisibleMarkerLimitIndex = visibleMarkerLimitOptions.indexOf(activeVisibleMarkerLimit);
+	const canDecreaseVisibleMarkerLimit = activeVisibleMarkerLimitIndex > 0;
+	const canIncreaseVisibleMarkerLimit =
+		activeVisibleMarkerLimitIndex >= 0 && activeVisibleMarkerLimitIndex < visibleMarkerLimitOptions.length - 1;
+	let decreaseStepLabel = '';
+	if (canDecreaseVisibleMarkerLimit) {
+		decreaseStepLabel = formatMarkerLimitOption(
+			activeVisibleMarkerLimit - visibleMarkerLimitOptions[activeVisibleMarkerLimitIndex - 1]
+		);
+	}
+	let increaseStepLabel = '';
+	if (canIncreaseVisibleMarkerLimit) {
+		increaseStepLabel = formatMarkerLimitOption(
+			visibleMarkerLimitOptions[activeVisibleMarkerLimitIndex + 1] - activeVisibleMarkerLimit
+		);
+	}
+	let markerMaxLabel = '';
+	if (visibleMarkerLimitOptions.length > 0) {
+		markerMaxLabel = formatMarkerLimitOption(visibleMarkerLimitOptions[visibleMarkerLimitOptions.length - 1]);
+	}
+	const markerMaxText = `max ${markerMaxLabel}`;
+
+	const onDecreaseVisibleMarkerLimitAction = (): void => {
+		if (!canDecreaseVisibleMarkerLimit) {
+			return;
+		}
+		const nextLimit = visibleMarkerLimitOptions[activeVisibleMarkerLimitIndex - 1];
+		onVisibleMarkerLimitAction(nextLimit);
+	};
+
+	const onIncreaseVisibleMarkerLimitAction = (): void => {
+		if (!canIncreaseVisibleMarkerLimit) {
+			return;
+		}
+		const nextLimit = visibleMarkerLimitOptions[activeVisibleMarkerLimitIndex + 1];
+		onVisibleMarkerLimitAction(nextLimit);
+	};
+
+	useEffect(() => {
+		const panelBodyElement = panelBodyRef.current;
+		if (!panelBodyElement) {
+			return;
+		}
+
+		const updatePanelHeight = (): void => {
+			setOpenPanelHeightPx(panelBodyElement.scrollHeight);
+		};
+		updatePanelHeight();
+
+		if (typeof ResizeObserver === 'undefined') {
+			window.addEventListener('resize', updatePanelHeight);
+			return () => {
+				window.removeEventListener('resize', updatePanelHeight);
+			};
+		}
+
+		const observer = new ResizeObserver(() => {
+			updatePanelHeight();
+		});
+		observer.observe(panelBodyElement);
+		return () => {
+			observer.disconnect();
+		};
+	}, []);
 
 	return (
 		<div className={'border-b border-(--color-border)'}>
@@ -134,10 +217,12 @@ export function FilterBar({
 			<div
 				className={FILTER_BAR_TRANSITION_CLASS}
 				style={{
-					maxHeight: isOpen ? `${FILTER_BAR_OPEN_MAX_HEIGHT_PX}px` : `${FILTER_BAR_CLOSED_MAX_HEIGHT_PX}px`,
+					maxHeight: isOpen ? `${openPanelHeightPx}px` : '0px',
 					opacity: isOpen ? 1 : 0
 				}}>
-				<div className={'flex flex-col gap-1.5 px-3 pb-2.5'}>
+				<div
+					ref={panelBodyRef}
+					className={'flex flex-col gap-1.5 px-3 pb-2.5'}>
 					<GPSFilterGroup
 						gpsFilter={gpsFilter}
 						missingCount={missingCount}
@@ -157,6 +242,49 @@ export function FilterBar({
 							onChangeAction={onGridColumnsAction}
 						/>
 					</div>
+					{visibleMarkerLimitOptions.length > 0 && (
+						<div className={'flex gap-1.5'}>
+							<div className={'flex-1 rounded-lg bg-(--color-bg) p-2.5'}>
+								<div
+									className={
+										'mb-1 text-[0.5625rem] font-semibold uppercase tracking-[0.08em] text-(--color-text-secondary)'
+									}>
+									{'Markers'}
+								</div>
+								<div className={'flex items-center gap-1.5'}>
+									<button
+										onClick={onDecreaseVisibleMarkerLimitAction}
+										disabled={!canDecreaseVisibleMarkerLimit}
+										className={cn(
+											optionButtonClass,
+											'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)',
+											'disabled:cursor-default disabled:opacity-40'
+										)}>
+										{`-${decreaseStepLabel}`}
+									</button>
+									<div
+										className={
+											'min-w-[4.5rem] text-center text-[0.6875rem] font-semibold text-(--color-text)'
+										}>
+										{formatMarkerLimitOption(activeVisibleMarkerLimit)}
+									</div>
+									<button
+										onClick={onIncreaseVisibleMarkerLimitAction}
+										disabled={!canIncreaseVisibleMarkerLimit}
+										className={cn(
+											optionButtonClass,
+											'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)',
+											'disabled:cursor-default disabled:opacity-40'
+										)}>
+										{`+${increaseStepLabel}`}
+									</button>
+									<div className={'ml-auto text-[0.625rem] text-(--color-text-secondary)'}>
+										{markerMaxText}
+									</div>
+								</div>
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 			{syncError && <div className={'px-3 pb-2 text-[0.6875rem] text-[#b91c1c]'}>{syncError}</div>}
