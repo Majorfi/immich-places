@@ -1,6 +1,6 @@
 'use client';
 
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 
 import {useAlbums} from '@/features/albums/useAlbums';
 import {useInitialCatalogLoad} from '@/features/albums/useInitialCatalogLoad';
@@ -37,6 +37,7 @@ type TUseCatalogDomainResult = {
 	loadPageAction: (page: number) => Promise<void>;
 	focusPageRef: {current: number | null};
 	removeAsset: (assetID: string) => void;
+	clearCatalog: () => void;
 };
 
 /**
@@ -65,9 +66,21 @@ export function useCatalogDomain({
 		isLoading: isLoadingAssets,
 		error: assetsError,
 		removeAsset,
-		loadPageAction
+		loadPageAction,
+		clear: clearAssets
 	} = useAssets(gpsFilter, pageSize, albumFilter, focusPageRef);
-	const {albums, isLoading: isLoadingAlbums, error: albumsError, load: loadAlbumsAction} = useAlbums(gpsFilter);
+	const {
+		albums,
+		isLoading: isLoadingAlbums,
+		error: albumsError,
+		load: loadAlbumsAction,
+		clear: clearAlbums
+	} = useAlbums(gpsFilter);
+
+	const clearCatalog = useCallback(() => {
+		clearAssets();
+		clearAlbums();
+	}, [clearAssets, clearAlbums]);
 
 	useInitialCatalogLoad({
 		isReady,
@@ -87,6 +100,7 @@ export function useCatalogDomain({
 		assetsError,
 		loadPageAction,
 		focusPageRef,
-		removeAsset
+		removeAsset,
+		clearCatalog
 	};
 }
