@@ -21,7 +21,7 @@ export const DEFAULT_GRID_COLUMNS = 3;
 /** Default cap for visible markers on the map. */
 export const DEFAULT_VISIBLE_MARKER_LIMIT = 10000;
 /** Minimum visible marker cap exposed in the UI. */
-export const VISIBLE_MARKER_LIMIT_MIN = 10000;
+export const VISIBLE_MARKER_LIMIT_MIN = 1000;
 /** Maximum visible marker cap exposed in the UI. */
 export const VISIBLE_MARKER_LIMIT_MAX = 100000;
 /** Increment used by marker-limit button options. */
@@ -96,10 +96,7 @@ export function clampVisibleMarkerLimit(value: number): number {
 	return normalized;
 }
 
-export function buildVisibleMarkerLimitOptions(visibleMarkerTotalCount: number | null): number[] {
-	if (visibleMarkerTotalCount === null) {
-		return [];
-	}
+export function buildVisibleMarkerLimitOptions(visibleMarkerTotalCount: number): number[] {
 	let cappedTotal = visibleMarkerTotalCount;
 	if (cappedTotal > VISIBLE_MARKER_LIMIT_MAX) {
 		cappedTotal = VISIBLE_MARKER_LIMIT_MAX;
