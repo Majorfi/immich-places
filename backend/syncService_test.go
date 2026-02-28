@@ -586,6 +586,37 @@ func TestCancelUserSyncWaitsForSyncToStop(t *testing.T) {
 	}
 }
 
+func TestPauseUserSyncReservesLock(t *testing.T) {
+	factory, _ := newFullMockImmichFactory(t)
+	svc := newSyncService(newTestDB(t), factory, newNominatimClient())
+
+	if err := svc.pauseUserSync(context.Background(), testUserID); err != nil {
+		t.Fatalf("pauseUserSync: %v", err)
+	}
+	defer svc.releaseUserSyncLock(testUserID)
+
+	if svc.acquireUserSyncLock(testUserID) {
+		t.Fatal("expected reserved lock to block additional sync starts")
+	}
+}
+
+func TestPauseUserSyncHonorsContextDeadline(t *testing.T) {
+	factory, _ := newFullMockImmichFactory(t)
+	svc := newSyncService(newTestDB(t), factory, newNominatimClient())
+
+	if !svc.acquireUserSyncLock(testUserID) {
+		t.Fatal("expected setup lock acquisition")
+	}
+	defer svc.releaseUserSyncLock(testUserID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	if err := svc.pauseUserSync(ctx, testUserID); err == nil {
+		t.Fatal("expected pauseUserSync to fail when lock is already reserved")
+	}
+}
+
 func TestRunStartupSyncsStartsUsersConcurrently(t *testing.T) {
 	ctx := context.Background()
 	db := newTestDB(t)
@@ -862,6 +893,45 @@ func TestSyncLibraries403Graceful(t *testing.T) {
 	libs, _ := db.getLibraries(ctx, testUserID)
 	if len(libs) != 0 {
 		t.Errorf("expected 0 libraries after 403, got %d", len(libs))
+	}
+
+	hasAccess, err := db.getSyncState(ctx, testUserID, "hasLibraryAccess")
+	if err != nil {
+		t.Fatalf("get hasLibraryAccess: %v", err)
+	}
+	if hasAccess == nil || *hasAccess != "false" {
+		t.Fatalf("expected hasLibraryAccess=false after 403, got %v", hasAccess)
+	}
+}
+
+func TestSyncLibraries500KeepsExistingAccessState(t *testing.T) {
+	ctx := context.Background()
+
+	factory, immich := newMockImmichFactoryNoRetry(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/libraries" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	db := newTestDB(t)
+	if err := db.setSyncState(ctx, testUserID, "hasLibraryAccess", "true"); err != nil {
+		t.Fatalf("set hasLibraryAccess: %v", err)
+	}
+	svc := newSyncService(db, factory, newNominatimClient())
+
+	err := svc.syncLibraries(ctx, testUserID, immich)
+	if err == nil {
+		t.Fatal("expected error on 500")
+	}
+
+	hasAccess, err := db.getSyncState(ctx, testUserID, "hasLibraryAccess")
+	if err != nil {
+		t.Fatalf("get hasLibraryAccess: %v", err)
+	}
+	if hasAccess == nil || *hasAccess != "true" {
+		t.Fatalf("expected hasLibraryAccess to remain true after 500, got %v", hasAccess)
 	}
 }
 
