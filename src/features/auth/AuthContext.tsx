@@ -10,6 +10,7 @@ import {
 	getMe,
 	isAuthErrorWithCode
 } from '@/features/auth/authApi';
+import {clearLibraryCache} from '@/features/librarySettings/LibrarySettingsDialog';
 import {PLACE_SEARCH_HISTORY_KEY} from '@/features/search/constant';
 
 import type {TAuthUser, TMeResponse} from '@/shared/types/auth';
@@ -21,6 +22,7 @@ import type {ReactElement, ReactNode} from 'react';
 type TAuthContextValueProps = {
 	user: TAuthUser | null;
 	hasImmichAPIKey: boolean;
+	hasLibraries: boolean;
 	isLoading: boolean;
 	error: string | null;
 	login: (email: string, password: string) => Promise<boolean>;
@@ -33,6 +35,7 @@ type TAuthContextValueProps = {
 const AuthContext = createContext<TAuthContextValueProps | null>(null);
 
 function clearAuthStorage(): void {
+	clearLibraryCache();
 	if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
 		return;
 	}
@@ -47,8 +50,7 @@ function clearAuthStorage(): void {
  * Checks whether an error object is an auth error with a specific error code.
  *
  * @param error - Unknown error value to inspect.
- * @param code - Expected auth error code.
- * @returns True when the error contains the requested code.
+ * @returns True when the error is a not-authenticated auth error.
  */
 function isNotAuthenticatedError(error: unknown): boolean {
 	return isAuthErrorWithCode(error, 'notAuthenticated');
@@ -66,18 +68,21 @@ function isNotAuthenticatedError(error: unknown): boolean {
 export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 	const [user, setUser] = useState<TAuthUser | null>(null);
 	const [hasImmichAPIKey, setHasImmichAPIKey] = useState(false);
+	const [hasLibraries, setHasLibraries] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
 	const applyMeResponse = useCallback((me: TMeResponse) => {
 		setUser(me.user);
 		setHasImmichAPIKey(me.hasImmichAPIKey);
+		setHasLibraries(me.hasLibraries);
 		setError(null);
 	}, []);
 
 	const clearAuthState = useCallback(() => {
 		setUser(null);
 		setHasImmichAPIKey(false);
+		setHasLibraries(false);
 		setError(null);
 		clearAuthStorage();
 	}, []);
@@ -170,6 +175,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 			setError(null);
 			try {
 				const me = await apiUpdateSettings(key);
+				clearLibraryCache();
 				applyMeResponse(me);
 				return true;
 			} catch (err) {
@@ -185,6 +191,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 			value={{
 				user,
 				hasImmichAPIKey,
+				hasLibraries,
 				isLoading,
 				error,
 				login,
