@@ -307,7 +307,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 }
 
 func TestHandleGetThumbnail(t *testing.T) {
-	_, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
+	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/thumbnail") {
 			w.Header().Set("Content-Type", "image/jpeg")
 			w.Write([]byte("fake-image-data"))
@@ -315,6 +315,7 @@ func TestHandleGetThumbnail(t *testing.T) {
 		}
 		http.NotFound(w, r)
 	})
+	seedAsset(t, handlers.db.(*Database), "00000000-0000-0000-0000-000000000001", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 
 	req := withTestUser(httptest.NewRequest("GET", "/assets/00000000-0000-0000-0000-000000000001/thumbnail", nil))
 	rec := httptest.NewRecorder()
@@ -335,7 +336,7 @@ func TestHandleGetThumbnail(t *testing.T) {
 }
 
 func TestHandleGetPreview(t *testing.T) {
-	_, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
+	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/thumbnail") {
 			w.Header().Set("Content-Type", "image/webp")
 			w.Write([]byte("fake-preview"))
@@ -343,6 +344,7 @@ func TestHandleGetPreview(t *testing.T) {
 		}
 		http.NotFound(w, r)
 	})
+	seedAsset(t, handlers.db.(*Database), "00000000-0000-0000-0000-000000000001", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 
 	req := withTestUser(httptest.NewRequest("GET", "/assets/00000000-0000-0000-0000-000000000001/preview", nil))
 	rec := httptest.NewRecorder()
@@ -513,16 +515,17 @@ func TestHandleUpdateLocationWithStack(t *testing.T) {
 		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
 
-	asset, _ := d.getAssetByID(ctx, testUserID,"00000000-0000-0000-0000-000000000002")
+	asset, _ := d.getAssetByID(ctx, testUserID, "00000000-0000-0000-0000-000000000002")
 	if asset == nil || asset.Latitude == nil || *asset.Latitude != 48.85 {
 		t.Error("expected stack member to have updated location")
 	}
 }
 
 func TestHandleGetPreviewError(t *testing.T) {
-	_, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
+	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 	})
+	seedAsset(t, handlers.db.(*Database), "00000000-0000-0000-0000-000000000001", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 
 	req := withTestUser(httptest.NewRequest("GET", "/assets/00000000-0000-0000-0000-000000000001/preview", nil))
 	rec := httptest.NewRecorder()
@@ -530,6 +533,79 @@ func TestHandleGetPreviewError(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("expected proxied 404, got %d", rec.Code)
+	}
+}
+
+func TestHandleGetThumbnailHiddenLibraryAssetReturnsNotFound(t *testing.T) {
+	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
+
+	ctx := context.Background()
+	if err := handlers.db.(*Database).upsertAssets(ctx, testUserID, []AssetRow{{
+		ImmichID:         "00000000-0000-0000-0000-000000000001",
+		Type:             "IMAGE",
+		OriginalFileName: "test.jpg",
+		FileCreatedAt:    "2024-01-01T12:00:00Z",
+		LibraryID:        ptr("lib1"),
+	}}); err != nil {
+		t.Fatalf("upsertAssets: %v", err)
+	}
+	if err := handlers.db.(*Database).upsertLibrary(ctx, testUserID, "lib1", "External", 1); err != nil {
+		t.Fatalf("upsertLibrary: %v", err)
+	}
+	if err := handlers.db.(*Database).updateLibraryVisibility(ctx, testUserID, "lib1", true); err != nil {
+		t.Fatalf("updateLibraryVisibility: %v", err)
+	}
+
+	req := withTestUser(httptest.NewRequest("GET", "/assets/00000000-0000-0000-0000-000000000001/thumbnail", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestHandleUpdateLocationHiddenLibraryAssetReturnsNotFound(t *testing.T) {
+	immichWasCalled := false
+	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" && r.URL.Path == "/api/assets" {
+			immichWasCalled = true
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	ctx := context.Background()
+	if err := handlers.db.(*Database).upsertAssets(ctx, testUserID, []AssetRow{{
+		ImmichID:         "00000000-0000-0000-0000-000000000001",
+		Type:             "IMAGE",
+		OriginalFileName: "test.jpg",
+		FileCreatedAt:    "2024-01-01T12:00:00Z",
+		LibraryID:        ptr("lib1"),
+	}}); err != nil {
+		t.Fatalf("upsertAssets: %v", err)
+	}
+	if err := handlers.db.(*Database).upsertLibrary(ctx, testUserID, "lib1", "External", 1); err != nil {
+		t.Fatalf("upsertLibrary: %v", err)
+	}
+	if err := handlers.db.(*Database).updateLibraryVisibility(ctx, testUserID, "lib1", true); err != nil {
+		t.Fatalf("updateLibraryVisibility: %v", err)
+	}
+
+	req := withTestUser(httptest.NewRequest("PUT", "/assets/00000000-0000-0000-0000-000000000001/location",
+		strings.NewReader(`{"latitude":48.85,"longitude":2.35}`)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+	if immichWasCalled {
+		t.Fatal("expected hidden-library update to be blocked before Immich call")
 	}
 }
 
