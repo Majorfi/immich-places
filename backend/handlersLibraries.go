@@ -41,7 +41,7 @@ func (h *LibraryHandlers) handleGetLibraries(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	libraries, err := h.db.getLibraries(r.Context(), user.ID)
+	libraries, err := h.db.getLibraries(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query libraries")
 		return
@@ -84,7 +84,7 @@ func (h *LibraryHandlers) handleUpdateLibrary(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := h.db.updateLibraryVisibility(r.Context(), user.ID, libraryID, *req.IsHidden)
+	err := h.db.updateLibraryVisibility(r.Context(), libraryID, *req.IsHidden)
 	if err != nil {
 		if err.Error() == "library not found" {
 			writeError(w, http.StatusNotFound, "library not found")
@@ -115,7 +115,7 @@ func (h *LibraryHandlers) handleRefreshLibraries(w http.ResponseWriter, r *http.
 		return
 	}
 
-	libraries, err := h.db.getLibraries(r.Context(), user.ID)
+	libraries, err := h.db.getLibraries(r.Context())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query libraries")
 		return
