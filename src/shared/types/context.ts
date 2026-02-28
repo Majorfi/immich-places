@@ -13,6 +13,8 @@ export type TBackendContextValue = {
 	isSyncing: boolean;
 	syncError: string | null;
 	resyncAction: () => Promise<void>;
+	refreshDataAction: () => Promise<void>;
+	clearCatalogAction: () => void;
 };
 
 export type TViewContextValue = {
