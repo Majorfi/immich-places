@@ -3,7 +3,10 @@
 import {useRouter} from 'next/navigation';
 import {useEffect, useRef, useState} from 'react';
 
+import {APIKeyDialog} from '@/features/auth/APIKeyDialog';
 import {useAuth} from '@/features/auth/AuthContext';
+import {LibrarySettingsDialog} from '@/features/librarySettings/LibrarySettingsDialog';
+import {useBackend} from '@/shared/context/AppContext';
 
 import type {ReactElement} from 'react';
 
@@ -15,9 +18,12 @@ import type {ReactElement} from 'react';
  * @returns User menu element or `null` when unauthenticated.
  */
 export function UserMenu(): ReactElement | null {
-	const {user, logout} = useAuth();
+	const {user, hasLibraries, logout} = useAuth();
+	const {refreshDataAction, resyncAction, clearCatalogAction} = useBackend();
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
+	const [isAPIKeyDialogOpen, setIsAPIKeyDialogOpen] = useState(false);
+	const [isLibraryDialogOpen, setIsLibraryDialogOpen] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -56,6 +62,28 @@ export function UserMenu(): ReactElement | null {
 					<div className={'border-b border-(--color-border) px-3 py-2'}>
 						<p className={'text-sm font-medium text-(--color-text)'}>{user.email}</p>
 					</div>
+					{hasLibraries && (
+						<button
+							onClick={() => {
+								setIsOpen(false);
+								setIsLibraryDialogOpen(true);
+							}}
+							className={
+								'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text)'
+							}>
+							{'Libraries'}
+						</button>
+					)}
+					<button
+						onClick={() => {
+							setIsOpen(false);
+							setIsAPIKeyDialogOpen(true);
+						}}
+						className={
+							'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text)'
+						}>
+						{'API Key'}
+					</button>
 					<button
 						onClick={async () => {
 							await logout();
@@ -68,6 +96,19 @@ export function UserMenu(): ReactElement | null {
 					</button>
 				</div>
 			)}
+			<APIKeyDialog
+				isOpen={isAPIKeyDialogOpen}
+				onClose={() => setIsAPIKeyDialogOpen(false)}
+				onSuccess={() => {
+					clearCatalogAction();
+					resyncAction();
+				}}
+			/>
+			<LibrarySettingsDialog
+				isOpen={isLibraryDialogOpen}
+				onClose={() => setIsLibraryDialogOpen(false)}
+				onVisibilityChanged={refreshDataAction}
+			/>
 		</div>
 	);
 }
