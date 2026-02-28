@@ -195,7 +195,6 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	albumID := r.URL.Query().Get("albumID")
-	includeTotal := r.URL.Query().Get("includeTotal") == "true"
 	limit, err := queryInt(r, "limit", defaultMapMarkersLimit)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -233,15 +232,6 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		bounds = &TViewportBounds{North: n, South: s, East: boundsReq.East, West: boundsReq.West}
-	}
-
-	if includeTotal {
-		totalCount, err := h.db.countMapMarkers(ctx, user.ID, albumID, bounds)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to count map markers")
-			return
-		}
-		w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
 	}
 
 	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, bounds, limit)

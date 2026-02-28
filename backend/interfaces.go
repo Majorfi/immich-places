@@ -29,7 +29,6 @@ type HandlerStore interface {
 	getFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, page, pageSize int) ([]AssetRow, error)
 	countFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool) (int, error)
 	getMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds, limit int) ([]MapMarker, error)
-	countMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds) (int, error)
 	getAssetStackID(ctx context.Context, userID, immichID string) (*string, error)
 	getStackMemberIDs(ctx context.Context, userID, stackID string) ([]string, error)
 	bulkUpdateAssetLocation(ctx context.Context, userID string, immichIDs []string, lat, lon float64) error

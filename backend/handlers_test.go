@@ -150,40 +150,18 @@ func TestMapMarkersLimitValidation(t *testing.T) {
 	}
 }
 
-func TestMapMarkersIncludeTotalHeader(t *testing.T) {
-	_, mux := newTestHandlers(t)
-
-	req := withTestUser(httptest.NewRequest("GET", "/map-markers?limit=1&includeTotal=true", nil))
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
-	}
-
-	totalHeader := rec.Header().Get("X-Total-Count")
-	if totalHeader != "0" {
-		t.Errorf("expected X-Total-Count header 0, got %q", totalHeader)
-	}
-}
-
-func TestMapMarkersIncludeTotalHeaderWithResults(t *testing.T) {
+func TestMapMarkersLimitApplied(t *testing.T) {
 	handlers, mux := newTestHandlers(t)
 	d := handlers.db.(*Database)
 	seedAsset(t, d, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 	seedAsset(t, d, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 
-	req := withTestUser(httptest.NewRequest("GET", "/map-markers?limit=1&includeTotal=true", nil))
+	req := withTestUser(httptest.NewRequest("GET", "/map-markers?limit=1", nil))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
-	}
-
-	totalHeader := rec.Header().Get("X-Total-Count")
-	if totalHeader != "2" {
-		t.Errorf("expected X-Total-Count header 2, got %q", totalHeader)
 	}
 
 	var markers []MapMarker
