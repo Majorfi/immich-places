@@ -178,6 +178,7 @@ type TMeResponse struct {
 	User            UserRow `json:"user"`
 	HasImmichAPIKey bool    `json:"hasImmichAPIKey"`
 	HasLibraries    bool    `json:"hasLibraries"`
+	MapMarkerCount  int     `json:"mapMarkerCount"`
 }
 
 type AuthStatusResponse struct {
