@@ -25,7 +25,7 @@ import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TAuthErrorCode} from '@/shared/types/auth';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
-import type {TGPSFilter, TMapMarker, TMapMarkersResult} from '@/shared/types/map';
+import type {TGPSFilter, TMapMarker} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionsResponse} from '@/shared/types/suggestion';
 
 const BASE = getBackendBaseURL();
@@ -150,38 +150,21 @@ export async function fetchAlbums(gpsFilter: TGPSFilter, opts: TRequestOptions =
  * @param albumID - Optional album id to filter map markers.
  * @param bounds - Optional viewport bounds to reduce marker fetch scope.
  * @param limit - Maximum number of markers to return.
- * @param includeTotal - When true, the response includes the total marker count via X-Total-Count header.
  * @param opts - Optional request options such as abort signal and timeout override.
- * @returns Map markers result containing the markers array and optional total count.
+ * @returns Map markers array.
  * @throws Error when the request fails or response payload is invalid.
  */
-function parseTotalCountHeader(response: Response): number | null {
-	const totalHeader = response.headers.get('X-Total-Count');
-	if (!totalHeader) {
-		return null;
-	}
-	const parsed = Number.parseInt(totalHeader, 10);
-	if (!Number.isFinite(parsed) || parsed < 0) {
-		return null;
-	}
-	return parsed;
-}
-
 export async function fetchMapMarkers(
 	albumID?: string,
 	bounds?: TViewportBounds | null,
 	limit: number = DEFAULT_VISIBLE_MARKER_LIMIT,
-	includeTotal = false,
 	opts: TRequestOptions = {}
-): Promise<TMapMarkersResult> {
+): Promise<TMapMarker[]> {
 	const params = new URLSearchParams();
 	if (albumID) {
 		params.set('albumID', albumID);
 	}
 	addIfNumber(params, 'limit', limit);
-	if (includeTotal) {
-		params.set('includeTotal', 'true');
-	}
 	if (bounds) {
 		addIfNumber(params, 'north', bounds.north);
 		addIfNumber(params, 'south', bounds.south);
@@ -203,16 +186,11 @@ export async function fetchMapMarkers(
 		}
 		throw new Error(`Failed to fetch map markers: ${response.status}`);
 	}
-	const markers = await parseJSON(
+	return parseJSON(
 		response,
 		(value): value is TMapMarker[] => Array.isArray(value) && value.every(isMapMarker),
 		'Invalid map markers response payload'
 	);
-	const totalCount = parseTotalCountHeader(response) ?? markers.length;
-	return {
-		markers,
-		totalCount
-	};
 }
 
 /**
