@@ -43,13 +43,15 @@ type TUseCatalogRefreshDataArgs = {
 	loadPageAction: (page: number) => Promise<void>;
 	getCurrentPage: () => number;
 	bumpMapMarkers: () => void;
+	refreshUser: () => Promise<void>;
 };
 
 function useCatalogRefreshData({
 	loadAlbumsAction,
 	loadPageAction,
 	getCurrentPage,
-	bumpMapMarkers
+	bumpMapMarkers,
+	refreshUser
 }: TUseCatalogRefreshDataArgs): () => Promise<void> {
 	const currentPageRef = useRef(getCurrentPage());
 	useEffect(() => {
@@ -58,9 +60,9 @@ function useCatalogRefreshData({
 
 	return useCallback(async () => {
 		const currentPage = currentPageRef.current;
-		await Promise.all([loadAlbumsAction(), loadPageAction(currentPage)]);
+		await Promise.all([loadAlbumsAction(), loadPageAction(currentPage), refreshUser()]);
 		bumpMapMarkers();
-	}, [loadAlbumsAction, loadPageAction, bumpMapMarkers]);
+	}, [loadAlbumsAction, loadPageAction, refreshUser, bumpMapMarkers]);
 }
 
 export function useAppProviderState(): TAppProviderState {
@@ -94,6 +96,7 @@ export function useAppProviderState(): TAppProviderState {
 	const {onAssetSavedAction, onBatchSavedAction} = useSelectionCallbacks({
 		removeAsset: catalogDomain.removeAsset,
 		refreshHealth,
+		refreshUser,
 		loadAlbumsAction: catalogDomain.loadAlbumsAction
 	});
 
@@ -122,11 +125,7 @@ export function useAppProviderState(): TAppProviderState {
 		focusMapAssetAction,
 		lightboxAssetID,
 		openLightboxAction,
-		closeLightboxAction,
-		visibleMarkerTotalCount,
-		isVisibleMarkerTotalCountStale,
-		setVisibleMarkerTotalCountAction,
-		markVisibleMarkerTotalCountStaleAction
+		closeLightboxAction
 	} = useUIMapController({
 		gpsFilter,
 		setGPSFilterRawAction,
@@ -152,7 +151,8 @@ export function useAppProviderState(): TAppProviderState {
 		loadAlbumsAction,
 		loadPageAction,
 		getCurrentPage,
-		bumpMapMarkers
+		bumpMapMarkers,
+		refreshUser
 	});
 
 	const {isSyncing, syncError, resyncAction} = useResync({
@@ -235,10 +235,6 @@ export function useAppProviderState(): TAppProviderState {
 		lightboxAssetID,
 		openLightboxAction,
 		closeLightboxAction,
-		visibleMarkerTotalCount,
-		isVisibleMarkerTotalCountStale,
-		setVisibleMarkerTotalCountAction,
-		markVisibleMarkerTotalCountStaleAction,
 		mapMarkersVersion
 	});
 

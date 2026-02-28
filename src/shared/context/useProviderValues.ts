@@ -164,10 +164,6 @@ export function useUIMapValue(input: TUIMapContextValue): TUIMapContextValue {
 			lightboxAssetID: input.lightboxAssetID,
 			openLightboxAction: input.openLightboxAction,
 			closeLightboxAction: input.closeLightboxAction,
-			visibleMarkerTotalCount: input.visibleMarkerTotalCount,
-			isVisibleMarkerTotalCountStale: input.isVisibleMarkerTotalCountStale,
-			setVisibleMarkerTotalCountAction: input.setVisibleMarkerTotalCountAction,
-			markVisibleMarkerTotalCountStaleAction: input.markVisibleMarkerTotalCountStaleAction,
 			mapMarkersVersion: input.mapMarkersVersion
 		}),
 		[
@@ -177,10 +173,6 @@ export function useUIMapValue(input: TUIMapContextValue): TUIMapContextValue {
 			input.lightboxAssetID,
 			input.openLightboxAction,
 			input.closeLightboxAction,
-			input.visibleMarkerTotalCount,
-			input.isVisibleMarkerTotalCountStale,
-			input.setVisibleMarkerTotalCountAction,
-			input.markVisibleMarkerTotalCountStaleAction,
 			input.mapMarkersVersion
 		]
 	);

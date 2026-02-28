@@ -59,9 +59,6 @@ export function useUIMapController({
 	const [lightboxAssetID, setLightboxAssetID] = useState<string | null>(null);
 	useLightboxSelectionSync(selectedAssets, lightboxAssetID, setLightboxAssetID);
 
-	const [visibleMarkerTotalCount, setVisibleMarkerTotalCount] = useState<number | null>(null);
-	const [isVisibleMarkerTotalCountStale, setIsVisibleMarkerTotalCountStale] = useState(false);
-
 	const closeLightboxAction = useCallback(() => {
 		setLightboxAssetID(null);
 	}, []);
@@ -88,28 +85,12 @@ export function useUIMapController({
 		setLightboxAssetID(assetID);
 	}, []);
 
-	const setVisibleMarkerTotalCountAction = useCallback((totalCount: number | null) => {
-		setVisibleMarkerTotalCount(totalCount);
-		setIsVisibleMarkerTotalCountStale(false);
-	}, []);
-
-	const markVisibleMarkerTotalCountStaleAction = useCallback(() => {
-		if (visibleMarkerTotalCount === null) {
-			return;
-		}
-		setIsVisibleMarkerTotalCountStale(true);
-	}, [visibleMarkerTotalCount]);
-
 	return {
 		focusedAssetID,
 		clearFocusedAssetAction,
 		focusMapAssetAction,
 		lightboxAssetID,
 		openLightboxAction,
-		closeLightboxAction,
-		visibleMarkerTotalCount,
-		isVisibleMarkerTotalCountStale,
-		setVisibleMarkerTotalCountAction,
-		markVisibleMarkerTotalCountStaleAction
+		closeLightboxAction
 	};
 }
