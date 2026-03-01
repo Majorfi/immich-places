@@ -2,8 +2,12 @@
 
 import {useCallback, useRef, useState} from 'react';
 
+import {useLocationHistory} from '@/features/selection/useLocationHistory';
+import {buildTargetAssetIDs, createPendingLocation, resolveAnchorID} from '@/features/selection/selectionStateHelpers';
+
+import type {TLocationSnapshot} from '@/features/selection/useLocationHistory';
 import type {TAssetRow} from '@/shared/types/asset';
-import type {TPendingLocation, TPendingLocationsByAssetID} from '@/shared/types/map';
+import type {TPendingLocation, TPendingLocationsByAssetID, TSetLocationOptions} from '@/shared/types/map';
 import type {Dispatch, SetStateAction} from 'react';
 
 /** Selection interaction mode supported by asset selection helpers. */
@@ -24,49 +28,16 @@ type TUseSelectionStateReturn = {
 	shiftSelect: (asset: TAssetRow, allAssets: TAssetRow[]) => void;
 	selectAll: (assets: TAssetRow[]) => void;
 	clearSelection: () => void;
-	setLocation: (
-		latitude: number,
-		longitude: number,
-		source: TPendingLocation['source'],
-		targetAssetIDs?: string[],
-		skipPendingLocation?: boolean
-	) => void;
+	setLocation: (options: TSetLocationOptions) => void;
 	clearLocation: (clearPendingOnly?: boolean) => void;
 	setPendingLocationsByAssetID: Dispatch<SetStateAction<TPendingLocationsByAssetID>>;
+	undoLocation: () => void;
+	redoLocation: () => void;
+	canUndoLocation: boolean;
+	canRedoLocation: boolean;
+	beginLocationBatch: () => void;
+	endLocationBatch: () => void;
 };
-
-function resolveAnchorID(lastClickedID: string | null, nextSelected: TAssetRow[]): string | null {
-	if (nextSelected.length === 0) {
-		return null;
-	}
-	if (!lastClickedID) {
-		return nextSelected[0].immichID;
-	}
-
-	const matchingAsset = nextSelected.find(asset => asset.immichID === lastClickedID);
-	if (matchingAsset) {
-		return matchingAsset.immichID;
-	}
-	return nextSelected[0].immichID;
-}
-
-function buildTargetAssetIDs(targetAssetIDs: string[] | undefined, selectedAssetIDs: string[]): string[] {
-	if (targetAssetIDs && targetAssetIDs.length > 0) {
-		return Array.from(new Set(targetAssetIDs));
-	}
-	if (selectedAssetIDs.length === 0) {
-		return [];
-	}
-	return selectedAssetIDs;
-}
-
-function createPendingLocation(
-	latitude: number,
-	longitude: number,
-	source: TPendingLocation['source']
-): TPendingLocation {
-	return {latitude, longitude, source};
-}
 
 /**
  * Centralizes selection state and low-level update operations.
@@ -82,6 +53,33 @@ export function useSelectionState(): TUseSelectionStateReturn {
 	const lastClickedID = useRef<string | null>(null);
 	const selectedAssetsRef = useRef<TAssetRow[]>(selectedAssets);
 	selectedAssetsRef.current = selectedAssets;
+
+	const pendingLocationRef = useRef<TPendingLocation | null>(pendingLocation);
+	pendingLocationRef.current = pendingLocation;
+	const pendingLocationsByAssetIDRef = useRef<TPendingLocationsByAssetID>(pendingLocationsByAssetID);
+	pendingLocationsByAssetIDRef.current = pendingLocationsByAssetID;
+	const savedLocationsByAssetIDRef = useRef<TPendingLocationsByAssetID>(savedLocationsByAssetID);
+	savedLocationsByAssetIDRef.current = savedLocationsByAssetID;
+
+	const {
+		pushUndo,
+		popUndo,
+		peekUndo,
+		pushRedo,
+		popRedo,
+		canUndo,
+		canRedo: canRedoLocation,
+		clear: clearHistory,
+		beginBatch: beginLocationBatch,
+		endBatch: endLocationBatch
+	} = useLocationHistory();
+
+	const nextUndoSnapshot = peekUndo();
+	const nextUndoHasPendingData =
+		nextUndoSnapshot !== null &&
+		(nextUndoSnapshot.pendingLocation !== null ||
+			Object.keys(nextUndoSnapshot.pendingLocationsByAssetID).length > 0);
+	const canUndoLocation = canUndo && nextUndoHasPendingData;
 
 	const updateAnchor = useCallback((nextSelected: TAssetRow[]): void => {
 		lastClickedID.current = resolveAnchorID(lastClickedID.current, nextSelected);
@@ -112,6 +110,9 @@ export function useSelectionState(): TUseSelectionStateReturn {
 				});
 			}
 
+			if (mode !== 'additive' || pendingLocationRef.current?.source === 'marker-drag') {
+				setPendingLocation(null);
+			}
 			setError(null);
 		},
 		[updateAnchor]
@@ -152,6 +153,9 @@ export function useSelectionState(): TUseSelectionStateReturn {
 				updateAnchor(next);
 				return next;
 			});
+			if (pendingLocationRef.current?.source === 'marker-drag') {
+				setPendingLocation(null);
+			}
 			setError(null);
 		},
 		[updateAnchor, toggleAsset]
@@ -167,6 +171,9 @@ export function useSelectionState(): TUseSelectionStateReturn {
 				}
 				return next;
 			});
+			if (pendingLocationRef.current?.source === 'marker-drag') {
+				setPendingLocation(null);
+			}
 			setError(null);
 		},
 		[updateAnchor]
@@ -179,27 +186,64 @@ export function useSelectionState(): TUseSelectionStateReturn {
 		setSavedLocationsByAssetID({});
 		lastClickedID.current = null;
 		setError(null);
-	}, [setError, setPendingLocation, setPendingLocationsByAssetID, setSavedLocationsByAssetID, setSelectedAssets]);
+		clearHistory();
+	}, [
+		setError,
+		setPendingLocation,
+		setPendingLocationsByAssetID,
+		setSavedLocationsByAssetID,
+		setSelectedAssets,
+		clearHistory
+	]);
 
-	const clearLocation = useCallback((clearPendingOnly?: boolean) => {
-		setPendingLocation(null);
-		if (!clearPendingOnly) {
-			setPendingLocationsByAssetID({});
-		}
-		setError(null);
+	const clearLocation = useCallback(
+		(clearPendingOnly?: boolean) => {
+			setPendingLocation(null);
+			if (!clearPendingOnly) {
+				setPendingLocationsByAssetID({});
+			}
+			setError(null);
+			if (!clearPendingOnly) {
+				clearHistory();
+			}
+		},
+		[clearHistory]
+	);
+
+	const captureSnapshot = useCallback((): TLocationSnapshot => {
+		return {
+			selectedAssets: selectedAssetsRef.current,
+			pendingLocation: pendingLocationRef.current,
+			pendingLocationsByAssetID: pendingLocationsByAssetIDRef.current,
+			savedLocationsByAssetID: savedLocationsByAssetIDRef.current
+		};
 	}, []);
 
+	const applySnapshot = useCallback(
+		(snapshot: TLocationSnapshot) => {
+			setSelectedAssets(snapshot.selectedAssets);
+			updateAnchor(snapshot.selectedAssets);
+			setPendingLocation(snapshot.pendingLocation);
+			setPendingLocationsByAssetID(snapshot.pendingLocationsByAssetID);
+			setSavedLocationsByAssetID(snapshot.savedLocationsByAssetID);
+		},
+		[setPendingLocation, setPendingLocationsByAssetID, setSavedLocationsByAssetID, setSelectedAssets, updateAnchor]
+	);
+
 	const setLocation = useCallback(
-		(
-			latitude: number,
-			longitude: number,
-			source: TPendingLocation['source'],
-			targetAssetIDs?: string[],
-			skipPendingLocation?: boolean
-		) => {
+		(options: TSetLocationOptions) => {
+			const {latitude, longitude, source, targetAssetIDs, skipPendingLocation, sourceLabel, isAlreadyApplied} =
+				options;
+			pushUndo(captureSnapshot());
 			const selectedAssetIDs = selectedAssetsRef.current.map(asset => asset.immichID);
 			const nextAssetIDs = buildTargetAssetIDs(targetAssetIDs, selectedAssetIDs);
-			const nextPendingLocation = createPendingLocation(latitude, longitude, source);
+			const nextPendingLocation = createPendingLocation(
+				latitude,
+				longitude,
+				source,
+				sourceLabel,
+				isAlreadyApplied
+			);
 			if (skipPendingLocation) {
 				setPendingLocation(null);
 			} else {
@@ -216,15 +260,46 @@ export function useSelectionState(): TUseSelectionStateReturn {
 				setPendingLocationsByAssetID(prev => {
 					const next = {...prev};
 					for (const assetID of nextAssetIDs) {
-						next[assetID] = nextPendingLocation;
+						const existing = prev[assetID];
+						if (existing?.source === 'gpx-import') {
+							next[assetID] = createPendingLocation(
+								latitude,
+								longitude,
+								'gpx-import',
+								existing.sourceLabel,
+								isAlreadyApplied
+							);
+						} else {
+							next[assetID] = nextPendingLocation;
+						}
 					}
 					return next;
 				});
 			}
 			setError(null);
 		},
-		[]
+		[captureSnapshot, pushUndo]
 	);
+
+	const undoLocation = useCallback(() => {
+		const current = captureSnapshot();
+		const previous = popUndo();
+		if (!previous) {
+			return;
+		}
+		pushRedo(current);
+		applySnapshot(previous);
+	}, [captureSnapshot, applySnapshot, popUndo, pushRedo]);
+
+	const redoLocation = useCallback(() => {
+		const current = captureSnapshot();
+		const next = popRedo();
+		if (!next) {
+			return;
+		}
+		pushUndo(current, true);
+		applySnapshot(next);
+	}, [captureSnapshot, applySnapshot, popRedo, pushUndo]);
 
 	return {
 		selectedAssets,
@@ -242,6 +317,12 @@ export function useSelectionState(): TUseSelectionStateReturn {
 		clearSelection,
 		setLocation,
 		clearLocation,
-		setPendingLocationsByAssetID
+		setPendingLocationsByAssetID,
+		undoLocation,
+		redoLocation,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch
 	};
 }
