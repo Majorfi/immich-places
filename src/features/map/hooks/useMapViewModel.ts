@@ -67,11 +67,13 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		if (!hasGPXSource) {
 			return [];
 		}
-		return entries.map(([assetID, location]) => ({
-			immichID: assetID,
-			latitude: location.latitude,
-			longitude: location.longitude
-		}));
+		return entries
+			.filter(([, loc]) => loc.source === 'gpx-import')
+			.map(([assetID, location]) => ({
+				immichID: assetID,
+				latitude: location.latitude,
+				longitude: location.longitude
+			}));
 	}, [pendingLocationsByAssetID]);
 
 	const hasGPXPreview = gpxMarkers.length > 0;
