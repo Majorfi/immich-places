@@ -1,8 +1,8 @@
 import {isFiniteNumber, isNullableFiniteNumber, isNullableString, isRecord, isString} from '@/utils/typeGuards';
 
+import type {TGPXMatchResult, TGPXPreviewResponse, TGPXTrackPoint} from '@/features/gpxImport/gpxImportTypes';
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
-import type {TGPXMatchResult, TGPXPreviewResponse, TGPXTrackPoint} from '@/features/gpxImport/gpxImportTypes';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TMapMarker} from '@/shared/types/map';
