@@ -224,7 +224,12 @@ export function useMapViewController({
 			if (isDroppedAssetSelected) {
 				targetAssetIDs = selectedAssets.map(asset => asset.immichID);
 			}
-			setLocationAction(position.latitude, position.longitude, MAP_LOCATION_SOURCE_DRAG_DROP, targetAssetIDs);
+			setLocationAction({
+				latitude: position.latitude,
+				longitude: position.longitude,
+				source: MAP_LOCATION_SOURCE_DRAG_DROP,
+				targetAssetIDs
+			});
 		},
 		[isAssetSelected, selectedAssets, setLocationAction]
 	);
