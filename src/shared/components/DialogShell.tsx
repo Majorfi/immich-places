@@ -48,6 +48,7 @@ export function DialogShell({
 						<div className={'flex items-center gap-2'}>
 							{headerTrailing}
 							<Dialog.Close
+								aria-label={'Close dialog'}
 								className={
 									'flex h-6 w-6 cursor-pointer items-center justify-center rounded border-0 bg-transparent text-(--color-text-secondary) hover:text-(--color-text)'
 								}>
