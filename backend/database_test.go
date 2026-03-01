@@ -649,6 +649,51 @@ func TestGetMapMarkersWithAlbumAndBounds(t *testing.T) {
 	}
 }
 
+func TestDeleteAssetsNotIn(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", nil, nil, "2024-01-02T12:00:00Z")
+	seedAsset(t, db, "a3", ptr(40.71), ptr(-74.0), "2024-01-03T12:00:00Z")
+
+	err := db.deleteAssetsNotIn(ctx, testUserID, []string{"a1"})
+	if err != nil {
+		t.Fatalf("deleteAssetsNotIn: %v", err)
+	}
+
+	total, _ := db.countAssets(ctx, testUserID)
+	if total != 1 {
+		t.Fatalf("expected 1 asset remaining, got %d", total)
+	}
+
+	asset, _ := db.getAssetByID(ctx, testUserID, "a1")
+	if asset == nil {
+		t.Error("expected a1 to remain")
+	}
+	deleted, _ := db.getAssetByID(ctx, testUserID, "a2")
+	if deleted != nil {
+		t.Error("expected a2 to be deleted")
+	}
+}
+
+func TestDeleteAssetsNotInEmpty(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+
+	err := db.deleteAssetsNotIn(ctx, testUserID, []string{})
+	if err != nil {
+		t.Fatalf("deleteAssetsNotIn empty: %v", err)
+	}
+
+	total, _ := db.countAssets(ctx, testUserID)
+	if total != 0 {
+		t.Errorf("expected 0 assets, got %d", total)
+	}
+}
+
 func TestDeleteAlbumsNotInEmpty(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()

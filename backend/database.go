@@ -82,7 +82,9 @@ func (d *Database) setSyncState(ctx context.Context, userID, key, value string) 
 }
 
 func (d *Database) deleteSyncState(ctx context.Context, userID, key string) {
-	d.db.ExecContext(ctx, "DELETE FROM syncState WHERE userID = ? AND key = ?", userID, key)
+	if _, err := d.db.ExecContext(ctx, "DELETE FROM syncState WHERE userID = ? AND key = ?", userID, key); err != nil {
+		log.Printf("Failed to delete sync state %s for user %s: %v", key, userID, err)
+	}
 }
 
 const hiddenLibraryFilter = ` AND (libraryID IS NULL OR libraryID NOT IN (
@@ -572,6 +574,55 @@ func (d *Database) bulkUpdateAssetLocation(ctx context.Context, userID string, i
 	)
 	_, err := d.db.ExecContext(ctx, query, args...)
 	return err
+}
+
+func (d *Database) getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool) ([]AssetRow, error) {
+	gpsFilter := ` AND (latitude IS NULL OR longitude IS NULL)`
+	if includeGeotagged {
+		gpsFilter = ""
+	}
+
+	rows, err := d.db.QueryContext(ctx,
+		`SELECT `+assetColumns+`
+		FROM assets
+		WHERE userID = ?`+gpsFilter+`
+			AND dateTimeOriginal IS NOT NULL
+			AND stackPrimaryAssetID IS NULL`+hiddenLibraryFilter+`
+		ORDER BY dateTimeOriginal ASC`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanAssetRows(rows)
+}
+
+func (d *Database) deleteAssetsNotIn(ctx context.Context, userID string, assetIDs []string) error {
+	if len(assetIDs) == 0 {
+		_, err := d.db.ExecContext(ctx, "DELETE FROM assets WHERE userID = ?", userID)
+		return err
+	}
+
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := bulkInsertTemp(ctx, tx, "tmpKeepAssets", assetIDs); err != nil {
+		return fmt.Errorf("populate temp table: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM assets WHERE userID = ? AND immichID NOT IN (SELECT val FROM tmpKeepAssets)", userID); err != nil {
+		return fmt.Errorf("delete stale assets: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
+		log.Printf("Warning: failed to drop temp table: %v", err)
+	}
+	return tx.Commit()
 }
 
 func (d *Database) isAssetInAlbum(ctx context.Context, userID, assetID, albumID string) (bool, error) {
