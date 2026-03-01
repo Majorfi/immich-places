@@ -20,7 +20,7 @@ export function PlaceSearch(): ReactElement {
 	const {query, results, error, isOpen, isSearching, wrapperRef, setQuery, handleChange, handleSelect, handleFocus} =
 		usePlaceSearch({
 			onLocationSelectedAction(latitude: number, longitude: number) {
-				setLocationAction(latitude, longitude, MAP_LOCATION_SOURCE_SEARCH);
+				setLocationAction({latitude, longitude, source: MAP_LOCATION_SOURCE_SEARCH});
 			},
 			onResultSelectedAction(result) {
 				setQuery(result.displayName.split(',').slice(0, 2).join(',').trim());

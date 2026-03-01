@@ -113,11 +113,11 @@ export function RecentPill(): ReactElement | null {
 									if (!coordinates) {
 										return;
 									}
-									setLocationAction(
-										coordinates.latitude,
-										coordinates.longitude,
-										MAP_LOCATION_SOURCE_SEARCH
-									);
+									setLocationAction({
+										latitude: coordinates.latitude,
+										longitude: coordinates.longitude,
+										source: MAP_LOCATION_SOURCE_SEARCH
+									});
 									setIsExpanded(false);
 								}}
 								className={itemClass}>

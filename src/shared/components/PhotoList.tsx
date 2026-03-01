@@ -2,10 +2,12 @@
 
 import {AlbumList} from '@/features/albums/AlbumList';
 import {FilterBar} from '@/features/filterBar/FilterBar';
+import {GPXImportPanel} from '@/features/gpxImport/GPXImportPanel';
 import {PhotoGrid} from '@/features/photoGrid/PhotoGrid';
 import {PaginationFooter} from '@/shared/components/PaginationFooter';
 import {PHOTO_GRID_FADE_ANIMATION} from '@/utils/photoGrid';
 
+import type {TGPXPreviewResponse} from '@/features/gpxImport/gpxImportTypes';
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetRow} from '@/shared/types/asset';
 import type {THealthResponse} from '@/shared/types/health';
@@ -13,19 +15,10 @@ import type {TGPSFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 import type {CSSProperties, ReactElement} from 'react';
 
-/**
- * Card/list container styling for the shared photo list wrapper.
- */
 const listClass =
 	'flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface)';
-/**
- * Main content wrapper styling for album and timeline modes.
- */
 const contentClass = 'flex min-h-0 flex-1 flex-col';
 
-/**
- * Props contract for rendering the shared photo list composition component.
- */
 type TPhotoListProps = {
 	backend: {
 		health: THealthResponse | null;
@@ -49,6 +42,10 @@ type TPhotoListProps = {
 		onVisibleMarkerLimitAction: (limit: number) => void;
 		onViewModeAction: (mode: TViewMode) => void;
 		onBackToAlbumsAction: () => void;
+		gpxPreview: TGPXPreviewResponse | null;
+		gpxError: string | null;
+		onGPXResetAction: () => void;
+		onGPXCancelAction: () => void;
 		trailingAction?: ReactElement;
 	};
 	catalog: {
@@ -66,15 +63,10 @@ type TPhotoListProps = {
 	};
 	selection: {
 		selectedIDs: Set<string>;
+		alreadyAppliedIDs: Set<string>;
 	};
 };
 
-/**
- * Generate consistent stagger animation style for the pagination footer reveal.
- *
- * @param delayMs - Delay in milliseconds for animation start.
- * @returns CSSProperties object for the inline animation.
- */
 function staggerStyle(delayMs: number): CSSProperties {
 	return {
 		animation: 'elFadeIn 300ms ease-out both',
@@ -82,15 +74,6 @@ function staggerStyle(delayMs: number): CSSProperties {
 	};
 }
 
-/**
- * Build a stable render key that switches content modes without stale state bleed.
- *
- * @param shouldShowAlbumList - Whether album overview mode is active.
- * @param shouldShowAlbumDetail - Whether album detail mode is active.
- * @param viewMode - Current view mode.
- * @param selectedAlbumID - Currently selected album identifier.
- * @returns String key for keyed subtree resets.
- */
 function buildContentKey(
 	shouldShowAlbumList: boolean,
 	shouldShowAlbumDetail: boolean,
@@ -106,15 +89,6 @@ function buildContentKey(
 	return 'timeline';
 }
 
-/**
- * Composes the main app photo list shell for albums and assets.
- *
- * Orchestrates filter bar interactions, album listing, photo grid rendering,
- * and pagination depending on the active mode and selected album context.
- *
- * @param props - Backend, view, catalog, and selection slices.
- * @returns Rendered list container with mode-specific content.
- */
 export function PhotoList({backend, view, catalog, selection}: TPhotoListProps): ReactElement {
 	const {health, isSyncing, syncError} = backend;
 	const {
@@ -131,7 +105,11 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		onGridColumnsAction,
 		onVisibleMarkerLimitAction,
 		onViewModeAction,
-		onBackToAlbumsAction
+		onBackToAlbumsAction,
+		gpxPreview,
+		gpxError,
+		onGPXResetAction,
+		onGPXCancelAction
 	} = view;
 	const {
 		albums,
@@ -144,7 +122,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		onSelectAlbumAction,
 		onRetrySyncAction
 	} = catalog;
-	const {selectedIDs} = selection;
+	const {selectedIDs, alreadyAppliedIDs} = selection;
 
 	const shouldShowAlbumList = viewMode === 'album' && !selectedAlbumID;
 	const shouldShowAlbumDetail = viewMode === 'album' && Boolean(selectedAlbumID) && selectedAlbum !== null;
@@ -161,6 +139,13 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 	let scrollResetKey = `${viewMode}:${currentPage}`;
 	if (selectedAlbumID) {
 		scrollResetKey = `${viewMode}:${selectedAlbumID}:${currentPage}`;
+	}
+
+	let effectiveAlbumName = selectedAlbum?.albumName;
+	let effectiveBackAction = onBackToAlbumsAction;
+	if (gpxPreview) {
+		effectiveAlbumName = 'GPX Import';
+		effectiveBackAction = onGPXCancelAction;
 	}
 
 	return (
@@ -181,44 +166,55 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				isSyncing={isSyncing}
 				syncError={syncError}
 				onSyncAction={onRetrySyncAction}
-				albumName={selectedAlbum?.albumName}
-				onBackAction={onBackToAlbumsAction}
+				albumName={effectiveAlbumName}
+				onBackAction={effectiveBackAction}
 				trailingAction={view.trailingAction}
 			/>
-			<div
-				key={contentKey}
-				className={contentClass}>
-				{shouldShowAlbumList ? (
-					<div className={'flex-1 overflow-y-auto'}>
-						<AlbumList
-							onSelectAction={onSelectAlbumAction}
-							animation={PHOTO_GRID_FADE_ANIMATION}
-							isSyncing={isSyncing}
-						/>
-					</div>
-				) : (
-					<PhotoGrid
-						assets={assets}
-						selectedIDs={selectedIDs}
-						scrollResetKey={scrollResetKey}
-						gpsFilter={gpsFilter}
-						gridColumns={gridColumns}
-						isLoading={isLoadingAssets}
-						isSyncing={isSyncing}
-						error={assetsError}
-					/>
-				)}
-				{!shouldShowAlbumList && total > 0 ? (
-					<div style={staggerStyle(150)}>
-						<PaginationFooter
-							currentPage={currentPage}
-							totalPages={totalPages}
+			{gpxPreview && (
+				<GPXImportPanel
+					preview={gpxPreview}
+					error={gpxError}
+					onReset={onGPXResetAction}
+				/>
+			)}
+			{!gpxPreview && (
+				<div
+					key={contentKey}
+					className={contentClass}>
+					{shouldShowAlbumList && (
+						<div className={'flex-1 overflow-y-auto'}>
+							<AlbumList
+								onSelectAction={onSelectAlbumAction}
+								animation={PHOTO_GRID_FADE_ANIMATION}
+								isSyncing={isSyncing}
+							/>
+						</div>
+					)}
+					{!shouldShowAlbumList && (
+						<PhotoGrid
+							assets={assets}
+							selectedIDs={selectedIDs}
+							alreadyAppliedIDs={alreadyAppliedIDs}
+							scrollResetKey={scrollResetKey}
+							gpsFilter={gpsFilter}
+							gridColumns={gridColumns}
 							isLoading={isLoadingAssets}
-							onPageChangeAction={onLoadPageAction}
+							isSyncing={isSyncing}
+							error={assetsError}
 						/>
-					</div>
-				) : null}
-			</div>
+					)}
+					{!shouldShowAlbumList && total > 0 && (
+						<div style={staggerStyle(150)}>
+							<PaginationFooter
+								currentPage={currentPage}
+								totalPages={totalPages}
+								isLoading={isLoadingAssets}
+								onPageChangeAction={onLoadPageAction}
+							/>
+						</div>
+					)}
+				</div>
+			)}
 		</div>
 	);
 }

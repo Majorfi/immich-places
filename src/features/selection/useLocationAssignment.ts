@@ -9,7 +9,7 @@ import {LOCATION_SAVE_REQUEST_DELAY_MS} from '@/utils/locationAssignment';
 import type {TSelectMode} from '@/features/selection/useSelectionState';
 import type {TAssetRow} from '@/shared/types/asset';
 import type {TSelectionSaveResult} from '@/shared/types/context';
-import type {TPendingLocation, TPendingLocationsByAssetID} from '@/shared/types/map';
+import type {TPendingLocation, TPendingLocationsByAssetID, TSetLocationOptions} from '@/shared/types/map';
 
 /** Return contract for location-assignment behavior exposed to UI controllers. */
 type TUseLocationAssignmentReturn = {
@@ -24,15 +24,15 @@ type TUseLocationAssignmentReturn = {
 	selectAllAction: (assets: TAssetRow[]) => void;
 	clearSelectionAction: () => void;
 	clearSavedLocationsAction: (assetIDs: string[]) => void;
-	setLocationAction: (
-		latitude: number,
-		longitude: number,
-		source: TPendingLocation['source'],
-		targetAssetIDs?: string[],
-		skipPendingLocation?: boolean
-	) => void;
+	setLocationAction: (options: TSetLocationOptions) => void;
 	clearLocationAction: (clearPendingOnly?: boolean) => void;
 	saveAction: () => Promise<TSelectionSaveResult>;
+	undoLocationAction: () => void;
+	redoLocationAction: () => void;
+	canUndoLocation: boolean;
+	canRedoLocation: boolean;
+	beginLocationBatch: () => void;
+	endLocationBatch: () => void;
 };
 
 /**
@@ -66,7 +66,13 @@ export function useLocationAssignment(
 		setLocation,
 		clearLocation,
 		setPendingLocationsByAssetID,
-		setSavedLocationsByAssetID
+		setSavedLocationsByAssetID,
+		undoLocation,
+		redoLocation,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch
 	} = useSelectionState();
 
 	const clearSavedLocations = useCallback(
@@ -224,6 +230,9 @@ export function useLocationAssignment(
 			if (!targetPendingLocation) {
 				continue;
 			}
+			if (targetPendingLocation.isAlreadyApplied) {
+				continue;
+			}
 			const key = `${targetPendingLocation.latitude},${targetPendingLocation.longitude}`;
 			const existingPayload = payloads.get(key);
 			if (existingPayload) {
@@ -341,6 +350,12 @@ export function useLocationAssignment(
 		clearSelectionAction: clearSelection,
 		setLocationAction: setLocation,
 		clearLocationAction: clearLocation,
-		saveAction: save
+		saveAction: save,
+		undoLocationAction: undoLocation,
+		redoLocationAction: redoLocation,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch
 	};
 }

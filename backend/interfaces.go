@@ -17,6 +17,7 @@ type SyncStore interface {
 	upsertAlbum(ctx context.Context, userID, albumID, albumName string, thumbnailAssetID *string, assetCount int, updatedAt string, startDate *string) error
 	replaceAlbumAssets(ctx context.Context, userID, albumID string, assetIDs []string) error
 	deleteAlbumsNotIn(ctx context.Context, userID string, albumIDs []string) error
+	deleteAssetsNotIn(ctx context.Context, userID string, assetIDs []string) error
 	upsertLibrary(ctx context.Context, libraryID, name string, assetCount int) error
 	deleteLibrariesNotIn(ctx context.Context, libraryIDs []string) error
 	needsLibraryIDBackfill(ctx context.Context, userID string) (bool, error)
@@ -37,6 +38,7 @@ type HandlerStore interface {
 	getAssetByID(ctx context.Context, userID, immichID string) (*AssetRow, error)
 	getAlbumsWithNoGPSCount(ctx context.Context, userID string) ([]AlbumRow, error)
 	getAlbumsWithGPSCount(ctx context.Context, userID string) ([]AlbumRow, error)
+	getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool, timeStart, timeEnd string) ([]AssetRow, error)
 }
 
 type SuggestionStore interface {

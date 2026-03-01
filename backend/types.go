@@ -203,3 +203,33 @@ type ImmichLibraryResponse struct {
 type LibraryUpdateRequest struct {
 	IsHidden *bool `json:"isHidden" validate:"required"`
 }
+
+type GPXTrackPoint struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+type GPXTrackSummary struct {
+	Name       string          `json:"name"`
+	Points     []GPXTrackPoint `json:"points"`
+	StartTime  string          `json:"startTime"`
+	EndTime    string          `json:"endTime"`
+	PointCount int             `json:"pointCount"`
+}
+
+type GPXMatchResult struct {
+	AssetID          string  `json:"assetID"`
+	FileName         string  `json:"fileName"`
+	Latitude         float64 `json:"latitude"`
+	Longitude        float64 `json:"longitude"`
+	Elevation        float64 `json:"elevation"`
+	TimeGap          int     `json:"timeGap"`
+	IsAlreadyApplied bool    `json:"isAlreadyApplied"`
+}
+
+type GPXPreviewResponse struct {
+	Track            GPXTrackSummary  `json:"track"`
+	Matches          []GPXMatchResult `json:"matches"`
+	DetectedTimezone string           `json:"detectedTimezone"`
+}
+

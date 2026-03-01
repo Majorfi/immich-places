@@ -126,6 +126,13 @@ function removeStaleMarkers(
 	return hasLayerChanges;
 }
 
+function resolveMarkerGreyscale(args: TUseOverviewLayerReconcileArgs, assetID: string, isGreyscale: boolean): boolean {
+	if (isGreyscale) {
+		return true;
+	}
+	return args.pendingLocationsByAssetIDRef.current[assetID]?.isAlreadyApplied === true;
+}
+
 /**
  * Synchronizes a single marker for visibility, position, and icon state.
  *
@@ -144,9 +151,10 @@ function syncSingleMarker(
 	const assetID = markerData.immichID;
 	const isMarkerVisible = !args.selectedIDs.has(assetID);
 	const renderedMarkerData = resolveMarkerData(args, assetID, markerData);
+	const effectiveGreyscale = resolveMarkerGreyscale(args, assetID, isGreyscale);
 	clearOptimisticSavedLocation(args, assetID, markerData);
 
-	if (createMarkerIfMissing(args, map, renderedMarkerData, isGreyscale, isMarkerVisible)) {
+	if (createMarkerIfMissing(args, map, renderedMarkerData, effectiveGreyscale, isMarkerVisible)) {
 		return true;
 	}
 
@@ -156,6 +164,9 @@ function syncSingleMarker(
 	}
 
 	let hasChanges = false;
+	if (syncMarkerIcon(args, existingMarker, assetID, effectiveGreyscale)) {
+		hasChanges = true;
+	}
 	if (syncMarkerPosition(args, existingMarker, assetID, renderedMarkerData)) {
 		hasChanges = true;
 	}
@@ -230,7 +241,8 @@ function createOverviewMarker(
 		zIndexOffset: 0,
 		draggable: true
 	});
-	(marker as L.Marker & {immichID: string}).immichID = assetID;
+	(marker as L.Marker & {immichID: string; markerGreyscale: boolean}).immichID = assetID;
+	(marker as L.Marker & {markerGreyscale: boolean}).markerGreyscale = isGreyscale;
 	return marker;
 }
 
@@ -262,7 +274,12 @@ function attachDragHandlers(
 			args.toggleAssetRef.current(assetRow, 'single');
 		}
 		const targetAssetIDs = selectedAssetIDs?.has(assetID) ? [...selectedAssetIDs] : [assetID];
-		args.setLocationRef.current(newLatLng.lat, newLatLng.lng, MAP_LOCATION_SOURCE_MARKER_DRAG, targetAssetIDs);
+		args.setLocationRef.current({
+			latitude: newLatLng.lat,
+			longitude: newLatLng.lng,
+			source: MAP_LOCATION_SOURCE_MARKER_DRAG,
+			targetAssetIDs
+		});
 		clearGroupMoveArtifacts(args.groupMovePillRef, args.groupAnchorMarkerRef, args.overviewLayerRef);
 	});
 }
@@ -295,10 +312,11 @@ function attachClickHandlers(
 			return;
 		}
 		L.DomEvent.stopPropagation(event);
+		const clickGreyscale = resolveMarkerGreyscale(args, assetID, isGreyscale);
 		handleMarkerClick(args, marker, {
 			assetID,
 			markerData: resolveMarkerData(args, assetID, latestMarkerData),
-			isGreyscale,
+			isGreyscale: clickGreyscale,
 			map
 		});
 	});
@@ -315,12 +333,12 @@ function handleMarkerClick(args: TUseOverviewLayerReconcileArgs, marker: L.Marke
 	const {assetID, markerData, isGreyscale, map} = params;
 	switch (resolveMarkerClickAction(args, assetID)) {
 		case 'assign-location':
-			args.setLocationRef.current(
-				markerData.latitude,
-				markerData.longitude,
-				MAP_LOCATION_SOURCE_MAP_CLICK,
-				Array.from(args.selectedAssetIDsRef.current)
-			);
+			args.setLocationRef.current({
+				latitude: markerData.latitude,
+				longitude: markerData.longitude,
+				source: MAP_LOCATION_SOURCE_MAP_CLICK,
+				targetAssetIDs: Array.from(args.selectedAssetIDsRef.current)
+			});
 			return;
 		case 'open-lightbox':
 			args.openLightboxRef.current(assetID);
@@ -435,11 +453,30 @@ function syncMarkerVisibility(
 }
 
 /**
- * Clears focus tracking when focused marker is removed from map visibility.
+ * Syncs marker icon greyscale state when it diverges from current mode.
  *
  * @param args - Shared marker args.
- * @param assetID - Focused asset identifier candidate.
+ * @param existingMarker - Marker currently on the map.
+ * @param assetID - Asset identifier.
+ * @param effectiveGreyscale - Whether marker should render in greyscale.
+ * @returns `true` when the icon was updated.
  */
+function syncMarkerIcon(
+	args: TUseOverviewLayerReconcileArgs,
+	existingMarker: L.Marker,
+	assetID: string,
+	effectiveGreyscale: boolean
+): boolean {
+	const typedMarker = existingMarker as L.Marker & {markerGreyscale?: boolean};
+	if (typedMarker.markerGreyscale === effectiveGreyscale) {
+		return false;
+	}
+	const isFocused = args.focusedOverviewIDRef.current === assetID;
+	existingMarker.setIcon(overviewIcon(assetID, isFocused, effectiveGreyscale));
+	typedMarker.markerGreyscale = effectiveGreyscale;
+	return true;
+}
+
 function clearFocusedMarker(args: TUseOverviewLayerReconcileArgs, assetID: string): void {
 	if (args.focusedOverviewIDRef.current !== assetID) {
 		return;

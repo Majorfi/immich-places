@@ -117,11 +117,11 @@ export function SuggestionsPill(): ReactElement {
 								<button
 									key={clusterStableKey(cluster)}
 									onClick={() => {
-										setLocationAction(
-											cluster.latitude,
-											cluster.longitude,
-											MAP_LOCATION_SOURCE_SUGGESTION
-										);
+										setLocationAction({
+											latitude: cluster.latitude,
+											longitude: cluster.longitude,
+											source: MAP_LOCATION_SOURCE_SUGGESTION
+										});
 										setIsExpanded(false);
 									}}
 									className={itemClass}>

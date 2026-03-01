@@ -1,7 +1,7 @@
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetRow} from '@/shared/types/asset';
 import type {THealthResponse} from '@/shared/types/health';
-import type {TGPSFilter, TPendingLocation, TPendingLocationsByAssetID} from '@/shared/types/map';
+import type {TGPSFilter, TPendingLocation, TPendingLocationsByAssetID, TSetLocationOptions} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionCategory} from '@/shared/types/suggestion';
 import type {TViewMode} from '@/shared/types/view';
 
@@ -13,6 +13,7 @@ export type TBackendContextValue = {
 	isSyncing: boolean;
 	syncError: string | null;
 	resyncAction: () => Promise<void>;
+	fullResyncAction: () => Promise<void>;
 	refreshDataAction: () => Promise<void>;
 	clearCatalogAction: () => void;
 };
@@ -64,15 +65,15 @@ export type TSelectionContextValue = {
 	selectAllAction: (assets: TAssetRow[]) => void;
 	clearSelectionAction: () => void;
 	clearSavedLocationsAction: (assetIDs: string[]) => void;
-	setLocationAction: (
-		latitude: number,
-		longitude: number,
-		source: TPendingLocation['source'],
-		targetAssetIDs?: string[],
-		skipPendingLocation?: boolean
-	) => void;
+	setLocationAction: (options: TSetLocationOptions) => void;
 	clearLocationAction: (clearPendingOnly?: boolean) => void;
 	saveAction: () => Promise<TSelectionSaveResult>;
+	undoLocationAction: () => void;
+	redoLocationAction: () => void;
+	canUndoLocation: boolean;
+	canRedoLocation: boolean;
+	beginLocationBatch: () => void;
+	endLocationBatch: () => void;
 };
 
 export type TSelectionSaveStatus = 'noop' | 'saved';

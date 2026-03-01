@@ -3,7 +3,7 @@
 import {useRef} from 'react';
 
 import type {TAssetRow} from '@/shared/types/asset';
-import type {TGPSFilter, TPendingLocation, TPendingLocationsByAssetID} from '@/shared/types/map';
+import type {TGPSFilter, TPendingLocationsByAssetID, TSetLocationOptions} from '@/shared/types/map';
 import type L from 'leaflet';
 import type {RefObject} from 'react';
 
@@ -16,13 +16,7 @@ type TUseMapViewRefsArgs = {
 	clearSavedLocationsAction: (assetIDs: string[]) => void;
 	pendingLocationsByAssetID: TPendingLocationsByAssetID;
 	savedLocationsByAssetID: TPendingLocationsByAssetID;
-	setLocationAction: (
-		latitude: number,
-		longitude: number,
-		source: TPendingLocation['source'],
-		targetAssetIDs?: string[],
-		skipPendingLocation?: boolean
-	) => void;
+	setLocationAction: (options: TSetLocationOptions) => void;
 };
 
 type TUseMapViewRefsResult = {
@@ -45,15 +39,7 @@ type TUseMapViewRefsResult = {
 	openLightboxRef: RefObject<(assetID: string) => void>;
 	toggleAssetRef: RefObject<(asset: TAssetRow, mode?: 'single' | 'additive') => void>;
 	resolveAssetByIDRef: RefObject<(assetID: string) => TAssetRow | null>;
-	setLocationRef: RefObject<
-		(
-			latitude: number,
-			longitude: number,
-			source: TPendingLocation['source'],
-			targetAssetIDs?: string[],
-			skipPendingLocation?: boolean
-		) => void
-	>;
+	setLocationRef: RefObject<(options: TSetLocationOptions) => void>;
 	gpsFilterRef: RefObject<TGPSFilter>;
 	hasSelectionRef: RefObject<boolean>;
 	allSelectedHaveGPSRef: RefObject<boolean>;
@@ -103,7 +89,13 @@ export function useMapViewRefs({
 	const gpsFilterRef = useLatestRef(gpsFilter);
 	const hasSelectionRef = useLatestRef(selectedAssets.length > 0);
 	const allSelectedHaveGPSRef = useLatestRef(
-		selectedAssets.length > 0 && selectedAssets.every(asset => asset.latitude !== null && asset.longitude !== null)
+		selectedAssets.length > 0 &&
+			selectedAssets.every(
+				asset =>
+					asset.latitude !== null &&
+					asset.longitude !== null &&
+					pendingLocationsByAssetID[asset.immichID]?.source !== 'gpx-import'
+			)
 	);
 	const pendingLocationsByAssetIDRef = useLatestRef(pendingLocationsByAssetID);
 	const savedLocationsByAssetIDRef = useLatestRef(savedLocationsByAssetID);

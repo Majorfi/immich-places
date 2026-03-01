@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {fetchSyncStatus, triggerSync} from '@/shared/services/backendApi';
+import {fetchSyncStatus, triggerFullSync, triggerSync} from '@/shared/services/backendApi';
 import {isAbortError, waitForDelay} from '@/utils/abort';
 import {
 	RESYNC_BACKOFF_MULTIPLIER,
@@ -66,6 +66,7 @@ type TUseResyncResult = {
 	isSyncing: boolean;
 	syncError: string | null;
 	resyncAction: () => Promise<void>;
+	fullResyncAction: () => Promise<void>;
 };
 
 export function useResync({
@@ -95,9 +96,13 @@ export function useResync({
 	}, []);
 
 	const runSyncFlow = useCallback(
-		async (controller: AbortController, shouldStartSync: boolean): Promise<void> => {
+		async (
+			controller: AbortController,
+			shouldStartSync: boolean,
+			triggerFn: (opts: {signal: AbortSignal}) => Promise<void> = triggerSync
+		): Promise<void> => {
 			if (shouldStartSync) {
-				await triggerSync({signal: controller.signal});
+				await triggerFn({signal: controller.signal});
 			} else {
 				const status = await fetchSyncStatus({signal: controller.signal});
 				if (!status.syncing) {
@@ -112,7 +117,10 @@ export function useResync({
 	);
 
 	const executeSync = useCallback(
-		async (shouldStartSync: boolean): Promise<boolean> => {
+		async (
+			shouldStartSync: boolean,
+			triggerFn?: (opts: {signal: AbortSignal}) => Promise<void>
+		): Promise<boolean> => {
 			if (isSyncingRef.current) {
 				return false;
 			}
@@ -125,7 +133,7 @@ export function useResync({
 
 			let succeeded = false;
 			try {
-				await runSyncFlow(controller, shouldStartSync);
+				await runSyncFlow(controller, shouldStartSync, triggerFn);
 				succeeded = true;
 			} catch (error) {
 				if (isAbortError(error)) {
@@ -146,6 +154,10 @@ export function useResync({
 
 	const resyncAction = useCallback(async () => {
 		await executeSync(true);
+	}, [executeSync]);
+
+	const fullResyncAction = useCallback(async () => {
+		await executeSync(true, triggerFullSync);
 	}, [executeSync]);
 
 	useEffect(() => {
@@ -172,5 +184,5 @@ export function useResync({
 		}
 	}, [isReady, syncVersion, executeSync]);
 
-	return {isSyncing, syncError, resyncAction};
+	return {isSyncing, syncError, resyncAction, fullResyncAction};
 }

@@ -3,18 +3,12 @@
 import {useEffect, useRef, useState} from 'react';
 
 import {FILTER_BAR_TRANSITION_CLASS} from '@/features/filterBar/constant';
-import {
-	filterButtonClass,
-	oppositeMode,
-	optionButtonClass,
-	toolButtonClass,
-	viewIcon,
-	viewTitle
-} from '@/features/filterBar/constants';
+import {filterButtonClass, optionButtonClass, toolButtonClass} from '@/features/filterBar/constants';
 import {FilterIcon} from '@/features/filterBar/FilterIcon';
 import {GPSFilterGroup} from '@/features/filterBar/GPSFilterGroup';
 import {HeaderTitle} from '@/features/filterBar/HeaderTitle';
 import {NumericOptionGroup} from '@/features/filterBar/NumericOptionGroup';
+import {ViewModeGroup} from '@/features/filterBar/ViewModeGroup';
 import {cn} from '@/utils/cn';
 import {
 	GRID_COLUMN_OPTIONS,
@@ -101,7 +95,6 @@ export function FilterBar({
 	const [isOpen, setIsOpen] = useState(true);
 	const [openPanelHeightPx, setOpenPanelHeightPx] = useState(160);
 	const panelBodyRef = useRef<HTMLDivElement | null>(null);
-	const nextMode = oppositeMode[viewMode];
 	const visibleMarkerLimitOptions = buildVisibleMarkerLimitOptions(visibleMarkerTotalCount);
 	const activeVisibleMarkerLimit = resolveActiveVisibleMarkerLimit(visibleMarkerLimit, visibleMarkerLimitOptions);
 	const activeVisibleMarkerLimitIndex = visibleMarkerLimitOptions.indexOf(activeVisibleMarkerLimit);
@@ -198,12 +191,6 @@ export function FilterBar({
 					</svg>
 				</button>
 				<button
-					onClick={() => onViewModeAction(nextMode)}
-					title={viewTitle[viewMode]}
-					className={toolButtonClass}>
-					{viewIcon[nextMode]}
-				</button>
-				<button
 					onClick={() => setIsOpen(value => !value)}
 					className={cn(
 						filterButtonClass,
@@ -223,11 +210,17 @@ export function FilterBar({
 				<div
 					ref={panelBodyRef}
 					className={'flex flex-col gap-1.5 px-3 pb-2.5'}>
-					<GPSFilterGroup
-						gpsFilter={gpsFilter}
-						missingCount={missingCount}
-						onGPSFilterAction={onGPSFilterAction}
-					/>
+					<div className={'flex gap-1.5'}>
+						<GPSFilterGroup
+							gpsFilter={gpsFilter}
+							missingCount={missingCount}
+							onGPSFilterAction={onGPSFilterAction}
+						/>
+						<ViewModeGroup
+							viewMode={viewMode}
+							onViewModeAction={onViewModeAction}
+						/>
+					</div>
 					<div className={'flex gap-1.5'}>
 						<NumericOptionGroup
 							label={'Per Page'}

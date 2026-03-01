@@ -6,6 +6,7 @@ import {backendFetch, parseJSON} from '@/shared/services/backendApi.fetch';
 import {
 	isAlbumRow,
 	isAssetPageInfo,
+	isGPXPreviewResponse,
 	isHealthResponse,
 	isLibraryRow,
 	isMapMarker,
@@ -19,6 +20,7 @@ import {getBackendBaseURL} from '@/utils/backendUrls';
 import {normalizePositiveInteger} from '@/utils/math';
 import {DEFAULT_PAGE_SIZE, DEFAULT_VISIBLE_MARKER_LIMIT} from '@/utils/view';
 
+import type {TGPXPreviewResponse} from '@/features/gpxImport/gpxImportTypes';
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
@@ -53,7 +55,10 @@ async function readErrorMessage(response: Response): Promise<string | null> {
 		const text = await response.text();
 		const parsed = JSON.parse(text);
 		return typeof parsed?.error === 'string' ? parsed.error : null;
-	} catch {
+	} catch (err) {
+		if (err instanceof DOMException && err.name === 'AbortError') {
+			throw err;
+		}
 		return null;
 	}
 }
@@ -336,6 +341,13 @@ export async function triggerSync(opts: TRequestOptions = {}): Promise<void> {
 	}
 }
 
+export async function triggerFullSync(opts: TRequestOptions = {}): Promise<void> {
+	const response = await backendFetch(`${BASE}/sync/full`, {method: 'POST'}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to trigger full sync: ${response.status}`);
+	}
+}
+
 /**
  * Queries backend sync status.
  *
@@ -388,4 +400,23 @@ export async function refreshLibraries(opts: TRequestOptions = {}): Promise<TLib
 		(value): value is TLibraryRow[] => Array.isArray(value) && value.every(isLibraryRow),
 		'Invalid libraries response payload'
 	);
+}
+
+export async function gpxPreview(
+	file: File,
+	maxGapSeconds?: number,
+	opts: TRequestOptions = {}
+): Promise<TGPXPreviewResponse> {
+	const formData = new FormData();
+	formData.append('gpxFile', file);
+	if (maxGapSeconds !== undefined) {
+		formData.append('maxGapSeconds', String(maxGapSeconds));
+	}
+	formData.append('includeGeotagged', 'true');
+	const response = await backendFetch(`${BASE}/gpx/preview`, {method: 'POST', body: formData}, opts);
+	if (!response.ok) {
+		const msg = await readErrorMessage(response);
+		throw new Error(msg ?? `GPX preview failed: ${response.status}`);
+	}
+	return parseJSON(response, isGPXPreviewResponse, 'Invalid GPX preview response payload');
 }

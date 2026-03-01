@@ -57,7 +57,7 @@ export function useOverviewLayerReconcile({
 	savedLocationsByAssetIDRef,
 	pendingSelectionMarkerRef
 }: TUseOverviewLayerReconcileArgs): void {
-	const isGreyscale = !isGPSFilterWithLocations(gpsFilter);
+	const isGreyscale = albumFilter !== 'gpx-import' && !isGPSFilterWithLocations(gpsFilter);
 
 	useEffect(() => {
 		if (!mapInstanceRef.current) {

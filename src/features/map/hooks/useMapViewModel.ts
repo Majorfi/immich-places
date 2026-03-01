@@ -8,6 +8,7 @@ import {useMapScene, useView} from '@/shared/context/AppContext';
 import type {TViewportBounds} from '@/shared/types/api';
 import type {TAssetRow} from '@/shared/types/asset';
 import type {TMapSceneValue} from '@/shared/types/context';
+import type {TMapMarker} from '@/shared/types/map';
 
 export type TUseMapViewModelReturn = {
 	gpsFilter: TMapSceneValue['gpsFilter'];
@@ -60,6 +61,29 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		mapBounds,
 		visibleMarkerLimit
 	);
+	const gpxMarkers = useMemo<TMapMarker[]>(() => {
+		const entries = Object.entries(pendingLocationsByAssetID);
+		const hasGPXSource = entries.some(([, loc]) => loc.source === 'gpx-import');
+		if (!hasGPXSource) {
+			return [];
+		}
+		return entries
+			.filter(([, loc]) => loc.source === 'gpx-import')
+			.map(([assetID, location]) => ({
+				immichID: assetID,
+				latitude: location.latitude,
+				longitude: location.longitude
+			}));
+	}, [pendingLocationsByAssetID]);
+
+	const hasGPXPreview = gpxMarkers.length > 0;
+	let effectiveAlbumFilter = albumFilter;
+	let effectiveMapMarkers = mapMarkers;
+	if (hasGPXPreview) {
+		effectiveAlbumFilter = 'gpx-import';
+		effectiveMapMarkers = gpxMarkers;
+	}
+
 	const assetByID = useMemo(() => {
 		const map = new Map<string, TAssetRow>();
 		for (const asset of assets) {
@@ -91,9 +115,9 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 	return {
 		gpsFilter,
 		viewMode,
-		albumFilter,
+		albumFilter: effectiveAlbumFilter,
 		setMapBoundsAction: setMapBounds,
-		mapMarkers,
+		mapMarkers: effectiveMapMarkers,
 		mapMarkersError,
 		selectedAssets,
 		isAssetSelected,

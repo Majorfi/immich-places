@@ -11,57 +11,75 @@ This directory groups reusable, cross-feature utility primitives used throughout
 ## Categories
 
 - `abort.ts`
+
     - Abort utilities for cancellable async work (`waitForDelay`, `isAbortError`).
 
 - `backendUrls.ts`
+
     - Backend URL builders for assets and optional Immich deep links.
 
 - `client.ts`
+
     - Client-side backend base URL resolution.
 
 - `cn.ts`
+
     - CSS class string joiner utility.
 
 - `dragDrop.ts`
+
     - Shared constants for drag-and-drop interactions.
 
 - `geocoding.ts`
+
     - Geocoder service limits and endpoints.
 
 - `history.ts`
+
     - Place search history retention and precision constants.
 
 - `locationAssignment.ts`
+
     - Runtime limits for batching and coordinate precision when saving locations.
 
 - `map.ts`
+
     - Map UX and rendering constants.
 
 - `math.ts`
+
     - Numeric normalization utilities.
 
 - `pagination.ts`
+
     - Pagination helpers and page range generation.
 
 - `photoGrid.ts`
+
     - Layout/animation constants for photo grid rendering.
 
 - `request.ts`
+
     - HTTP client constants and default request timeout.
 
 - `resync.ts`
+
     - Sync polling timing values.
 
 - `search.ts`
+
     - Search debounce constants.
 
 - `string.ts`
+
     - String input validation helpers.
 
 - `suggestions.ts`
+
     - Suggestion category definitions, labels and limits.
 
 - `typeGuards.ts`
+
     - Shared runtime validation helpers used before storing external data in typed state.
 
 - `view.ts`

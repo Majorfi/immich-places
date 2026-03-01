@@ -261,7 +261,13 @@ function createGroupMoveActionBar(
 		for (const [assetID, startLatLng] of startCoordinatesByAssetID.entries()) {
 			const latitude = startLatLng.lat + deltaLatitude;
 			const longitude = startLatLng.lng + deltaLongitude;
-			setLocationRef.current(latitude, longitude, MAP_LOCATION_SOURCE_MARKER_DRAG, [assetID], true);
+			setLocationRef.current({
+				latitude,
+				longitude,
+				source: MAP_LOCATION_SOURCE_MARKER_DRAG,
+				targetAssetIDs: [assetID],
+				skipPendingLocation: true
+			});
 		}
 		clearGroupMoveArtifacts(groupMoveRefs.groupMovePillRef, groupMoveRefs.groupAnchorMarkerRef);
 	});
@@ -516,7 +522,7 @@ function handleClusterClick(
 	const center = bounds.getCenter();
 	if (hasSelection && !allSelectedHaveGPS) {
 		clearGroupMoveArtifacts(groupMoveRefs.groupMovePillRef, groupMoveRefs.groupAnchorMarkerRef);
-		setLocationRef.current(center.lat, center.lng, MAP_LOCATION_SOURCE_MAP_CLICK);
+		setLocationRef.current({latitude: center.lat, longitude: center.lng, source: MAP_LOCATION_SOURCE_MAP_CLICK});
 		return;
 	}
 
