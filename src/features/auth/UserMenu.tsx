@@ -5,25 +5,30 @@ import {useEffect, useRef, useState} from 'react';
 
 import {APIKeyDialog} from '@/features/auth/APIKeyDialog';
 import {useAuth} from '@/features/auth/AuthContext';
+import {GPXImportDialog} from '@/features/gpxImport/GPXImportDialog';
 import {LibrarySettingsDialog} from '@/features/librarySettings/LibrarySettingsDialog';
 import {useBackend} from '@/shared/context/AppContext';
 
 import type {ReactElement} from 'react';
 
-/**
- * User dropdown menu for signed-in sessions.
- *
- * Shows account email and exposes a sign-out action with automatic redirect.
- *
- * @returns User menu element or `null` when unauthenticated.
- */
-export function UserMenu(): ReactElement | null {
+type TGPXImportProps = {
+	uploadAndPreview: (file: File, maxGapSeconds?: number) => Promise<void>;
+	isLoading: boolean;
+	error: string | null;
+};
+
+type TUserMenuProps = {
+	gpxImport?: TGPXImportProps;
+};
+
+export function UserMenu({gpxImport}: TUserMenuProps): ReactElement | null {
 	const {user, hasLibraries, logout} = useAuth();
-	const {refreshDataAction, resyncAction, clearCatalogAction} = useBackend();
+	const {refreshDataAction, resyncAction, fullResyncAction, clearCatalogAction, isSyncing} = useBackend();
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
 	const [isAPIKeyDialogOpen, setIsAPIKeyDialogOpen] = useState(false);
 	const [isLibraryDialogOpen, setIsLibraryDialogOpen] = useState(false);
+	const [isGPXImportDialogOpen, setIsGPXImportDialogOpen] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -37,6 +42,12 @@ export function UserMenu(): ReactElement | null {
 		}
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen]);
+
+	useEffect(() => {
+		if (!gpxImport) {
+			setIsGPXImportDialogOpen(false);
+		}
+	}, [gpxImport]);
 
 	if (!user) {
 		return null;
@@ -74,6 +85,18 @@ export function UserMenu(): ReactElement | null {
 							{'Libraries'}
 						</button>
 					)}
+					{gpxImport && (
+						<button
+							onClick={() => {
+								setIsOpen(false);
+								setIsGPXImportDialogOpen(true);
+							}}
+							className={
+								'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text)'
+							}>
+							{'Import GPX'}
+						</button>
+					)}
 					<button
 						onClick={() => {
 							setIsOpen(false);
@@ -83,6 +106,17 @@ export function UserMenu(): ReactElement | null {
 							'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text)'
 						}>
 						{'API Key'}
+					</button>
+					<button
+						disabled={isSyncing}
+						onClick={() => {
+							setIsOpen(false);
+							fullResyncAction();
+						}}
+						className={
+							'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-50'
+						}>
+						{'Full resync'}
 					</button>
 					<button
 						onClick={async () => {
@@ -109,6 +143,15 @@ export function UserMenu(): ReactElement | null {
 				onClose={() => setIsLibraryDialogOpen(false)}
 				onVisibilityChanged={refreshDataAction}
 			/>
+			{gpxImport && (
+				<GPXImportDialog
+					isOpen={isGPXImportDialogOpen}
+					onClose={() => setIsGPXImportDialogOpen(false)}
+					uploadAndPreview={gpxImport.uploadAndPreview}
+					isLoading={gpxImport.isLoading}
+					error={gpxImport.error}
+				/>
+			)}
 		</div>
 	);
 }
