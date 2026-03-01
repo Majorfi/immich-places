@@ -42,7 +42,7 @@ export function LocationConfirm(): ReactElement | null {
 	const allAlreadyAppliedGPXCount = useMemo(
 		() =>
 			Object.values(pendingLocationsByAssetID).filter(
-				loc => loc.source === 'gpx-import' && loc.isAlreadyApplied === true
+				loc => loc.source === 'gpx-import' && loc.isAlreadyApplied
 			).length,
 		[pendingLocationsByAssetID]
 	);

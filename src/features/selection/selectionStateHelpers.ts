@@ -46,7 +46,7 @@ export function createPendingLocation(
 export function deriveAlreadyAppliedIDs(pendingLocationsByAssetID: TPendingLocationsByAssetID): Set<string> {
 	return new Set(
 		Object.entries(pendingLocationsByAssetID)
-			.filter(([, loc]) => loc.isAlreadyApplied === true)
+			.filter(([, loc]) => loc.isAlreadyApplied)
 			.map(([assetID]) => assetID)
 	);
 }
