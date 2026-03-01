@@ -38,7 +38,7 @@ type HandlerStore interface {
 	getAssetByID(ctx context.Context, userID, immichID string) (*AssetRow, error)
 	getAlbumsWithNoGPSCount(ctx context.Context, userID string) ([]AlbumRow, error)
 	getAlbumsWithGPSCount(ctx context.Context, userID string) ([]AlbumRow, error)
-	getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool) ([]AssetRow, error)
+	getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool, timeStart, timeEnd string) ([]AssetRow, error)
 }
 
 type SuggestionStore interface {

@@ -72,7 +72,13 @@ func (h *Handlers) handleGPXPreview(w http.ResponseWriter, r *http.Request) {
 		trackTimezone = time.UTC
 	}
 
-	assets, err := h.db.getAssetsWithTimestamps(r.Context(), user.ID, includeGeotagged)
+	trackStart := gpx.points[0].time
+	trackEnd := gpx.points[len(gpx.points)-1].time
+	tzPadding := 15 * time.Hour
+	timeStart := trackStart.Add(-time.Duration(maxGapSeconds)*time.Second - tzPadding).Format(time.RFC3339)
+	timeEnd := trackEnd.Add(time.Duration(maxGapSeconds)*time.Second + tzPadding).Format(time.RFC3339)
+
+	assets, err := h.db.getAssetsWithTimestamps(r.Context(), user.ID, includeGeotagged, timeStart, timeEnd)
 	if err != nil {
 		log.Printf("Failed to query timestamped assets for GPX matching: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to query assets")

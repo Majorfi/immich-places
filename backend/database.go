@@ -576,10 +576,17 @@ func (d *Database) bulkUpdateAssetLocation(ctx context.Context, userID string, i
 	return err
 }
 
-func (d *Database) getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool) ([]AssetRow, error) {
+func (d *Database) getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool, timeStart, timeEnd string) ([]AssetRow, error) {
 	gpsFilter := ` AND (latitude IS NULL OR longitude IS NULL)`
 	if includeGeotagged {
 		gpsFilter = ""
+	}
+
+	timeFilter := ""
+	args := []interface{}{userID}
+	if timeStart != "" && timeEnd != "" {
+		timeFilter = ` AND dateTimeOriginal BETWEEN ? AND ?`
+		args = append(args, timeStart, timeEnd)
 	}
 
 	rows, err := d.db.QueryContext(ctx,
@@ -587,9 +594,9 @@ func (d *Database) getAssetsWithTimestamps(ctx context.Context, userID string, i
 		FROM assets
 		WHERE userID = ?`+gpsFilter+`
 			AND dateTimeOriginal IS NOT NULL
-			AND stackPrimaryAssetID IS NULL`+hiddenLibraryFilter+`
+			AND stackPrimaryAssetID IS NULL`+timeFilter+hiddenLibraryFilter+`
 		ORDER BY dateTimeOriginal ASC`,
-		userID,
+		args...,
 	)
 	if err != nil {
 		return nil, err
