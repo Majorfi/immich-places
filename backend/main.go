@@ -63,10 +63,12 @@ func main() {
 	protectedMux.HandleFunc("GET /frequent-locations", handlers.handleGetFrequentLocations)
 	protectedMux.HandleFunc("GET /assets/{assetID}/page-info", handlers.handleGetAssetPageInfo)
 	protectedMux.HandleFunc("POST /sync", handlers.handleTriggerSync)
+	protectedMux.HandleFunc("POST /sync/full", handlers.handleTriggerFullSync)
 	protectedMux.HandleFunc("GET /sync/status", handlers.handleSyncStatus)
 	protectedMux.HandleFunc("GET /libraries", libraryHandlers.handleGetLibraries)
 	protectedMux.HandleFunc("PUT /libraries/{libraryID}", libraryHandlers.handleUpdateLibrary)
 	protectedMux.HandleFunc("POST /libraries/refresh", libraryHandlers.handleRefreshLibraries)
+	protectedMux.HandleFunc("POST /gpx/preview", handlers.handleGPXPreview)
 
 	mainMux := http.NewServeMux()
 	mainMux.HandleFunc("GET /health", handlers.handleHealth)
@@ -124,7 +126,7 @@ func main() {
 	log.Println("All sync goroutines completed")
 }
 
-const maxRequestBodyBytes = 2_000_000
+const maxRequestBodyBytes = 10_000_000
 const maxQueryLength = 2048
 
 func requestHardeningMiddleware(next http.Handler) http.Handler {
