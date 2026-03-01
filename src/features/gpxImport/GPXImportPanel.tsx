@@ -58,7 +58,7 @@ export function GPXImportPanel({preview, error, onReset}: TGPXImportPanelProps):
 					longitude: match.longitude,
 					source: 'gpx-import',
 					targetAssetIDs: [match.assetID],
-					skipPendingLocation: true,
+					shouldSkipPendingLocation: true,
 					sourceLabel: trackName,
 					isAlreadyApplied: match.isAlreadyApplied
 				});

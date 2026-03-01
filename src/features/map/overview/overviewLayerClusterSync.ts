@@ -266,7 +266,7 @@ function createGroupMoveActionBar(
 				longitude,
 				source: MAP_LOCATION_SOURCE_MARKER_DRAG,
 				targetAssetIDs: [assetID],
-				skipPendingLocation: true
+				shouldSkipPendingLocation: true
 			});
 		}
 		clearGroupMoveArtifacts(groupMoveRefs.groupMovePillRef, groupMoveRefs.groupAnchorMarkerRef);

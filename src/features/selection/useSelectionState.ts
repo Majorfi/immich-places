@@ -2,8 +2,8 @@
 
 import {useCallback, useRef, useState} from 'react';
 
-import {useLocationHistory} from '@/features/selection/useLocationHistory';
 import {buildTargetAssetIDs, createPendingLocation, resolveAnchorID} from '@/features/selection/selectionStateHelpers';
+import {useLocationHistory} from '@/features/selection/useLocationHistory';
 
 import type {TLocationSnapshot} from '@/features/selection/useLocationHistory';
 import type {TAssetRow} from '@/shared/types/asset';
@@ -75,11 +75,11 @@ export function useSelectionState(): TUseSelectionStateReturn {
 	} = useLocationHistory();
 
 	const nextUndoSnapshot = peekUndo();
-	const nextUndoHasPendingData =
+	const hasNextUndoPendingData =
 		nextUndoSnapshot !== null &&
 		(nextUndoSnapshot.pendingLocation !== null ||
 			Object.keys(nextUndoSnapshot.pendingLocationsByAssetID).length > 0);
-	const canUndoLocation = canUndo && nextUndoHasPendingData;
+	const canUndoLocation = canUndo && hasNextUndoPendingData;
 
 	const updateAnchor = useCallback((nextSelected: TAssetRow[]): void => {
 		lastClickedID.current = resolveAnchorID(lastClickedID.current, nextSelected);
@@ -232,8 +232,15 @@ export function useSelectionState(): TUseSelectionStateReturn {
 
 	const setLocation = useCallback(
 		(options: TSetLocationOptions) => {
-			const {latitude, longitude, source, targetAssetIDs, skipPendingLocation, sourceLabel, isAlreadyApplied} =
-				options;
+			const {
+				latitude,
+				longitude,
+				source,
+				targetAssetIDs,
+				shouldSkipPendingLocation,
+				sourceLabel,
+				isAlreadyApplied
+			} = options;
 			pushUndo(captureSnapshot());
 			const selectedAssetIDs = selectedAssetsRef.current.map(asset => asset.immichID);
 			const nextAssetIDs = buildTargetAssetIDs(targetAssetIDs, selectedAssetIDs);
@@ -244,7 +251,7 @@ export function useSelectionState(): TUseSelectionStateReturn {
 				sourceLabel,
 				isAlreadyApplied
 			);
-			if (skipPendingLocation) {
+			if (shouldSkipPendingLocation) {
 				setPendingLocation(null);
 			} else {
 				setPendingLocation(nextPendingLocation);

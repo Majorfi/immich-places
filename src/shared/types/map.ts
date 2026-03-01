@@ -21,7 +21,7 @@ export type TSetLocationOptions = {
 	longitude: number;
 	source: TPendingLocation['source'];
 	targetAssetIDs?: string[];
-	skipPendingLocation?: boolean;
+	shouldSkipPendingLocation?: boolean;
 	sourceLabel?: string;
 	isAlreadyApplied?: boolean;
 };
