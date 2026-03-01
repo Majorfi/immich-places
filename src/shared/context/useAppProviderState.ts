@@ -115,6 +115,12 @@ export function useAppProviderState(): TAppProviderState {
 		setLocationAction,
 		clearLocationAction,
 		saveAction,
+		undoLocationAction,
+		redoLocationAction,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch,
 		mapMarkersVersion,
 		bumpMapMarkers
 	} = useSelectionController({onAssetSavedAction, onBatchSavedAction});
@@ -155,7 +161,7 @@ export function useAppProviderState(): TAppProviderState {
 		refreshUser
 	});
 
-	const {isSyncing, syncError, resyncAction} = useResync({
+	const {isSyncing, syncError, resyncAction, fullResyncAction} = useResync({
 		isReady,
 		syncVersion: health?.syncVersion ?? 0,
 		retryBackendAction,
@@ -176,6 +182,7 @@ export function useAppProviderState(): TAppProviderState {
 		isSyncing,
 		syncError,
 		resyncAction,
+		fullResyncAction,
 		refreshDataAction: refreshData,
 		clearCatalogAction
 	});
@@ -226,7 +233,13 @@ export function useAppProviderState(): TAppProviderState {
 		clearSavedLocationsAction,
 		setLocationAction,
 		clearLocationAction,
-		saveAction
+		saveAction,
+		undoLocationAction,
+		redoLocationAction,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch
 	});
 
 	const uiMapValue = useUIMapValue({
