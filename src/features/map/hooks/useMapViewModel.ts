@@ -76,12 +76,25 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 			}));
 	}, [pendingLocationsByAssetID]);
 
+	const pendingLocationMarkers = useMemo<TMapMarker[]>(() => {
+		const existingIDs = new Set(mapMarkers.map(m => m.immichID));
+		const markers: TMapMarker[] = [];
+		for (const [assetID, location] of Object.entries(pendingLocationsByAssetID)) {
+			if (location.source === 'gpx-import' || existingIDs.has(assetID)) {
+				continue;
+			}
+			markers.push({immichID: assetID, latitude: location.latitude, longitude: location.longitude});
+		}
+		return markers;
+	}, [mapMarkers, pendingLocationsByAssetID]);
+
 	const hasGPXPreview = gpxMarkers.length > 0;
 	let effectiveAlbumFilter = albumFilter;
-	let effectiveMapMarkers = mapMarkers;
+	let effectiveMapMarkers = hasGPXPreview ? gpxMarkers : mapMarkers;
 	if (hasGPXPreview) {
 		effectiveAlbumFilter = 'gpx-import';
-		effectiveMapMarkers = gpxMarkers;
+	} else if (pendingLocationMarkers.length > 0) {
+		effectiveMapMarkers = [...mapMarkers, ...pendingLocationMarkers];
 	}
 
 	const assetByID = useMemo(() => {
