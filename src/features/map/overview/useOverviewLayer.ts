@@ -22,6 +22,7 @@ export function useOverviewLayer(args: TUseOverviewLayerArgs): void {
 	const selectedIDs = useMemo(() => new Set(args.selectedAssets.map(asset => asset.immichID)), [args.selectedAssets]);
 
 	useOverviewLayerFocusEffects({
+		selectedAssets: args.selectedAssets,
 		pendingLocation: args.pendingLocation,
 		focusedOverviewIDRef: args.focusedOverviewIDRef,
 		focusedOverviewCoordsRef: args.focusedOverviewCoordsRef,

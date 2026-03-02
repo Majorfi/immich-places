@@ -12,7 +12,12 @@ import type {TUseOverviewLayerArgs} from '@/shared/types/mapLayer';
  */
 type TFocusEffectsArgs = Pick<
 	TUseOverviewLayerArgs,
-	'pendingLocation' | 'focusedOverviewIDRef' | 'focusedOverviewCoordsRef' | 'overviewMarkersRef' | 'gpsFilter'
+	| 'selectedAssets'
+	| 'pendingLocation'
+	| 'focusedOverviewIDRef'
+	| 'focusedOverviewCoordsRef'
+	| 'overviewMarkersRef'
+	| 'gpsFilter'
 >;
 
 /**
@@ -21,6 +26,7 @@ type TFocusEffectsArgs = Pick<
  * @param args - Focus state references and current pending location.
  */
 export function useOverviewLayerFocusEffects({
+	selectedAssets,
 	pendingLocation,
 	focusedOverviewIDRef,
 	focusedOverviewCoordsRef,
@@ -39,4 +45,22 @@ export function useOverviewLayerFocusEffects({
 		focusedOverviewIDRef.current = null;
 		focusedOverviewCoordsRef.current = null;
 	}, [pendingLocation, gpsFilter, focusedOverviewIDRef, focusedOverviewCoordsRef, overviewMarkersRef]);
+
+	useEffect(() => {
+		if (!focusedOverviewIDRef.current) {
+			return;
+		}
+		const focusedID = focusedOverviewIDRef.current;
+		const isStillSelected = selectedAssets.some(asset => asset.immichID === focusedID);
+		if (isStillSelected) {
+			return;
+		}
+		const prev = overviewMarkersRef.current.get(focusedID);
+		if (prev) {
+			const isGreyscale = !isGPSFilterWithLocations(gpsFilter);
+			prev.setIcon(overviewIcon(focusedID, false, isGreyscale));
+		}
+		focusedOverviewIDRef.current = null;
+		focusedOverviewCoordsRef.current = null;
+	}, [selectedAssets, gpsFilter, focusedOverviewIDRef, focusedOverviewCoordsRef, overviewMarkersRef]);
 }

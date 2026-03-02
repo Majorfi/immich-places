@@ -2,7 +2,12 @@ import L from 'leaflet';
 
 import {clearGroupMoveArtifacts} from '@/features/map/groupMoveHelpers';
 import {overviewIcon} from '@/features/map/icons';
-import {MAP_LOCATION_SOURCE_MAP_CLICK, MAP_LOCATION_SOURCE_MARKER_DRAG} from '@/utils/map';
+import {
+	MAP_FIT_SAME_SPOT_MAX_ZOOM,
+	MAP_FLY_DURATION_SECONDS,
+	MAP_LOCATION_SOURCE_MAP_CLICK,
+	MAP_LOCATION_SOURCE_MARKER_DRAG
+} from '@/utils/map';
 
 import type {TMapMarker} from '@/shared/types/map';
 import type {TUseOverviewLayerReconcileArgs} from '@/shared/types/mapLayer';
@@ -341,13 +346,18 @@ function handleMarkerClick(args: TUseOverviewLayerReconcileArgs, marker: L.Marke
 			args.focusedOverviewCoordsRef.current = {lat: markerData.latitude, lng: markerData.longitude};
 			return;
 		case 'open-lightbox':
-			console.log('open-lightbox');
 			args.openLightboxRef.current(assetID);
 			return;
 		case 'focus-marker': {
 			const assetRow = args.resolveAssetByIDRef.current(assetID);
 			if (assetRow) {
 				args.toggleAssetRef.current(assetRow, 'single');
+			}
+			focusMarker(args, marker, assetID, markerData, params.isGreyscale);
+			if (params.map.getZoom() < MAP_FIT_SAME_SPOT_MAX_ZOOM) {
+				params.map.flyTo([markerData.latitude, markerData.longitude], MAP_FIT_SAME_SPOT_MAX_ZOOM, {
+					duration: MAP_FLY_DURATION_SECONDS
+				});
 			}
 			return;
 		}
@@ -370,6 +380,7 @@ function handleMarkerClick(args: TUseOverviewLayerReconcileArgs, marker: L.Marke
 			if (assetRow) {
 				args.toggleAssetRef.current(assetRow, 'single');
 			}
+			marker.setIcon(overviewIcon(assetID, false, params.isGreyscale));
 			clearFocusedMarker(args, assetID);
 			return;
 		}
@@ -398,7 +409,8 @@ function resolveMarkerClickAction(args: TUseOverviewLayerReconcileArgs, assetID:
 		return 'update-focus-marker';
 	}
 	if (args.isSpiderfiedRef.current || args.focusedOverviewIDRef.current === assetID) {
-		return 'open-lightbox';
+		return 'blur-marker';
+		// return 'open-lightbox';
 	}
 	return 'focus-marker';
 }
