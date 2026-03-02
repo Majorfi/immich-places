@@ -36,6 +36,7 @@ function staggerStyle(delayMs: number): {animation: string; animationDelay: stri
 type TPhotoGridProps = {
 	assets: TAssetRow[];
 	selectedIDs: Set<string>;
+	alreadyAppliedIDs: Set<string>;
 	scrollResetKey: string;
 	gpsFilter: TGPSFilter;
 	gridColumns: number;
@@ -56,6 +57,7 @@ type TPhotoGridProps = {
 export function PhotoGrid({
 	assets,
 	selectedIDs,
+	alreadyAppliedIDs,
 	scrollResetKey,
 	gpsFilter,
 	gridColumns,
@@ -120,6 +122,7 @@ export function PhotoGrid({
 						<PhotoCard
 							asset={asset}
 							isSelected={selectedIDs.has(asset.immichID)}
+							isAlreadyApplied={alreadyAppliedIDs.has(asset.immichID)}
 							onShiftSelectAction={selectedAsset => shiftSelectAction(selectedAsset, assets)}
 							onToggleAssetAction={toggleAssetAction}
 						/>

@@ -29,7 +29,7 @@ type TGPSFilterGroupProps = {
  */
 export function GPSFilterGroup({gpsFilter, missingCount, onGPSFilterAction}: TGPSFilterGroupProps): ReactElement {
 	return (
-		<div className={'rounded-lg bg-(--color-bg) p-2.5'}>
+		<div className={'flex-1 rounded-lg bg-(--color-bg) p-2.5'}>
 			<div
 				className={
 					'mb-1.5 rounded-md border border-[var(--color-border)] bg-(--color-selected) px-2 py-1.5 text-[0.6875rem] leading-4 text-(--color-text-secondary) md:hidden'

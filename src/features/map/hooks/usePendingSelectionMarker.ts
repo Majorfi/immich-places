@@ -17,7 +17,7 @@ import {
 } from '@/utils/map';
 
 import type {TAssetRow} from '@/shared/types/asset';
-import type {TPendingLocation} from '@/shared/types/map';
+import type {TPendingLocation, TSetLocationOptions} from '@/shared/types/map';
 import type {RefObject} from 'react';
 
 /**
@@ -29,7 +29,7 @@ type TUsePendingSelectionMarkerArgs = {
 	programmaticMoveRef: RefObject<boolean>;
 	pendingLocation: TPendingLocation | null;
 	selectedAssets: TAssetRow[];
-	setLocationAction: (latitude: number, longitude: number, source: TPendingLocation['source']) => void;
+	setLocationAction: (options: TSetLocationOptions) => void;
 	clearLocationAction: (clearPendingOnly?: boolean) => void;
 };
 
@@ -52,7 +52,7 @@ function createDraggableMarker(
 	coords: {latitude: number; longitude: number},
 	assetIDs: string[],
 	markerRef: RefObject<L.Marker | null>,
-	setLocationAction: (latitude: number, longitude: number, source: TPendingLocation['source']) => void,
+	setLocationAction: (options: TSetLocationOptions) => void,
 	clearLocationAction: (clearPendingOnly?: boolean) => void
 ): void {
 	const icon = assetIDs.length > 0 ? photoIcon(assetIDs) : searchPinIcon();
@@ -63,7 +63,7 @@ function createDraggableMarker(
 	}).addTo(map);
 	markerRef.current.on('dragend', (event: L.DragEndEvent) => {
 		const latlng = (event.target as L.Marker).getLatLng();
-		setLocationAction(latlng.lat, latlng.lng, MAP_LOCATION_SOURCE_MARKER_DRAG);
+		setLocationAction({latitude: latlng.lat, longitude: latlng.lng, source: MAP_LOCATION_SOURCE_MARKER_DRAG});
 	});
 	markerRef.current.on('click', event => {
 		event.originalEvent.preventDefault();

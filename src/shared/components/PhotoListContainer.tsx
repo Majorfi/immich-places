@@ -4,6 +4,8 @@ import {useCallback, useMemo} from 'react';
 
 import {useAuth} from '@/features/auth/AuthContext';
 import {UserMenu} from '@/features/auth/UserMenu';
+import {useGPXImport} from '@/features/gpxImport/useGPXImport';
+import {deriveAlreadyAppliedIDs} from '@/features/selection/selectionStateHelpers';
 import {PhotoList} from '@/shared/components/PhotoList';
 import {useBackend, useCatalog, useSelection, useUIMap, useView} from '@/shared/context/AppContext';
 
@@ -50,6 +52,17 @@ export function PhotoListContainer(): ReactElement {
 	const {clearSelectionAction, selectedAssets, pendingLocation, pendingLocationsByAssetID} = useSelection();
 	const {closeLightboxAction} = useUIMap();
 
+	const {
+		step: gpxStep,
+		isLoading: isGPXLoading,
+		error: gpxError,
+		preview: gpxPreview,
+		uploadAndPreview: gpxUploadAndPreview,
+		reset: gpxReset
+	} = useGPXImport();
+
+	const isGPXPanelActive = gpxStep === 'preview' && gpxPreview !== null;
+
 	const selectedAlbum = useMemo<TAlbumRow | null>(
 		() => albums.find(album => album.immichID === selectedAlbumID) ?? null,
 		[albums, selectedAlbumID]
@@ -62,6 +75,10 @@ export function PhotoListContainer(): ReactElement {
 			? albumMissingCount
 			: (health?.noGPSAssets ?? null);
 	const selectedIDs = useMemo(() => new Set(selectedAssets.map(a => a.immichID)), [selectedAssets]);
+	const alreadyAppliedIDs = useMemo(
+		() => deriveAlreadyAppliedIDs(pendingLocationsByAssetID),
+		[pendingLocationsByAssetID]
+	);
 	const pendingImageCount = useMemo(() => Object.keys(pendingLocationsByAssetID).length, [pendingLocationsByAssetID]);
 
 	const hasPendingLocationChanges = pendingImageCount > 0 || (selectedAssets.length > 0 && pendingLocation !== null);
@@ -133,6 +150,29 @@ export function PhotoListContainer(): ReactElement {
 		return loadPageAction(page);
 	};
 
+	const handleGPXCancel = useCallback((): void => {
+		if (!confirmCloseAlbum()) {
+			return;
+		}
+		clearPendingState();
+		gpxReset();
+	}, [confirmCloseAlbum, clearPendingState, gpxReset]);
+
+	let gpxImportProp:
+		| {
+				uploadAndPreview: (file: File, maxGapSeconds?: number) => Promise<void>;
+				isLoading: boolean;
+				error: string | null;
+		  }
+		| undefined = {
+		uploadAndPreview: gpxUploadAndPreview,
+		isLoading: isGPXLoading,
+		error: gpxError
+	};
+	if (isGPXPanelActive) {
+		gpxImportProp = undefined;
+	}
+
 	return (
 		<PhotoList
 			backend={{
@@ -157,7 +197,11 @@ export function PhotoListContainer(): ReactElement {
 				onVisibleMarkerLimitAction: setVisibleMarkerLimitAction,
 				onViewModeAction: handleToggleViewMode,
 				onBackToAlbumsAction: handleBackToAlbums,
-				trailingAction: <UserMenu />
+				gpxPreview,
+				gpxError,
+				onGPXResetAction: gpxReset,
+				onGPXCancelAction: handleGPXCancel,
+				trailingAction: <UserMenu gpxImport={gpxImportProp} />
 			}}
 			catalog={{
 				albums,
@@ -173,7 +217,8 @@ export function PhotoListContainer(): ReactElement {
 				onRetrySyncAction: async () => resyncAction()
 			}}
 			selection={{
-				selectedIDs
+				selectedIDs,
+				alreadyAppliedIDs
 			}}
 		/>
 	);

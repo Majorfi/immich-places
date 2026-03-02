@@ -150,6 +150,26 @@ func (s *SyncService) triggerUserSync(userID, apiKey string) (string, bool) {
 	return "sync started", true
 }
 
+func (s *SyncService) triggerUserFullSync(userID, apiKey string) (string, bool) {
+	s.cancelUserSync(userID)
+	ctx, cancel := context.WithCancel(s.shutdownCtx)
+	reason, ok := s.tryStartUserSync(userID, cancel)
+	if !ok {
+		cancel()
+		return reason, false
+	}
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		defer s.releaseUserSyncLock(userID)
+		defer s.clearUserCancel(userID)
+		defer cancel()
+		immich := s.immichFactory.forUser(apiKey)
+		s.doUserFullSync(ctx, userID, immich)
+	}()
+	return "full sync started", true
+}
+
 func (s *SyncService) recordSyncError(ctx context.Context, userID, reason string) {
 	if err := s.db.setSyncState(ctx, userID, "lastSyncError", reason); err != nil {
 		log.Printf("Failed to record sync error for user %s: %v", userID, err)
@@ -178,11 +198,15 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 	log.Printf("Starting full sync for user %s...", userID)
 	start := time.Now()
 
-	totalUpserted, err := s.syncAssets(ctx, userID, immich, nil, "full")
+	allAssetIDs, totalUpserted, err := s.syncAssets(ctx, userID, immich, nil, "full")
 	if err != nil {
 		log.Printf("Full sync asset error for user %s: %v", userID, err)
 		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", err))
 		return
+	}
+
+	if err := s.db.deleteAssetsNotIn(ctx, userID, allAssetIDs); err != nil {
+		log.Printf("Failed to clean up stale assets for user %s: %v", userID, err)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -252,7 +276,7 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 	log.Printf("Starting incremental sync for user %s (since %s)...", userID, *lastSyncAt)
 	start := time.Now()
 
-	totalUpserted, err := s.syncAssets(ctx, userID, immich, lastSyncAt, "incremental")
+	_, totalUpserted, err := s.syncAssets(ctx, userID, immich, lastSyncAt, "incremental")
 	if err != nil {
 		log.Printf("Incremental sync asset error for user %s: %v", userID, err)
 		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", err))
@@ -282,7 +306,8 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 	log.Printf("Incremental sync completed for user %s: %d assets updated in %v", userID, totalUpserted, time.Since(start))
 }
 
-func (s *SyncService) syncAssets(ctx context.Context, userID string, immich SyncImmichAPI, updatedAfter *string, label string) (int, error) {
+func (s *SyncService) syncAssets(ctx context.Context, userID string, immich SyncImmichAPI, updatedAfter *string, label string) ([]string, int, error) {
+	var allIDs []string
 	totalUpserted := 0
 	page := 1
 
@@ -291,7 +316,7 @@ func (s *SyncService) syncAssets(ctx context.Context, userID string, immich Sync
 		result, err := immich.searchAssets(apiCtx, page, syncPageSize, updatedAfter)
 		cancel()
 		if err != nil {
-			return 0, fmt.Errorf("%s sync error on page %d: %w", label, page, err)
+			return nil, 0, fmt.Errorf("%s sync error on page %d: %w", label, page, err)
 		}
 
 		items := result.Assets.Items
@@ -302,10 +327,11 @@ func (s *SyncService) syncAssets(ctx context.Context, userID string, immich Sync
 		assets := make([]AssetRow, 0, len(items))
 		for _, item := range items {
 			assets = append(assets, mapImmichToAssetRow(item))
+			allIDs = append(allIDs, item.ID)
 		}
 
 		if err := s.db.upsertAssets(ctx, userID, assets); err != nil {
-			return 0, fmt.Errorf("%s sync failed to batch upsert page %d: %w", label, page, err)
+			return nil, 0, fmt.Errorf("%s sync failed to batch upsert page %d: %w", label, page, err)
 		}
 		totalUpserted += len(assets)
 
@@ -314,12 +340,12 @@ func (s *SyncService) syncAssets(ctx context.Context, userID string, immich Sync
 		}
 		nextPage, err := strconv.Atoi(*result.Assets.NextPage)
 		if err != nil {
-			return 0, fmt.Errorf("%s sync: unexpected non-numeric nextPage token %q", label, *result.Assets.NextPage)
+			return nil, 0, fmt.Errorf("%s sync: unexpected non-numeric nextPage token %q", label, *result.Assets.NextPage)
 		}
 		page = nextPage
 	}
 
-	return totalUpserted, nil
+	return allIDs, totalUpserted, nil
 }
 
 func (s *SyncService) syncStacks(ctx context.Context, userID string, immich SyncImmichAPI) {
@@ -580,6 +606,7 @@ func (s *SyncService) startPeriodicSync(ctx context.Context, intervalMS int) {
 func (s *SyncService) syncAllUsers(ctx context.Context) {
 	db, ok := s.db.(*Database)
 	if !ok {
+		log.Printf("Periodic sync skipped: db is %T, not *Database", s.db)
 		return
 	}
 	users, err := db.getUsersWithAPIKeys(ctx)

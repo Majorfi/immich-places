@@ -1,5 +1,11 @@
 import type {TAssetRow} from '@/shared/types/asset';
-import type {TGPSFilter, TMapMarker, TPendingLocation, TPendingLocationsByAssetID} from '@/shared/types/map';
+import type {
+	TGPSFilter,
+	TMapMarker,
+	TPendingLocation,
+	TPendingLocationsByAssetID,
+	TSetLocationOptions
+} from '@/shared/types/map';
 import type L from 'leaflet';
 import type {RefObject} from 'react';
 
@@ -17,15 +23,7 @@ export type TUseOverviewLayerArgs = {
 	clearSavedLocationsRef: RefObject<(assetIDs: string[]) => void>;
 	toggleAssetRef: RefObject<(asset: TAssetRow, mode?: 'single' | 'additive') => void>;
 	resolveAssetByIDRef: RefObject<(assetID: string) => TAssetRow | null>;
-	setLocationRef: RefObject<
-		(
-			latitude: number,
-			longitude: number,
-			source: TPendingLocation['source'],
-			targetAssetIDs?: string[],
-			skipPendingLocation?: boolean
-		) => void
-	>;
+	setLocationRef: RefObject<(options: TSetLocationOptions) => void>;
 	openLightboxRef: RefObject<(assetID: string) => void>;
 	hasSelectionRef: RefObject<boolean>;
 	allSelectedHaveGPSRef: RefObject<boolean>;

@@ -1,5 +1,6 @@
 import {isFiniteNumber, isNullableFiniteNumber, isNullableString, isRecord, isString} from '@/utils/typeGuards';
 
+import type {TGPXMatchResult, TGPXPreviewResponse, TGPXTrackPoint} from '@/features/gpxImport/gpxImportTypes';
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {THealthResponse} from '@/shared/types/health';
@@ -202,5 +203,49 @@ export function isLibraryRow(value: unknown): value is TLibraryRow {
 		isFiniteNumber(value.assetCount) &&
 		typeof value.isHidden === 'boolean' &&
 		isString(value.syncedAt)
+	);
+}
+
+export function isGPXTrackPoint(value: unknown): value is TGPXTrackPoint {
+	return isRecord(value) && isFiniteNumber(value.latitude) && isFiniteNumber(value.longitude);
+}
+
+export function isGPXMatchResult(value: unknown): value is TGPXMatchResult {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		isString(value.assetID) &&
+		isString(value.fileName) &&
+		isFiniteNumber(value.latitude) &&
+		isFiniteNumber(value.longitude) &&
+		isFiniteNumber(value.elevation) &&
+		isFiniteNumber(value.timeGap) &&
+		typeof value.isAlreadyApplied === 'boolean'
+	);
+}
+
+export function isGPXPreviewResponse(value: unknown): value is TGPXPreviewResponse {
+	if (!isRecord(value)) {
+		return false;
+	}
+	if (!isRecord(value.track)) {
+		return false;
+	}
+	const track = value.track;
+	if (
+		typeof track.name !== 'string' ||
+		!Array.isArray(track.points) ||
+		!track.points.every(isGPXTrackPoint) ||
+		!isString(track.startTime) ||
+		!isString(track.endTime) ||
+		!isFiniteNumber(track.pointCount)
+	) {
+		return false;
+	}
+	return (
+		Array.isArray(value.matches) &&
+		value.matches.every(isGPXMatchResult) &&
+		typeof value.detectedTimezone === 'string'
 	);
 }

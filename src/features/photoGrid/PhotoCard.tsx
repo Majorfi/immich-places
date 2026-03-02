@@ -15,6 +15,7 @@ import type {DragEvent, ReactElement} from 'react';
 type TPhotoCardProps = {
 	asset: TAssetRow;
 	isSelected: boolean;
+	isAlreadyApplied: boolean;
 	onShiftSelectAction: (asset: TAssetRow) => void;
 	onToggleAssetAction: (asset: TAssetRow, mode?: 'single' | 'additive') => void;
 };
@@ -30,6 +31,7 @@ type TPhotoCardProps = {
 export function PhotoCard({
 	asset,
 	isSelected,
+	isAlreadyApplied,
 	onShiftSelectAction,
 	onToggleAssetAction
 }: TPhotoCardProps): ReactElement {
@@ -148,6 +150,14 @@ export function PhotoCard({
 						</svg>
 					</div>
 				</div>
+				{isAlreadyApplied && !isSelected && (
+					<div
+						className={
+							'pointer-events-none absolute inset-0 z-1 flex items-center justify-center bg-black/40 transition-[background] duration-150'
+						}>
+						<span className={'text-[0.6875rem] font-medium text-white/90'}>{'Already set'}</span>
+					</div>
+				)}
 			</div>
 		</PhotoCardMenu>
 	);

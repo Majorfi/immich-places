@@ -1,0 +1,30 @@
+services:
+    frontend:
+        image: ghcr.io/majorfi/immich-places:latest
+        ports:
+            - '${FRONTEND_PORT:-3032}:3032'
+        environment:
+            - PORT=${FRONTEND_PORT:-3032}
+            - BACKEND_URL=http://backend:8082
+        depends_on:
+            - backend
+        restart: unless-stopped
+
+    backend:
+        image: ghcr.io/majorfi/immich-places-backend:latest
+        expose:
+            - '8082'
+        environment:
+            - IMMICH_URL=${IMMICH_URL}
+            - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+            - REGISTRATION_ENABLED=${REGISTRATION_ENABLED:-true}
+            - SYNC_INTERVAL_MS=${SYNC_INTERVAL_MS:-300000}
+            - PORT=8082
+            - TRUST_PROXY_TLS=${TRUST_PROXY_TLS:-true}
+            - ALLOW_INSECURE=${ALLOW_INSECURE:-false}
+        volumes:
+            - ${BACKEND_DATA_VOLUME:-backend-data}:/data
+        restart: unless-stopped
+
+volumes:
+    backend-data:

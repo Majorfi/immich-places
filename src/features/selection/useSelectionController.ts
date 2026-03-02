@@ -58,7 +58,13 @@ export function useSelectionController({
 		clearSavedLocationsAction,
 		setLocationAction,
 		clearLocationAction,
-		saveAction
+		saveAction,
+		undoLocationAction,
+		redoLocationAction,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch
 	} = useLocationAssignment(handleSaved, handleBatchSaved);
 
 	const bumpMapMarkers = useCallback(() => setMapMarkersVersion(v => v + 1), []);
@@ -78,6 +84,12 @@ export function useSelectionController({
 		setLocationAction,
 		clearLocationAction,
 		saveAction,
+		undoLocationAction,
+		redoLocationAction,
+		canUndoLocation,
+		canRedoLocation,
+		beginLocationBatch,
+		endLocationBatch,
 		mapMarkersVersion,
 		bumpMapMarkers
 	};

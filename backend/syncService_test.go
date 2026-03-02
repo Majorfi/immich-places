@@ -112,7 +112,7 @@ func TestSyncAssetsPagination(t *testing.T) {
 	nom := newNominatimClient()
 	svc := newSyncService(db, factory, nom)
 
-	count, err := svc.syncAssets(ctx, testUserID, immich, nil, "test")
+	_, count, err := svc.syncAssets(ctx, testUserID, immich, nil, "test")
 	if err != nil {
 		t.Fatalf("syncAssets: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestSyncAssetsNonNumericNextPage(t *testing.T) {
 	db := newTestDB(t)
 	svc := newSyncService(db, factory, newNominatimClient())
 
-	_, err := svc.syncAssets(context.Background(), testUserID, immich, nil, "test")
+	_, _, err := svc.syncAssets(context.Background(), testUserID, immich, nil, "test")
 	if err == nil {
 		t.Error("expected error on non-numeric nextPage")
 	}
@@ -169,7 +169,7 @@ func TestSyncAssetsAPIError(t *testing.T) {
 	db := newTestDB(t)
 	svc := newSyncService(db, factory, newNominatimClient())
 
-	_, err := svc.syncAssets(context.Background(), testUserID, immich, nil, "test")
+	_, _, err := svc.syncAssets(context.Background(), testUserID, immich, nil, "test")
 	if err == nil {
 		t.Error("expected error on API error")
 	}
@@ -240,7 +240,7 @@ func TestSyncStacksUpdatesDB(t *testing.T) {
 	db := newTestDB(t)
 	svc := newSyncService(db, factory, newNominatimClient())
 
-	if _, err := svc.syncAssets(ctx, testUserID, immich, nil, "test"); err != nil {
+	if _, _, err := svc.syncAssets(ctx, testUserID, immich, nil, "test"); err != nil {
 		t.Fatalf("syncAssets: %v", err)
 	}
 	svc.syncStacks(ctx, testUserID, immich)

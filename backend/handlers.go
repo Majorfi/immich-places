@@ -61,7 +61,9 @@ func proxyImmichImage(w http.ResponseWriter, resp *http.Response) {
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	w.Header().Set("Cache-Control", "private, max-age=86400")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("Failed to proxy image: %v", err)
+	}
 }
 
 func newHandlers(db HandlerStore, immichFactory *ImmichClientFactory, immichExternalURL string, syncService *SyncService, suggestions *SuggestionService) *Handlers {
@@ -494,6 +496,21 @@ func (h *Handlers) handleTriggerSync(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": reason})
 }
 
+func (h *Handlers) handleTriggerFullSync(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromContext(r)
+	if user == nil || user.ImmichAPIKey == nil {
+		writeError(w, http.StatusForbidden, "no Immich API key configured")
+		return
+	}
+
+	reason, ok := h.syncService.triggerUserFullSync(user.ID, *user.ImmichAPIKey)
+	if !ok {
+		writeJSON(w, http.StatusOK, map[string]string{"status": reason})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": reason})
+}
+
 func (h *Handlers) handleSyncStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getUserFromContext(r)
@@ -502,8 +519,14 @@ func (h *Handlers) handleSyncStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lastSyncAt, _ := h.db.getSyncState(ctx, user.ID, "lastSyncAt")
-	lastSyncError, _ := h.db.getSyncState(ctx, user.ID, "lastSyncError")
+	lastSyncAt, errAt := h.db.getSyncState(ctx, user.ID, "lastSyncAt")
+	if errAt != nil {
+		log.Printf("Failed to read lastSyncAt for user %s: %v", user.ID, errAt)
+	}
+	lastSyncError, errErr := h.db.getSyncState(ctx, user.ID, "lastSyncError")
+	if errErr != nil {
+		log.Printf("Failed to read lastSyncError for user %s: %v", user.ID, errErr)
+	}
 
 	writeJSON(w, http.StatusOK, SyncStatusResponse{
 		Syncing:       h.syncService.isUserSyncing(user.ID),
@@ -527,7 +550,9 @@ func queryInt(r *http.Request, key string, defaultVal int) (int, error) {
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, message string) {

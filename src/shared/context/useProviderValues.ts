@@ -27,6 +27,7 @@ export function useBackendValue(input: TBackendContextValue): TBackendContextVal
 			isSyncing: input.isSyncing,
 			syncError: input.syncError,
 			resyncAction: input.resyncAction,
+			fullResyncAction: input.fullResyncAction,
 			refreshDataAction: input.refreshDataAction,
 			clearCatalogAction: input.clearCatalogAction
 		}),
@@ -38,6 +39,7 @@ export function useBackendValue(input: TBackendContextValue): TBackendContextVal
 			input.isSyncing,
 			input.syncError,
 			input.resyncAction,
+			input.fullResyncAction,
 			input.refreshDataAction,
 			input.clearCatalogAction
 		]
@@ -133,7 +135,13 @@ export function useSelectionValue(input: TSelectionContextValue): TSelectionCont
 			clearSelectionAction: input.clearSelectionAction,
 			setLocationAction: input.setLocationAction,
 			clearLocationAction: input.clearLocationAction,
-			saveAction: input.saveAction
+			saveAction: input.saveAction,
+			undoLocationAction: input.undoLocationAction,
+			redoLocationAction: input.redoLocationAction,
+			canUndoLocation: input.canUndoLocation,
+			canRedoLocation: input.canRedoLocation,
+			beginLocationBatch: input.beginLocationBatch,
+			endLocationBatch: input.endLocationBatch
 		}),
 		[
 			input.selectedAssets,
@@ -149,7 +157,13 @@ export function useSelectionValue(input: TSelectionContextValue): TSelectionCont
 			input.clearSelectionAction,
 			input.setLocationAction,
 			input.clearLocationAction,
-			input.saveAction
+			input.saveAction,
+			input.undoLocationAction,
+			input.redoLocationAction,
+			input.canUndoLocation,
+			input.canRedoLocation,
+			input.beginLocationBatch,
+			input.endLocationBatch
 		]
 	);
 }

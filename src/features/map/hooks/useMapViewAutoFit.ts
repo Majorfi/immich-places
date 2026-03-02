@@ -97,8 +97,8 @@ export function useMapAutoFit({
 			if (!albumFilter) {
 				programmaticMoveRef.current = true;
 				map.flyTo(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, {duration: MAP_FLY_DURATION_SECONDS});
+				return;
 			}
-			return;
 		}
 
 		const boundsKey = resolveAutoFitKey(viewMode, gpsFilter, albumFilter, mapMarkers.length);

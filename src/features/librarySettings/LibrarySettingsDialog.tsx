@@ -1,8 +1,8 @@
 'use client';
 
-import * as Dialog from '@radix-ui/react-dialog';
 import {useCallback, useEffect, useState} from 'react';
 
+import {DialogShell} from '@/shared/components/DialogShell';
 import {fetchLibraries, refreshLibraries, updateLibrary} from '@/shared/services/backendApi';
 
 import type {TLibraryRow} from '@/shared/types/library';
@@ -102,104 +102,77 @@ export function LibrarySettingsDialog({
 		syncLabel = 'Syncing...';
 	}
 
+	const syncButton = (
+		<button
+			onClick={handleRefresh}
+			disabled={isRefreshing || isLoading}
+			className={
+				'flex h-6 cursor-pointer items-center gap-1 rounded border border-(--color-border) bg-transparent px-2 text-xs text-(--color-text-secondary) hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-50'
+			}>
+			{syncLabel}
+		</button>
+	);
+
 	return (
-		<Dialog.Root
-			open={isOpen}
-			onOpenChange={open => {
-				if (!open) {
-					onClose();
-				}
-			}}>
-			<Dialog.Portal>
-				<Dialog.Overlay className={'fixed inset-0 z-[2000] bg-black/50'} />
-				<Dialog.Content
-					className={
-						'fixed top-1/2 left-1/2 z-[2001] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-(--color-border) bg-(--color-surface) shadow-lg focus:outline-none'
-					}>
-					<div className={'flex items-center justify-between border-b border-(--color-border) px-4 py-3'}>
-						<div>
-							<Dialog.Title className={'text-sm font-semibold text-(--color-text)'}>
-								{'External Libraries'}
-							</Dialog.Title>
-							<p className={'mt-0.5 text-xs text-(--color-text-secondary)'}>
-								{'Hidden libraries are excluded from all views.'}
-							</p>
-						</div>
-						<div className={'flex items-center gap-2'}>
-							<button
-								onClick={handleRefresh}
-								disabled={isRefreshing || isLoading}
-								className={
-									'flex h-6 cursor-pointer items-center gap-1 rounded border border-(--color-border) bg-transparent px-2 text-xs text-(--color-text-secondary) hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-50'
-								}>
-								{syncLabel}
-							</button>
-							<Dialog.Close
-								className={
-									'flex h-6 w-6 cursor-pointer items-center justify-center rounded border-0 bg-transparent text-(--color-text-secondary) hover:text-(--color-text)'
-								}>
-								{'\u00D7'}
-							</Dialog.Close>
-						</div>
+		<DialogShell
+			isOpen={isOpen}
+			onClose={onClose}
+			title={'External Libraries'}
+			subtitle={'Hidden libraries are excluded from all views.'}
+			headerTrailing={syncButton}>
+			<div className={'max-h-80 min-h-16 overflow-y-auto px-4 py-3'}>
+				{error && (
+					<div className={'mb-3 rounded-md bg-[#fef2f2] px-3 py-2 text-xs text-[#b91c1c]'}>{error}</div>
+				)}
+
+				{isLoading && (
+					<div className={'py-8 text-center text-sm text-(--color-text-secondary)'}>
+						{'Loading libraries...'}
 					</div>
+				)}
 
-					<div className={'max-h-80 min-h-16 overflow-y-auto px-4 py-3'}>
-						{error && (
-							<div className={'mb-3 rounded-md bg-[#fef2f2] px-3 py-2 text-xs text-[#b91c1c]'}>
-								{error}
-							</div>
-						)}
-
-						{isLoading && (
-							<div className={'py-8 text-center text-sm text-(--color-text-secondary)'}>
-								{'Loading libraries...'}
-							</div>
-						)}
-
-						{!isLoading && libraries.length === 0 && !error && (
-							<div className={'py-8 text-center text-sm text-(--color-text-secondary)'}>
-								{'No external libraries found. Your Immich API key may not have admin permissions.'}
-							</div>
-						)}
-
-						{!isLoading &&
-							libraries.map(lib => {
-								let toggleBackgroundClass = 'bg-(--color-primary)';
-								if (lib.isHidden) {
-									toggleBackgroundClass = 'bg-(--color-border)';
-								}
-
-								let knobPositionClass = 'translate-x-4';
-								if (lib.isHidden) {
-									knobPositionClass = 'translate-x-0';
-								}
-
-								return (
-									<div
-										key={lib.libraryID}
-										className={
-											'flex items-center justify-between border-b border-(--color-border) py-2.5 last:border-b-0'
-										}>
-										<div className={'min-w-0 flex-1'}>
-											<p className={'truncate text-sm font-medium text-(--color-text)'}>{lib.name}</p>
-											<p className={'text-xs text-(--color-text-secondary)'}>
-												{`${lib.assetCount} assets`}
-											</p>
-										</div>
-										<button
-											onClick={async () => handleToggle(lib.libraryID, lib.isHidden)}
-											disabled={togglingIDs.has(lib.libraryID)}
-											className={`relative h-5 w-9 shrink-0 cursor-pointer rounded-full border-0 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${toggleBackgroundClass}`}>
-											<span
-												className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${knobPositionClass}`}
-											/>
-										</button>
-									</div>
-								);
-							})}
+				{!isLoading && libraries.length === 0 && !error && (
+					<div className={'py-8 text-center text-sm text-(--color-text-secondary)'}>
+						{'No external libraries found. Your Immich API key may not have admin permissions.'}
 					</div>
-				</Dialog.Content>
-			</Dialog.Portal>
-		</Dialog.Root>
+				)}
+
+				{!isLoading &&
+					libraries.map(lib => {
+						let toggleBackgroundClass = 'bg-(--color-primary)';
+						if (lib.isHidden) {
+							toggleBackgroundClass = 'bg-(--color-border)';
+						}
+
+						let knobPositionClass = 'translate-x-4';
+						if (lib.isHidden) {
+							knobPositionClass = 'translate-x-0';
+						}
+
+						return (
+							<div
+								key={lib.libraryID}
+								className={
+									'flex items-center justify-between border-b border-(--color-border) py-2.5 last:border-b-0'
+								}>
+								<div className={'min-w-0 flex-1'}>
+									<p className={'truncate text-sm font-medium text-(--color-text)'}>{lib.name}</p>
+									<p className={'text-xs text-(--color-text-secondary)'}>
+										{`${lib.assetCount} assets`}
+									</p>
+								</div>
+								<button
+									onClick={async () => handleToggle(lib.libraryID, lib.isHidden)}
+									disabled={togglingIDs.has(lib.libraryID)}
+									className={`relative h-5 w-9 shrink-0 cursor-pointer rounded-full border-0 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${toggleBackgroundClass}`}>
+									<span
+										className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${knobPositionClass}`}
+									/>
+								</button>
+							</div>
+						);
+					})}
+			</div>
+		</DialogShell>
 	);
 }

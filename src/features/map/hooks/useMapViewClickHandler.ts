@@ -8,7 +8,7 @@ import {MAP_LOCATION_SOURCE_MAP_CLICK} from '@/utils/map';
 import {isGPSFilterWithLocations} from '@/utils/view';
 
 import type {TAnchorMarker} from '@/features/map/groupMoveHelpers';
-import type {TGPSFilter, TPendingLocation} from '@/shared/types/map';
+import type {TGPSFilter, TSetLocationOptions} from '@/shared/types/map';
 import type L from 'leaflet';
 import type {RefObject} from 'react';
 
@@ -25,15 +25,7 @@ type TUseMapClickHandlerArgs = {
 	allSelectedHaveGPSRef: RefObject<boolean>;
 	clearSelectionAction: () => void;
 	closeLightboxAction: () => void;
-	setLocationRef: RefObject<
-		(
-			latitude: number,
-			longitude: number,
-			source: TPendingLocation['source'],
-			targetAssetIDs?: string[],
-			skipPendingLocation?: boolean
-		) => void
-	>;
+	setLocationRef: RefObject<(options: TSetLocationOptions) => void>;
 };
 
 /**
@@ -114,7 +106,11 @@ export function useMapClickHandler({
 				closeLightboxAction();
 				return;
 			}
-			setLocationRef.current(e.latlng.lat, e.latlng.lng, MAP_LOCATION_SOURCE_MAP_CLICK);
+			setLocationRef.current({
+				latitude: e.latlng.lat,
+				longitude: e.latlng.lng,
+				source: MAP_LOCATION_SOURCE_MAP_CLICK
+			});
 		}
 
 		function handleMoveModeRefresh(): void {
