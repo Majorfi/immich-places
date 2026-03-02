@@ -3,7 +3,7 @@
 import L from 'leaflet';
 import {useEffect} from 'react';
 
-import {photoIcon, searchPinIcon} from '@/features/map/icons';
+import {searchPinIcon} from '@/features/map/icons';
 import {
 	MAP_FLY_DURATION_SECONDS,
 	MAP_LOCATION_SOURCE_MARKER_DRAG,
@@ -11,7 +11,6 @@ import {
 	MAP_LOCATION_SOURCE_SUGGESTION,
 	PENDING_MARKER_NO_SELECTION_MIN_ZOOM,
 	PENDING_MARKER_SEARCH_ZOOM,
-	PENDING_MARKER_SELECTION_MIN_ZOOM,
 	PENDING_MARKER_SUGGESTION_ZOOM,
 	PENDING_MARKER_Z_INDEX_OFFSET
 } from '@/utils/map';
@@ -50,14 +49,12 @@ function clearMarker(markerRef: RefObject<L.Marker | null>): void {
 function createDraggableMarker(
 	map: L.Map,
 	coords: {latitude: number; longitude: number},
-	assetIDs: string[],
 	markerRef: RefObject<L.Marker | null>,
 	setLocationAction: (options: TSetLocationOptions) => void,
 	clearLocationAction: (clearPendingOnly?: boolean) => void
 ): void {
-	const icon = assetIDs.length > 0 ? photoIcon(assetIDs) : searchPinIcon();
 	markerRef.current = L.marker([coords.latitude, coords.longitude], {
-		icon,
+		icon: searchPinIcon(),
 		draggable: true,
 		zIndexOffset: PENDING_MARKER_Z_INDEX_OFFSET
 	}).addTo(map);
@@ -68,30 +65,21 @@ function createDraggableMarker(
 	markerRef.current.on('click', event => {
 		event.originalEvent.preventDefault();
 		event.originalEvent.stopPropagation();
-		clearLocationAction();
+		clearLocationAction(true);
 	});
 }
 
 /**
  * Resolves zoom for a newly placed pending marker based on its source.
  */
-function resolvePendingZoom(map: L.Map, source: TPendingLocation['source'], hasSelection: boolean): number {
+function resolvePendingZoom(map: L.Map, source: TPendingLocation['source']): number {
 	if (source === MAP_LOCATION_SOURCE_SEARCH) {
 		return PENDING_MARKER_SEARCH_ZOOM;
 	}
 	if (source === MAP_LOCATION_SOURCE_SUGGESTION) {
 		return PENDING_MARKER_SUGGESTION_ZOOM;
 	}
-	if (!hasSelection) {
-		return Math.max(map.getZoom(), PENDING_MARKER_NO_SELECTION_MIN_ZOOM);
-	}
-	return Math.max(map.getZoom(), PENDING_MARKER_SELECTION_MIN_ZOOM);
-}
-
-function allSelectedAssetsHaveGPS(selectedAssets: TAssetRow[]): boolean {
-	return (
-		selectedAssets.length > 0 && selectedAssets.every(asset => asset.latitude !== null && asset.longitude !== null)
-	);
+	return Math.max(map.getZoom(), PENDING_MARKER_NO_SELECTION_MIN_ZOOM);
 }
 
 /**
@@ -134,13 +122,10 @@ export function usePendingSelectionMarker({
 		const existingMarkerPosition = markerRef.current?.getLatLng() ?? null;
 		clearMarker(markerRef);
 
-		if (pendingLocation) {
-			const assetIDs = selectedAssets.map(asset => asset.immichID);
-			const hasSelection = selectedAssets.length > 0;
+		if (pendingLocation && selectedAssets.length === 0) {
 			createDraggableMarker(
 				map,
 				{latitude: pendingLocation.latitude, longitude: pendingLocation.longitude},
-				assetIDs,
 				markerRef,
 				setLocationAction,
 				clearLocationAction
@@ -162,7 +147,7 @@ export function usePendingSelectionMarker({
 				pendingLocation.source === MAP_LOCATION_SOURCE_SEARCH ||
 				pendingLocation.source === MAP_LOCATION_SOURCE_SUGGESTION
 			) {
-				const zoom = resolvePendingZoom(map, pendingLocation.source, hasSelection);
+				const zoom = resolvePendingZoom(map, pendingLocation.source);
 				programmaticMoveRef.current = true;
 				map.flyTo([pendingLocation.latitude, pendingLocation.longitude], zoom, {
 					duration: MAP_FLY_DURATION_SECONDS
@@ -170,27 +155,6 @@ export function usePendingSelectionMarker({
 			}
 			return;
 		}
-
-		if (!allSelectedAssetsHaveGPS(selectedAssets)) {
-			return;
-		}
-
-		const firstAsset = selectedAssets[0];
-		if (firstAsset.latitude === null || firstAsset.longitude === null) {
-			return;
-		}
-
-		createDraggableMarker(
-			map,
-			{
-				latitude: firstAsset.latitude,
-				longitude: firstAsset.longitude
-			},
-			selectedAssets.map(asset => asset.immichID),
-			markerRef,
-			setLocationAction,
-			clearLocationAction
-		);
 	}, [
 		mapInstanceRef,
 		markerRef,
