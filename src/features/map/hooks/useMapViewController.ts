@@ -1,20 +1,34 @@
 'use client';
 
+import L from 'leaflet';
 import {useCallback, useRef, useState} from 'react';
 
-import {GEOLOCATION_PERMISSION_ERROR, GEOLOCATION_UNAVAILABLE_ERROR} from '@/features/map/constants';
+import {
+	GEOLOCATION_PERMISSION_ERROR,
+	GEOLOCATION_UNAVAILABLE_ERROR,
+	SATELLITE_TILE_ATTRIBUTION,
+	SATELLITE_TILE_URL,
+	TILE_ATTRIBUTION,
+	TILE_URL
+} from '@/features/map/constants';
 import {useMapDropHandlers} from '@/features/map/hooks/useMapDropHandlers';
 import {useMapBootstrap} from '@/features/map/hooks/useMapViewBootstrap';
 import {useMapClickHandler} from '@/features/map/hooks/useMapViewClickHandler';
 import {useMapViewRefs} from '@/features/map/hooks/useMapViewRefs';
 import {usePendingSelectionMarker} from '@/features/map/hooks/usePendingSelectionMarker';
 import {useOverviewLayer} from '@/features/map/overview/useOverviewLayer';
-import {MAP_LOCATE_ME_ZOOM, MAP_LOCATION_SOURCE_DRAG_DROP} from '@/utils/map';
+import {
+	MAP_LOCATE_ME_ZOOM,
+	MAP_LOCATION_SOURCE_DRAG_DROP,
+	MAP_SATELLITE_TILE_MAX_ZOOM,
+	MAP_TILE_MAX_ZOOM
+} from '@/utils/map';
 
 import {useMapAutoFit} from './useMapViewAutoFit';
 
 import type {TUseMapViewModelReturn} from '@/features/map/hooks/useMapViewModel';
 import type {TAssetRow} from '@/shared/types/asset';
+import type {TMapTileLayer} from '@/utils/map';
 import type {DragEvent, RefObject} from 'react';
 
 type TUseMapViewControllerArgs = {
@@ -44,9 +58,11 @@ type TUseMapViewControllerArgs = {
 type TUseMapViewControllerResult = {
 	containerRef: RefObject<HTMLDivElement | null>;
 	mapInteractionError: string | null;
+	activeTileLayer: TMapTileLayer;
 	handleLocateMe: () => void;
 	handleZoomIn: () => void;
 	handleZoomOut: () => void;
+	handleToggleTileLayer: () => void;
 	handleDragOver: (event: DragEvent<HTMLDivElement>) => void;
 	handleDrop: (event: DragEvent<HTMLDivElement>) => void;
 };
@@ -74,9 +90,11 @@ export function useMapViewController({
 	}
 }: TUseMapViewControllerArgs): TUseMapViewControllerResult {
 	const [mapInteractionError, setMapInteractionError] = useState<string | null>(null);
+	const [activeTileLayer, setActiveTileLayer] = useState<TMapTileLayer>('street');
 
 	const {
 		mapInstanceRef,
+		tileLayerRef,
 		containerRef,
 		markerRef,
 		overviewLayerRef,
@@ -139,9 +157,25 @@ export function useMapViewController({
 	const handleZoomIn = useCallback(() => mapInstanceRef.current?.zoomIn(), [mapInstanceRef]);
 	const handleZoomOut = useCallback(() => mapInstanceRef.current?.zoomOut(), [mapInstanceRef]);
 
+	const handleToggleTileLayer = useCallback(() => {
+		const map = mapInstanceRef.current;
+		if (!map || !tileLayerRef.current) {
+			return;
+		}
+		tileLayerRef.current.remove();
+		const isSatellite = activeTileLayer === 'street';
+		const url = isSatellite ? SATELLITE_TILE_URL : TILE_URL;
+		const attribution = isSatellite ? SATELLITE_TILE_ATTRIBUTION : TILE_ATTRIBUTION;
+		const maxZoom = isSatellite ? MAP_SATELLITE_TILE_MAX_ZOOM : MAP_TILE_MAX_ZOOM;
+		const newTiles = L.tileLayer(url, {attribution, maxZoom}).addTo(map);
+		tileLayerRef.current = newTiles;
+		setActiveTileLayer(isSatellite ? 'satellite' : 'street');
+	}, [activeTileLayer, mapInstanceRef, tileLayerRef]);
+
 	useMapBootstrap({
 		containerRef,
 		mapInstanceRef,
+		tileLayerRef,
 		boundsDebounceRef,
 		boundsKeyRef,
 		programmaticMoveRef,
@@ -244,9 +278,11 @@ export function useMapViewController({
 	return {
 		containerRef,
 		mapInteractionError,
+		activeTileLayer,
 		handleLocateMe,
 		handleZoomIn,
 		handleZoomOut,
+		handleToggleTileLayer,
 		handleDragOver,
 		handleDrop: handleMapDrop
 	};

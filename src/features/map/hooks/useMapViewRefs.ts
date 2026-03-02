@@ -21,6 +21,7 @@ type TUseMapViewRefsArgs = {
 
 type TUseMapViewRefsResult = {
 	mapInstanceRef: RefObject<L.Map | null>;
+	tileLayerRef: RefObject<L.TileLayer | null>;
 	containerRef: RefObject<HTMLDivElement | null>;
 	markerRef: RefObject<L.Marker | null>;
 	overviewLayerRef: RefObject<L.MarkerClusterGroup | null>;
@@ -66,6 +67,7 @@ export function useMapViewRefs({
 	setLocationAction
 }: TUseMapViewRefsArgs): TUseMapViewRefsResult {
 	const mapInstanceRef = useRef<L.Map | null>(null);
+	const tileLayerRef = useRef<L.TileLayer | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const markerRef = useRef<L.Marker | null>(null);
 	const overviewLayerRef = useRef<L.MarkerClusterGroup | null>(null);
@@ -103,6 +105,7 @@ export function useMapViewRefs({
 
 	return {
 		mapInstanceRef,
+		tileLayerRef,
 		containerRef,
 		markerRef,
 		overviewLayerRef,

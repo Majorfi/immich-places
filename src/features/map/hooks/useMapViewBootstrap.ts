@@ -39,6 +39,7 @@ function viewportBoundsKey(bounds: TViewportBounds): string {
 type TUseMapBootstrapArgs = {
 	containerRef: RefObject<HTMLDivElement | null>;
 	mapInstanceRef: RefObject<L.Map | null>;
+	tileLayerRef: RefObject<L.TileLayer | null>;
 	boundsDebounceRef: RefObject<ReturnType<typeof setTimeout> | null>;
 	boundsKeyRef: RefObject<string>;
 	programmaticMoveRef: RefObject<boolean>;
@@ -54,6 +55,7 @@ type TUseMapBootstrapArgs = {
 export function useMapBootstrap({
 	containerRef,
 	mapInstanceRef,
+	tileLayerRef,
 	boundsDebounceRef,
 	boundsKeyRef,
 	programmaticMoveRef,
@@ -71,6 +73,7 @@ export function useMapBootstrap({
 		);
 		L.control.attribution({prefix: false}).addTo(map);
 		const tiles = L.tileLayer(TILE_URL, {attribution: TILE_ATTRIBUTION, maxZoom: MAP_TILE_MAX_ZOOM}).addTo(map);
+		tileLayerRef.current = tiles;
 		mapInstanceRef.current = map;
 
 		requestAnimationFrame(() => {
@@ -94,9 +97,10 @@ export function useMapBootstrap({
 				boundsDebounceRef.current = null;
 			}
 			map.remove();
+			tileLayerRef.current = null;
 			mapInstanceRef.current = null;
 		};
-	}, [boundsDebounceRef, boundsKeyRef, containerRef, mapInstanceRef, setMapBoundsAction]);
+	}, [boundsDebounceRef, boundsKeyRef, containerRef, mapInstanceRef, tileLayerRef, setMapBoundsAction]);
 
 	useEffect(() => {
 		if (!mapInstanceRef.current) {
