@@ -2,7 +2,7 @@ import L from 'leaflet';
 
 import {clearGroupMoveArtifacts} from '@/features/map/groupMoveHelpers';
 import {overviewIcon} from '@/features/map/icons';
-import {MAP_LOCATION_SOURCE_MAP_CLICK, MAP_LOCATION_SOURCE_MARKER_DRAG, OVERVIEW_CLUSTER_CLICK_ZOOM} from '@/utils/map';
+import {MAP_LOCATION_SOURCE_MAP_CLICK, MAP_LOCATION_SOURCE_MARKER_DRAG} from '@/utils/map';
 
 import type {TMapMarker} from '@/shared/types/map';
 import type {TUseOverviewLayerReconcileArgs} from '@/shared/types/mapLayer';
@@ -28,7 +28,7 @@ type TMarkerDragState = {wasDragged: boolean};
 /**
  * Deterministic marker interaction action while syncing overview markers.
  */
-type TMarkerClickAction = 'assign-location' | 'open-lightbox' | 'focus-marker';
+type TMarkerClickAction = 'assign-location' | 'open-lightbox' | 'focus-marker' | 'update-focus-marker' | 'blur-marker';
 
 /**
  * Runtime marker coordinate used for rendering and sync.
@@ -149,7 +149,7 @@ function syncSingleMarker(
 	isGreyscale: boolean
 ): boolean {
 	const assetID = markerData.immichID;
-	const isMarkerVisible = !args.selectedIDs.has(assetID);
+	const isMarkerVisible = true;
 	const renderedMarkerData = resolveMarkerData(args, assetID, markerData);
 	const hasEffectiveGreyscale = resolveMarkerGreyscale(args, assetID, isGreyscale);
 	clearOptimisticSavedLocation(args, assetID, markerData);
@@ -237,7 +237,7 @@ function createOverviewMarker(
 	isGreyscale: boolean
 ): L.Marker {
 	const marker = L.marker(L.latLng(markerData.latitude, markerData.longitude), {
-		icon: overviewIcon(assetID, args.focusedOverviewIDRef.current === assetID, isGreyscale),
+		icon: overviewIcon(assetID, args.selectedAssetIDsRef.current.has(assetID), isGreyscale),
 		zIndexOffset: 0,
 		draggable: true
 	});
@@ -269,16 +269,13 @@ function attachDragHandlers(
 	marker.on('dragend', (event: L.DragEndEvent) => {
 		const newLatLng = (event.target as L.Marker).getLatLng();
 		const selectedAssetIDs = args.selectedAssetIDsRef ? args.selectedAssetIDsRef.current : null;
-		const assetRow = args.resolveAssetByIDRef.current(assetID);
-		if (assetRow && selectedAssetIDs && !selectedAssetIDs.has(assetID)) {
-			args.toggleAssetRef.current(assetRow, 'single');
-		}
 		const targetAssetIDs = selectedAssetIDs?.has(assetID) ? [...selectedAssetIDs] : [assetID];
 		args.setLocationRef.current({
 			latitude: newLatLng.lat,
 			longitude: newLatLng.lng,
 			source: MAP_LOCATION_SOURCE_MARKER_DRAG,
-			targetAssetIDs
+			targetAssetIDs,
+			shouldSkipPendingLocation: true
 		});
 		clearGroupMoveArtifacts(args.groupMovePillRef, args.groupAnchorMarkerRef, args.overviewLayerRef);
 	});
@@ -330,25 +327,52 @@ function attachClickHandlers(
  * @param params - Action payload.
  */
 function handleMarkerClick(args: TUseOverviewLayerReconcileArgs, marker: L.Marker, params: TMarkerClickArgs): void {
-	const {assetID, markerData, isGreyscale, map} = params;
+	const {assetID, markerData} = params;
 	switch (resolveMarkerClickAction(args, assetID)) {
 		case 'assign-location':
+			console.log('assign-location');
 			args.setLocationRef.current({
 				latitude: markerData.latitude,
 				longitude: markerData.longitude,
 				source: MAP_LOCATION_SOURCE_MAP_CLICK,
 				targetAssetIDs: Array.from(args.selectedAssetIDsRef.current)
 			});
+			args.focusedOverviewIDRef.current = assetID;
+			args.focusedOverviewCoordsRef.current = {lat: markerData.latitude, lng: markerData.longitude};
 			return;
 		case 'open-lightbox':
+			console.log('open-lightbox');
 			args.openLightboxRef.current(assetID);
 			return;
-		case 'focus-marker':
-			focusMarker(args, marker, assetID, markerData, isGreyscale);
-			if (map.getZoom() < OVERVIEW_CLUSTER_CLICK_ZOOM) {
-				map.setView([markerData.latitude, markerData.longitude], OVERVIEW_CLUSTER_CLICK_ZOOM);
+		case 'focus-marker': {
+			const assetRow = args.resolveAssetByIDRef.current(assetID);
+			if (assetRow) {
+				args.toggleAssetRef.current(assetRow, 'single');
 			}
 			return;
+		}
+		case 'update-focus-marker': {
+			for (const selectedID of args.selectedAssetIDsRef.current) {
+				const selectedMarker = args.overviewMarkersRef.current.get(selectedID);
+				if (selectedMarker) {
+					selectedMarker.setIcon(overviewIcon(selectedID, false, params.isGreyscale));
+				}
+			}
+			const assetRow = args.resolveAssetByIDRef.current(assetID);
+			if (assetRow) {
+				args.toggleAssetRef.current(assetRow, 'single');
+			}
+			focusMarker(args, marker, assetID, markerData, params.isGreyscale);
+			return;
+		}
+		case 'blur-marker': {
+			const assetRow = args.resolveAssetByIDRef.current(assetID);
+			if (assetRow) {
+				args.toggleAssetRef.current(assetRow, 'single');
+			}
+			clearFocusedMarker(args, assetID);
+			return;
+		}
 	}
 }
 
@@ -360,8 +384,18 @@ function handleMarkerClick(args: TUseOverviewLayerReconcileArgs, marker: L.Marke
  * @returns The action to apply for this marker click.
  */
 function resolveMarkerClickAction(args: TUseOverviewLayerReconcileArgs, assetID: string): TMarkerClickAction {
+	if (args.selectedAssetIDsRef.current.has(assetID)) {
+		return 'blur-marker';
+	}
 	if (args.hasSelectionRef.current && !args.allSelectedHaveGPSRef.current) {
 		return 'assign-location';
+	}
+	if (
+		args.hasSelectionRef.current &&
+		!args.allSelectedHaveGPSRef.current &&
+		!args.selectedAssetIDsRef.current.has(assetID)
+	) {
+		return 'update-focus-marker';
 	}
 	if (args.isSpiderfiedRef.current || args.focusedOverviewIDRef.current === assetID) {
 		return 'open-lightbox';
@@ -471,8 +505,8 @@ function syncMarkerIcon(
 	if (typedMarker.markerGreyscale === effectiveGreyscale) {
 		return false;
 	}
-	const isFocused = args.focusedOverviewIDRef.current === assetID;
-	existingMarker.setIcon(overviewIcon(assetID, isFocused, effectiveGreyscale));
+	const isSelected = args.selectedAssetIDsRef.current.has(assetID);
+	existingMarker.setIcon(overviewIcon(assetID, isSelected, effectiveGreyscale));
 	typedMarker.markerGreyscale = effectiveGreyscale;
 	return true;
 }

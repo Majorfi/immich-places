@@ -39,11 +39,7 @@ export function useOverviewLayer(args: TUseOverviewLayerArgs): void {
 
 	useOverviewLayerSelectionSync({
 		selectedAssets: args.selectedAssets,
-		overviewLayerRef: args.overviewLayerRef,
 		overviewMarkersRef: args.overviewMarkersRef,
-		visibleMarkerIDsRef,
-		previousSelectedIDsRef,
-		focusedOverviewIDRef: args.focusedOverviewIDRef,
-		focusedOverviewCoordsRef: args.focusedOverviewCoordsRef
+		previousSelectedIDsRef
 	});
 }
