@@ -41,9 +41,8 @@ export function LocationConfirm(): ReactElement | null {
 	);
 	const allAlreadyAppliedGPXCount = useMemo(
 		() =>
-			Object.values(pendingLocationsByAssetID).filter(
-				loc => loc.source === 'gpx-import' && loc.isAlreadyApplied
-			).length,
+			Object.values(pendingLocationsByAssetID).filter(loc => loc.source === 'gpx-import' && loc.isAlreadyApplied)
+				.length,
 		[pendingLocationsByAssetID]
 	);
 	const pendingImageCount = pendingAssetIDs.length;
@@ -120,7 +119,8 @@ export function LocationConfirm(): ReactElement | null {
 	}, [clearLocationAction]);
 
 	const isVisible =
-		isAllAlreadyApplied || ((pendingImageCount > 0 || selectedImageCount > 0) && referencePendingLocation !== null);
+		isAllAlreadyApplied ||
+		((pendingImageCount > 0 || selectedImageCount > 0) && (referencePendingLocation !== null || canRedoLocation));
 	const isKeyboardActive = selectedAssets.length > 0 && (canUndoLocation || canRedoLocation);
 
 	useEffect(() => {
