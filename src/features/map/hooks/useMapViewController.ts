@@ -114,7 +114,6 @@ export function useMapViewController({
 		toggleAssetRef,
 		resolveAssetByIDRef,
 		setLocationRef,
-		gpsFilterRef,
 		hasSelectionRef,
 		allSelectedHaveGPSRef,
 		pendingLocationsByAssetIDRef,
@@ -192,8 +191,7 @@ export function useMapViewController({
 		isSpiderfiedRef,
 		groupMovePillRef,
 		groupAnchorMarkerRef,
-		gpsFilterRef,
-		allSelectedHaveGPSRef,
+		hasSelectionRef,
 		clearSelectionAction,
 		closeLightboxAction,
 		setLocationRef

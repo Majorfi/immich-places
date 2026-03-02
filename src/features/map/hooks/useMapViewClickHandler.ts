@@ -3,12 +3,10 @@
 import {useEffect} from 'react';
 
 import {clearGroupMoveArtifacts, restoreGroupMoveSourceClusterIcon} from '@/features/map/groupMoveHelpers';
-import {overviewIcon} from '@/features/map/icons';
 import {MAP_LOCATION_SOURCE_MAP_CLICK} from '@/utils/map';
-import {isGPSFilterWithLocations} from '@/utils/view';
 
 import type {TAnchorMarker} from '@/features/map/groupMoveHelpers';
-import type {TGPSFilter, TSetLocationOptions} from '@/shared/types/map';
+import type {TSetLocationOptions} from '@/shared/types/map';
 import type L from 'leaflet';
 import type {RefObject} from 'react';
 
@@ -21,8 +19,7 @@ type TUseMapClickHandlerArgs = {
 	isSpiderfiedRef: RefObject<boolean>;
 	groupMovePillRef: RefObject<L.Marker | null>;
 	groupAnchorMarkerRef: RefObject<L.Marker | null>;
-	gpsFilterRef: RefObject<TGPSFilter>;
-	allSelectedHaveGPSRef: RefObject<boolean>;
+	hasSelectionRef: RefObject<boolean>;
 	clearSelectionAction: () => void;
 	closeLightboxAction: () => void;
 	setLocationRef: RefObject<(options: TSetLocationOptions) => void>;
@@ -40,8 +37,7 @@ export function useMapClickHandler({
 	isSpiderfiedRef,
 	groupMovePillRef,
 	groupAnchorMarkerRef,
-	gpsFilterRef,
-	allSelectedHaveGPSRef,
+	hasSelectionRef,
 	clearSelectionAction,
 	closeLightboxAction,
 	setLocationRef
@@ -92,25 +88,23 @@ export function useMapClickHandler({
 				return;
 			}
 			if (focusedOverviewIDRef.current) {
-				const prev = overviewMarkersRef.current.get(focusedOverviewIDRef.current);
-				if (prev) {
-					const isGreyscale = !isGPSFilterWithLocations(gpsFilterRef.current);
-					prev.setIcon(overviewIcon(focusedOverviewIDRef.current, false, isGreyscale));
-				}
-				focusedOverviewIDRef.current = null;
-				focusedOverviewCoordsRef.current = null;
+				setLocationRef.current({
+					latitude: e.latlng.lat,
+					longitude: e.latlng.lng,
+					source: MAP_LOCATION_SOURCE_MAP_CLICK,
+					targetAssetIDs: [focusedOverviewIDRef.current],
+					shouldSkipPendingLocation: true
+				});
+				focusedOverviewCoordsRef.current = {lat: e.latlng.lat, lng: e.latlng.lng};
 				return;
 			}
-			if (allSelectedHaveGPSRef.current) {
-				clearSelectionAction();
-				closeLightboxAction();
-				return;
+			if (hasSelectionRef.current) {
+				setLocationRef.current({
+					latitude: e.latlng.lat,
+					longitude: e.latlng.lng,
+					source: MAP_LOCATION_SOURCE_MAP_CLICK
+				});
 			}
-			setLocationRef.current({
-				latitude: e.latlng.lat,
-				longitude: e.latlng.lng,
-				source: MAP_LOCATION_SOURCE_MAP_CLICK
-			});
 		}
 
 		function handleMoveModeRefresh(): void {
@@ -135,14 +129,13 @@ export function useMapClickHandler({
 	}, [
 		isSpiderfiedRef,
 		groupAnchorMarkerRef,
-		allSelectedHaveGPSRef,
+		hasSelectionRef,
 		clearSelectionAction,
 		closeLightboxAction,
 		groupMovePillRef,
 		focusedOverviewCoordsRef,
 		focusedOverviewIDRef,
 		overviewLayerRef,
-		gpsFilterRef,
 		mapInstanceRef,
 		overviewMarkersRef,
 		setLocationRef
