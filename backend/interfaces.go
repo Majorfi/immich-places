@@ -27,8 +27,9 @@ type HandlerStore interface {
 	getSyncState(ctx context.Context, userID, key string) (*string, error)
 	countAssets(ctx context.Context, userID string) (int, error)
 	countNoGPSAssets(ctx context.Context, userID string) (int, error)
-	getFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, page, pageSize int) ([]AssetRow, error)
-	countFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool) (int, error)
+	getFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter string, page, pageSize int) ([]AssetRow, error)
+	countFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter string) (int, error)
+	updateAssetHidden(ctx context.Context, userID, immichID string, isHidden bool) error
 	getMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds, limit int) ([]MapMarker, error)
 	getAssetStackID(ctx context.Context, userID, immichID string) (*string, error)
 	getStackMemberIDs(ctx context.Context, userID, stackID string) ([]string, error)

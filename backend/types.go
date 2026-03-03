@@ -16,6 +16,7 @@ type AssetRow struct {
 	StackPrimaryAssetID *string  `json:"stackPrimaryAssetID,omitempty"`
 	StackAssetCount     *int     `json:"stackAssetCount,omitempty"`
 	LibraryID           *string  `json:"libraryID,omitempty"`
+	IsHidden            bool     `json:"isHidden"`
 }
 
 type FrequentLocationRow struct {
@@ -67,6 +68,10 @@ type SyncStatusResponse struct {
 	Syncing       bool    `json:"syncing"`
 	LastSyncAt    *string `json:"lastSyncAt"`
 	LastSyncError *string `json:"lastSyncError"`
+}
+
+type HiddenUpdateRequest struct {
+	IsHidden *bool `json:"isHidden" validate:"required"`
 }
 
 type LocationUpdateRequest struct {

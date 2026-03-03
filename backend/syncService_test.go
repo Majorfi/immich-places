@@ -1307,7 +1307,7 @@ func TestBatchUpsertAssets(t *testing.T) {
 		t.Errorf("expected 3 assets, got %d", total)
 	}
 
-	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true)
+	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true, "all")
 	if withGPS != 2 {
 		t.Errorf("expected 2 with GPS, got %d", withGPS)
 	}

@@ -54,7 +54,7 @@ func TestUpsertAndCountAssets(t *testing.T) {
 		t.Errorf("expected 3 total, got %d", total)
 	}
 
-	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true)
+	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true, "all")
 	if withGPS != 2 {
 		t.Errorf("expected 2 with GPS, got %d", withGPS)
 	}
@@ -76,9 +76,75 @@ func TestUpsertOverwritesExisting(t *testing.T) {
 	if total != 1 {
 		t.Errorf("expected 1 after upsert, got %d", total)
 	}
-	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true)
+	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true, "all")
 	if withGPS != 1 {
 		t.Errorf("expected 1 with GPS after upsert, got %d", withGPS)
+	}
+}
+
+func TestUpdateAssetHidden(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+
+	visible, _ := db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	if visible != 2 {
+		t.Errorf("expected 2 visible, got %d", visible)
+	}
+
+	err := db.updateAssetHidden(ctx, testUserID, "a1", true)
+	if err != nil {
+		t.Fatalf("updateAssetHidden: %v", err)
+	}
+
+	visible, _ = db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	if visible != 1 {
+		t.Errorf("expected 1 visible after hiding, got %d", visible)
+	}
+
+	hidden, _ := db.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	if hidden != 1 {
+		t.Errorf("expected 1 hidden, got %d", hidden)
+	}
+
+	all, _ := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	if all != 2 {
+		t.Errorf("expected 2 total, got %d", all)
+	}
+
+	err = db.updateAssetHidden(ctx, testUserID, "a1", false)
+	if err != nil {
+		t.Fatalf("updateAssetHidden unhide: %v", err)
+	}
+
+	visible, _ = db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	if visible != 2 {
+		t.Errorf("expected 2 visible after unhiding, got %d", visible)
+	}
+
+	err = db.updateAssetHidden(ctx, testUserID, "nonexistent", true)
+	if err == nil {
+		t.Error("expected error for nonexistent asset")
+	}
+}
+
+func TestHiddenFilterDoesNotAffectMapMarkers(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+
+	db.updateAssetHidden(ctx, testUserID, "a1", true)
+
+	markers, err := db.getMapMarkers(ctx, testUserID, "", nil, maxMapMarkers)
+	if err != nil {
+		t.Fatalf("getMapMarkers: %v", err)
+	}
+	if len(markers) != 2 {
+		t.Errorf("expected 2 markers (hidden assets still show on map), got %d", len(markers))
 	}
 }
 
@@ -193,7 +259,7 @@ func TestBulkUpdateAssetLocation(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetLocation: %v", err)
 	}
 
-	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true)
+	withGPS, _ := db.countFilteredAssets(ctx, testUserID, "", true, "all")
 	if withGPS != 2 {
 		t.Errorf("expected 2 with GPS after bulk update, got %d", withGPS)
 	}
@@ -537,7 +603,7 @@ func TestBuildAssetFilterAlbumNoGPS(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", false, 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", false, "all", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets album no GPS: %v", err)
 	}
@@ -545,7 +611,7 @@ func TestBuildAssetFilterAlbumNoGPS(t *testing.T) {
 		t.Errorf("expected 1 no-GPS asset in album, got %d", len(assets))
 	}
 
-	count, err := db.countFilteredAssets(ctx, testUserID, "album1", false)
+	count, err := db.countFilteredAssets(ctx, testUserID, "album1", false, "all")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -563,7 +629,7 @@ func TestBuildAssetFilterAlbumWithGPS(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", true, 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", true, "all", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets album with GPS: %v", err)
 	}

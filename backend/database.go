@@ -19,10 +19,10 @@ const (
 )
 
 const assetColumns = `immichID, type, originalFileName, fileCreatedAt, latitude, longitude,
-		city, state, country, dateTimeOriginal, syncedAt, stackID, stackPrimaryAssetID, stackAssetCount, libraryID`
+		city, state, country, dateTimeOriginal, syncedAt, stackID, stackPrimaryAssetID, stackAssetCount, libraryID, isHidden`
 
 const assetColumnsAliased = `a.immichID, a.type, a.originalFileName, a.fileCreatedAt, a.latitude, a.longitude,
-		a.city, a.state, a.country, a.dateTimeOriginal, a.syncedAt, a.stackID, a.stackPrimaryAssetID, a.stackAssetCount, a.libraryID`
+		a.city, a.state, a.country, a.dateTimeOriginal, a.syncedAt, a.stackID, a.stackPrimaryAssetID, a.stackAssetCount, a.libraryID, a.isHidden`
 
 type Database struct {
 	db            *sql.DB
@@ -123,7 +123,7 @@ type assetFilter struct {
 	aliased    bool
 }
 
-func buildAssetFilter(userID, albumID string, withGPS bool) assetFilter {
+func buildAssetFilter(userID, albumID string, withGPS bool, hiddenFilter string) assetFilter {
 	var f assetFilter
 	if albumID != "" {
 		f.aliased = true
@@ -138,6 +138,14 @@ func buildAssetFilter(userID, albumID string, withGPS bool) assetFilter {
 		}
 		f.fromClause += ` AND a.stackPrimaryAssetID IS NULL`
 		f.fromClause += hiddenLibraryFilterAliased
+		switch hiddenFilter {
+		case "hidden":
+			f.fromClause += ` AND a.isHidden = 1`
+		case "all":
+			// no filter
+		default:
+			f.fromClause += ` AND a.isHidden = 0`
+		}
 	} else {
 		f.fromClause = `FROM assets WHERE userID = ? AND`
 		f.args = append(f.args, userID)
@@ -148,12 +156,20 @@ func buildAssetFilter(userID, albumID string, withGPS bool) assetFilter {
 		}
 		f.fromClause += ` AND stackPrimaryAssetID IS NULL`
 		f.fromClause += hiddenLibraryFilter
+		switch hiddenFilter {
+		case "hidden":
+			f.fromClause += ` AND isHidden = 1`
+		case "all":
+			// no filter
+		default:
+			f.fromClause += ` AND isHidden = 0`
+		}
 	}
 	return f
 }
 
-func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, page, pageSize int) ([]AssetRow, error) {
-	f := buildAssetFilter(userID, albumID, withGPS)
+func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter string, page, pageSize int) ([]AssetRow, error) {
+	f := buildAssetFilter(userID, albumID, withGPS, hiddenFilter)
 
 	cols := assetColumns
 	orderPrefix := ""
@@ -175,8 +191,8 @@ func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID string
 	return scanAssetRows(rows)
 }
 
-func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool) (int, error) {
-	f := buildAssetFilter(userID, albumID, withGPS)
+func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter string) (int, error) {
+	f := buildAssetFilter(userID, albumID, withGPS, hiddenFilter)
 	query := `SELECT COUNT(*) ` + f.fromClause
 
 	var count int
@@ -269,6 +285,7 @@ func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*
 		&a.ImmichID, &a.Type, &a.OriginalFileName, &a.FileCreatedAt,
 		&a.Latitude, &a.Longitude, &a.City, &a.State, &a.Country,
 		&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount, &a.LibraryID,
+		&a.IsHidden,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -576,6 +593,28 @@ func (d *Database) bulkUpdateAssetLocation(ctx context.Context, userID string, i
 	return err
 }
 
+func (d *Database) updateAssetHidden(ctx context.Context, userID, immichID string, isHidden bool) error {
+	hiddenVal := 0
+	if isHidden {
+		hiddenVal = 1
+	}
+	result, err := d.db.ExecContext(ctx,
+		"UPDATE assets SET isHidden = ? WHERE userID = ? AND immichID = ?",
+		hiddenVal, userID, immichID,
+	)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("asset not found")
+	}
+	return nil
+}
+
 func (d *Database) getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool, timeStart, timeEnd string) ([]AssetRow, error) {
 	gpsFilter := ` AND (latitude IS NULL OR longitude IS NULL)`
 	if includeGeotagged {
@@ -685,6 +724,7 @@ func scanAssetRows(rows *sql.Rows) ([]AssetRow, error) {
 			&a.ImmichID, &a.Type, &a.OriginalFileName, &a.FileCreatedAt,
 			&a.Latitude, &a.Longitude, &a.City, &a.State, &a.Country,
 			&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount, &a.LibraryID,
+			&a.IsHidden,
 		); err != nil {
 			return nil, err
 		}
