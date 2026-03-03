@@ -13,6 +13,7 @@ export type TAssetRow = {
 	stackID?: string | null;
 	stackPrimaryAssetID?: string | null;
 	stackAssetCount?: number | null;
+	isHidden: boolean;
 };
 
 export type TPaginatedAssets = {

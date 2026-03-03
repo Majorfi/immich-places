@@ -32,7 +32,8 @@ function isAssetRow(value: unknown): boolean {
 		isString(value.syncedAt) &&
 		(value.stackID === undefined || isNullableString(value.stackID)) &&
 		(value.stackPrimaryAssetID === undefined || isNullableString(value.stackPrimaryAssetID)) &&
-		(value.stackAssetCount === undefined || isNullableFiniteNumber(value.stackAssetCount))
+		(value.stackAssetCount === undefined || isNullableFiniteNumber(value.stackAssetCount)) &&
+		typeof value.isHidden === 'boolean'
 	);
 }
 

@@ -1,7 +1,13 @@
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetRow} from '@/shared/types/asset';
 import type {THealthResponse} from '@/shared/types/health';
-import type {TGPSFilter, TPendingLocation, TPendingLocationsByAssetID, TSetLocationOptions} from '@/shared/types/map';
+import type {
+	TGPSFilter,
+	THiddenFilter,
+	TPendingLocation,
+	TPendingLocationsByAssetID,
+	TSetLocationOptions
+} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionCategory} from '@/shared/types/suggestion';
 import type {TViewMode} from '@/shared/types/view';
 
@@ -21,6 +27,8 @@ export type TBackendContextValue = {
 export type TViewContextValue = {
 	gpsFilter: TGPSFilter;
 	setGPSFilterAction: (filter: TGPSFilter) => void;
+	hiddenFilter: THiddenFilter;
+	setHiddenFilterAction: (filter: THiddenFilter) => void;
 	pageSize: number;
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;

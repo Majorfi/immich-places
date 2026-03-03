@@ -6,6 +6,8 @@ export type TMapMarker = {
 
 export type TGPSFilter = 'no-gps' | 'with-gps';
 
+export type THiddenFilter = 'all' | 'hidden' | 'visible';
+
 export type TPendingLocation = {
 	latitude: number;
 	longitude: number;
