@@ -313,7 +313,10 @@ func TestHiddenLibraryAssetsExcludedFromFilteredAssets(t *testing.T) {
 		t.Errorf("expected 1 filtered asset, got %d", len(assets))
 	}
 
-	count, _ := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	count, err := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	if err != nil {
+		t.Fatalf("countFilteredAssets: %v", err)
+	}
 	if count != 1 {
 		t.Errorf("expected count 1, got %d", count)
 	}

@@ -853,7 +853,10 @@ func TestHandleUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, _ := d.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	if err != nil {
+		t.Fatalf("countFilteredAssets: %v", err)
+	}
 	if hidden != 1 {
 		t.Errorf("expected 1 hidden asset, got %d", hidden)
 	}
