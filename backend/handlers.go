@@ -130,6 +130,10 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 	if hiddenFilter == "" {
 		hiddenFilter = "visible"
 	}
+	if hiddenFilter != "visible" && hiddenFilter != "hidden" && hiddenFilter != "all" {
+		writeError(w, http.StatusBadRequest, "hiddenFilter must be one of: visible, hidden, all")
+		return
+	}
 
 	if page < 1 {
 		writeError(w, http.StatusBadRequest, "page must be >= 1")
@@ -391,7 +395,12 @@ func (h *Handlers) handleUpdateHidden(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.updateAssetHidden(r.Context(), user.ID, assetID, *req.IsHidden); err != nil {
-		writeError(w, http.StatusNotFound, "asset not found")
+		if errors.Is(err, errAssetNotFound) {
+			writeError(w, http.StatusNotFound, "asset not found")
+			return
+		}
+		log.Printf("Failed to update hidden state for %s: %v", assetID, err)
+		writeError(w, http.StatusInternalServerError, "failed to update hidden state")
 		return
 	}
 

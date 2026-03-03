@@ -610,7 +610,7 @@ func (d *Database) updateAssetHidden(ctx context.Context, userID, immichID strin
 		return err
 	}
 	if rows == 0 {
-		return fmt.Errorf("asset not found")
+		return errAssetNotFound
 	}
 	return nil
 }
