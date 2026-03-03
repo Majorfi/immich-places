@@ -434,6 +434,7 @@ export async function toggleAssetHidden(assetID: string, isHidden: boolean, opts
 		opts
 	);
 	if (!response.ok) {
-		throw new Error(`Failed to update hidden state: ${response.status}`);
+		const msg = await readErrorMessage(response);
+		throw new Error(msg ?? `Failed to update hidden state: ${response.status}`);
 	}
 }

@@ -43,10 +43,13 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 		window.open(safeImmichPhotoURL, '_blank', 'noopener,noreferrer');
 	}
 
-	function handleToggleHidden(): void {
-		void toggleAssetHidden(asset.immichID, !asset.isHidden).then(() => {
-			void loadPageAction(currentPage);
-		});
+	async function handleToggleHidden(): Promise<void> {
+		try {
+			await toggleAssetHidden(asset.immichID, !asset.isHidden);
+			await loadPageAction(currentPage);
+		} catch (err: unknown) {
+			console.error('Failed to toggle hidden state:', err);
+		}
 	}
 
 	return (
@@ -96,7 +99,8 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 							'flex cursor-pointer select-none items-center rounded-sm px-2.5 py-1.5 text-[0.8125rem] text-(--color-text) outline-none data-highlighted:bg-(--color-hover)'
 						}
 						onSelect={handleToggleHidden}>
-						{asset.isHidden ? 'Unhide' : 'Hide'}
+						{asset.isHidden && 'Unhide'}
+						{!asset.isHidden && 'Hide'}
 					</ContextMenu.Item>
 					<ContextMenu.Item
 						className={
