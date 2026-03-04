@@ -175,6 +175,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				albumName={effectiveAlbumName}
 				onBackAction={effectiveBackAction}
 				trailingAction={view.trailingAction}
+				hideSettingsOnMobile={shouldShowAlbumDetail}
 			/>
 			{gpxPreview && (
 				<GPXImportPanel
@@ -207,6 +208,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 							isLoading={isLoadingAssets}
 							isSyncing={isSyncing}
 							error={assetsError}
+							mobileMaxVisibleRows={shouldShowAlbumDetail ? 1.8 : null}
 						/>
 					)}
 					{!shouldShowAlbumList && total > 0 && (

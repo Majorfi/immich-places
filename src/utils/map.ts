@@ -108,6 +108,6 @@ export const MAP_CONTROL_STACK_GAP_REM = 0.25;
 /** Control button size in pixels. */
 export const MAP_CONTROL_BUTTON_SIZE_PX = 32;
 /** Map overlay width at top placement. */
-export const MAP_OVERLAY_TOP_WIDTH = 'min(720px,calc(100%-2rem))';
+export const MAP_OVERLAY_TOP_WIDTH = 'min(720px,calc(100%-1rem))';
 /** Map overlay width at bottom placement. */
 export const MAP_OVERLAY_BOTTOM_WIDTH = 'min(420px,calc(100%-2rem))';

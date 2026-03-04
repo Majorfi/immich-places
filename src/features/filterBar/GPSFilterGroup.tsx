@@ -32,12 +32,6 @@ export function GPSFilterGroup({gpsFilter, missingCount, onGPSFilterAction}: TGP
 		<div className={'flex-1 rounded-lg bg-(--color-bg) p-2.5'}>
 			<div
 				className={
-					'mb-1.5 rounded-md border border-[var(--color-border)] bg-(--color-selected) px-2 py-1.5 text-[0.6875rem] leading-4 text-(--color-text-secondary) md:hidden'
-				}>
-				{'Map editing is not available on mobile. Please use a desktop browser.'}
-			</div>
-			<div
-				className={
 					'mb-1 text-[0.5625rem] font-semibold uppercase tracking-[0.08em] text-(--color-text-secondary)'
 				}>
 				{'GPS Filter'}

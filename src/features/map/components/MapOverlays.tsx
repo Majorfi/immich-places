@@ -21,7 +21,7 @@ export function MapOverlays(): ReactElement {
 	return (
 		<>
 			<div
-				className={'absolute left-1/2 min-w-md -translate-x-1/2'}
+				className={'absolute left-1/2 w-[calc(100%-1rem)] max-w-[720px] -translate-x-1/2 sm:w-[calc(100%-2rem)]'}
 				style={{
 					top: overlayOffset,
 					zIndex: MAP_CONTROL_Z_INDEX,
