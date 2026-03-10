@@ -329,6 +329,54 @@ func TestBulkUpdateAssetLocation(t *testing.T) {
 	}
 }
 
+func TestBulkUpdateAssetHidden(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+	seedAsset(t, db, "a3", ptr(35.68), ptr(139.69), "2024-01-03T12:00:00Z")
+
+	err := db.bulkUpdateAssetHidden(ctx, testUserID, []string{"a1", "a2"}, true)
+	if err != nil {
+		t.Fatalf("bulkUpdateAssetHidden: %v", err)
+	}
+
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	if err != nil {
+		t.Fatalf("countFilteredAssets hidden: %v", err)
+	}
+	if hidden != 2 {
+		t.Errorf("expected 2 hidden after bulk hide, got %d", hidden)
+	}
+
+	visible, err := db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	if err != nil {
+		t.Fatalf("countFilteredAssets visible: %v", err)
+	}
+	if visible != 1 {
+		t.Errorf("expected 1 visible after bulk hide, got %d", visible)
+	}
+
+	err = db.bulkUpdateAssetHidden(ctx, testUserID, []string{"a1", "a2"}, false)
+	if err != nil {
+		t.Fatalf("bulkUpdateAssetHidden unhide: %v", err)
+	}
+
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	if err != nil {
+		t.Fatalf("countFilteredAssets visible after unhide: %v", err)
+	}
+	if visible != 3 {
+		t.Errorf("expected 3 visible after bulk unhide, got %d", visible)
+	}
+
+	err = db.bulkUpdateAssetHidden(ctx, testUserID, []string{}, true)
+	if err != nil {
+		t.Fatalf("bulkUpdateAssetHidden empty: %v", err)
+	}
+}
+
 func TestGetAssetPageInfoNotFound(t *testing.T) {
 	db := newTestDB(t)
 

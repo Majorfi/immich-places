@@ -597,6 +597,31 @@ func (d *Database) bulkUpdateAssetLocation(ctx context.Context, userID string, i
 	return err
 }
 
+func (d *Database) bulkUpdateAssetHidden(ctx context.Context, userID string, immichIDs []string, isHidden bool) error {
+	if len(immichIDs) == 0 {
+		return nil
+	}
+
+	hiddenVal := 0
+	if isHidden {
+		hiddenVal = 1
+	}
+
+	placeholders := make([]string, len(immichIDs))
+	args := []interface{}{hiddenVal, userID}
+	for i, id := range immichIDs {
+		placeholders[i] = "?"
+		args = append(args, id)
+	}
+
+	query := fmt.Sprintf(
+		"UPDATE assets SET isHidden = ? WHERE userID = ? AND immichID IN (%s)",
+		strings.Join(placeholders, ","),
+	)
+	_, err := d.db.ExecContext(ctx, query, args...)
+	return err
+}
+
 func (d *Database) updateAssetHidden(ctx context.Context, userID, immichID string, isHidden bool) error {
 	hiddenVal := 0
 	if isHidden {
