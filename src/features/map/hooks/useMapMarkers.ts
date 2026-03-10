@@ -133,6 +133,7 @@ export function useMapMarkers(
 	useEffect(() => {
 		return () => {
 			abortRef.current?.abort();
+			hasLoadedRef.current = false;
 		};
 	}, []);
 

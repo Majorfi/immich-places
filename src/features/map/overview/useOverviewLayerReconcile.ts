@@ -55,7 +55,8 @@ export function useOverviewLayerReconcile({
 	savedLocationsByAssetID,
 	pendingLocationsByAssetIDRef,
 	savedLocationsByAssetIDRef,
-	pendingSelectionMarkerRef
+	pendingSelectionMarkerRef,
+	openContextMenuRef
 }: TUseOverviewLayerReconcileArgs): void {
 	const isGreyscale = albumFilter !== 'gpx-import' && !isGPSFilterWithLocations(gpsFilter);
 
@@ -116,6 +117,7 @@ export function useOverviewLayerReconcile({
 			setLocationRef,
 			isSpiderfiedRef,
 			spiderCenterRef,
+			openContextMenuRef,
 			groupMovePillRef,
 			groupAnchorMarkerRef,
 			pendingSelectionMarkerRef
@@ -143,7 +145,8 @@ export function useOverviewLayerReconcile({
 		groupAnchorMarkerRef,
 		pendingSelectionMarkerRef,
 		isSpiderfiedRef,
-		spiderCenterRef
+		spiderCenterRef,
+		openContextMenuRef
 	]);
 
 	useEffect(() => {
@@ -181,7 +184,8 @@ export function useOverviewLayerReconcile({
 			savedLocationsByAssetID,
 			clearSavedLocationsRef,
 			pendingLocationsByAssetIDRef,
-			savedLocationsByAssetIDRef
+			savedLocationsByAssetIDRef,
+			openContextMenuRef
 		};
 		const hasLayerChanges = syncMarkers(markerSyncArgs, isGreyscale);
 		if (hasLayerChanges) {

@@ -5,6 +5,7 @@ import 'leaflet.markercluster.placementstrategies';
 
 import {AssetLightbox} from '@/features/lightbox/AssetLightbox';
 import {MapControls} from '@/features/map/components/MapControls';
+import {MapMarkerContextMenu} from '@/features/map/components/MapMarkerContextMenu';
 import {MapOverlays} from '@/features/map/components/MapOverlays';
 import {useMapViewController} from '@/features/map/hooks/useMapViewController';
 import {useMapViewModel} from '@/features/map/hooks/useMapViewModel';
@@ -28,6 +29,8 @@ export function MapView(): ReactElement {
 		containerRef,
 		mapInteractionError,
 		activeTileLayer,
+		mapContextMenu,
+		clearContextMenuAction,
 		handleLocateMe,
 		handleZoomIn,
 		handleZoomOut,
@@ -77,6 +80,11 @@ export function MapView(): ReactElement {
 				</div>
 			)}
 			<AssetLightbox />
+			<MapMarkerContextMenu
+				menu={mapContextMenu}
+				onCloseAction={clearContextMenuAction}
+				onPreviewAction={mapModel.openLightboxAction}
+			/>
 		</div>
 	);
 }

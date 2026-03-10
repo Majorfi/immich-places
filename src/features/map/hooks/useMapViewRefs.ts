@@ -3,7 +3,12 @@
 import {useRef} from 'react';
 
 import type {TAssetRow} from '@/shared/types/asset';
-import type {TGPSFilter, TPendingLocationsByAssetID, TSetLocationOptions} from '@/shared/types/map';
+import type {
+	TGPSFilter,
+	TMapContextMenuState,
+	TPendingLocationsByAssetID,
+	TSetLocationOptions
+} from '@/shared/types/map';
 import type L from 'leaflet';
 import type {RefObject} from 'react';
 
@@ -17,6 +22,7 @@ type TUseMapViewRefsArgs = {
 	pendingLocationsByAssetID: TPendingLocationsByAssetID;
 	savedLocationsByAssetID: TPendingLocationsByAssetID;
 	setLocationAction: (options: TSetLocationOptions) => void;
+	openContextMenuAction: (menu: TMapContextMenuState) => void;
 };
 
 type TUseMapViewRefsResult = {
@@ -47,6 +53,7 @@ type TUseMapViewRefsResult = {
 	pendingLocationsByAssetIDRef: RefObject<TPendingLocationsByAssetID>;
 	savedLocationsByAssetIDRef: RefObject<TPendingLocationsByAssetID>;
 	clearSavedLocationsRef: RefObject<(assetIDs: string[]) => void>;
+	openContextMenuRef: RefObject<(menu: TMapContextMenuState) => void>;
 };
 
 function useLatestRef<T>(value: T): RefObject<T> {
@@ -64,7 +71,8 @@ export function useMapViewRefs({
 	clearSavedLocationsAction,
 	pendingLocationsByAssetID,
 	savedLocationsByAssetID,
-	setLocationAction
+	setLocationAction,
+	openContextMenuAction
 }: TUseMapViewRefsArgs): TUseMapViewRefsResult {
 	const mapInstanceRef = useRef<L.Map | null>(null);
 	const tileLayerRef = useRef<L.TileLayer | null>(null);
@@ -102,6 +110,7 @@ export function useMapViewRefs({
 	const pendingLocationsByAssetIDRef = useLatestRef(pendingLocationsByAssetID);
 	const savedLocationsByAssetIDRef = useLatestRef(savedLocationsByAssetID);
 	const clearSavedLocationsRef = useLatestRef(clearSavedLocationsAction);
+	const openContextMenuRef = useLatestRef(openContextMenuAction);
 
 	return {
 		mapInstanceRef,
@@ -130,6 +139,7 @@ export function useMapViewRefs({
 		allSelectedHaveGPSRef,
 		pendingLocationsByAssetIDRef,
 		savedLocationsByAssetIDRef,
-		clearSavedLocationsRef
+		clearSavedLocationsRef,
+		openContextMenuRef
 	};
 }

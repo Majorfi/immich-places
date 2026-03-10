@@ -27,3 +27,21 @@ export type TSetLocationOptions = {
 	sourceLabel?: string;
 	isAlreadyApplied?: boolean;
 };
+
+export type TMapContextMenuCluster = {
+	type: 'cluster';
+	x: number;
+	y: number;
+	onZoom: () => void;
+	onSpiderfy: () => void;
+	canSpiderfy: boolean;
+};
+
+export type TMapContextMenuMarker = {
+	type: 'marker';
+	x: number;
+	y: number;
+	assetID: string;
+};
+
+export type TMapContextMenuState = TMapContextMenuCluster | TMapContextMenuMarker | null;

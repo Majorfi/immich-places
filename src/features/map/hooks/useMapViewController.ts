@@ -28,6 +28,7 @@ import {useMapAutoFit} from './useMapViewAutoFit';
 
 import type {TUseMapViewModelReturn} from '@/features/map/hooks/useMapViewModel';
 import type {TAssetRow} from '@/shared/types/asset';
+import type {TMapContextMenuState} from '@/shared/types/map';
 import type {TMapTileLayer} from '@/utils/map';
 import type {DragEvent, RefObject} from 'react';
 
@@ -65,6 +66,8 @@ type TUseMapViewControllerResult = {
 	handleToggleTileLayer: () => void;
 	handleDragOver: (event: DragEvent<HTMLDivElement>) => void;
 	handleDrop: (event: DragEvent<HTMLDivElement>) => void;
+	mapContextMenu: TMapContextMenuState;
+	clearContextMenuAction: () => void;
 };
 
 export function useMapViewController({
@@ -91,6 +94,7 @@ export function useMapViewController({
 }: TUseMapViewControllerArgs): TUseMapViewControllerResult {
 	const [mapInteractionError, setMapInteractionError] = useState<string | null>(null);
 	const [activeTileLayer, setActiveTileLayer] = useState<TMapTileLayer>('street');
+	const [mapContextMenu, setMapContextMenu] = useState<TMapContextMenuState>(null);
 
 	const {
 		mapInstanceRef,
@@ -118,7 +122,8 @@ export function useMapViewController({
 		allSelectedHaveGPSRef,
 		pendingLocationsByAssetIDRef,
 		savedLocationsByAssetIDRef,
-		clearSavedLocationsRef
+		clearSavedLocationsRef,
+		openContextMenuRef
 	} = useMapViewRefs({
 		gpsFilter,
 		selectedAssets,
@@ -128,7 +133,8 @@ export function useMapViewController({
 		clearSavedLocationsAction,
 		pendingLocationsByAssetID,
 		savedLocationsByAssetID,
-		setLocationAction
+		setLocationAction,
+		openContextMenuAction: setMapContextMenu
 	});
 
 	const handleLocateMe = useCallback(() => {
@@ -246,7 +252,8 @@ export function useMapViewController({
 		resolveAssetByIDRef,
 		selectedAssetIDsRef,
 		groupMovePillRef,
-		groupAnchorMarkerRef
+		groupAnchorMarkerRef,
+		openContextMenuRef
 	});
 
 	const handleDropToMap = useCallback(
@@ -282,6 +289,8 @@ export function useMapViewController({
 		handleZoomOut,
 		handleToggleTileLayer,
 		handleDragOver,
-		handleDrop: handleMapDrop
+		handleDrop: handleMapDrop,
+		mapContextMenu,
+		clearContextMenuAction: useCallback(() => setMapContextMenu(null), [])
 	};
 }
