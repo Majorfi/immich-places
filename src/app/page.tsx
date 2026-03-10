@@ -9,10 +9,6 @@ import {AppProvider, useBackend, useView} from '@/shared/context/AppContext';
 
 import type {ReactElement} from 'react';
 
-const layoutWithMapClass =
-	'grid h-screen min-h-0 grid-rows-[fit-content(62dvh)_minmax(0,1fr)] gap-3 p-3 md:grid-cols-[minmax(20rem,var(--app-sidebar-width))_1fr] md:grid-rows-1';
-const layoutWithoutMapClass = 'grid h-screen min-h-0 grid-cols-1 grid-rows-1 gap-3 p-3';
-
 type TSideState = 'auth-loading' | 'auth-required' | 'backend-loading' | 'backend-error' | 'ready';
 type TMapState = 'auth' | 'backend-loading' | 'backend-error' | 'ready';
 
@@ -83,7 +79,7 @@ type TAppShellProps = {
 	mapState: TMapState;
 	backendError?: string | null;
 	onRetryBackendAction?: () => Promise<void>;
-	showMap?: boolean;
+	isMainCatalogView?: boolean;
 };
 
 function AppShell({
@@ -91,16 +87,19 @@ function AppShell({
 	mapState,
 	backendError,
 	onRetryBackendAction,
-	showMap = true
+	isMainCatalogView
 }: TAppShellProps): ReactElement {
 	return (
-		<div className={`relative ${showMap ? layoutWithMapClass : layoutWithoutMapClass}`}>
+		<div
+			className={`relative grid h-screen min-h-0 gap-3 p-3 grid-rows-[fit-content(62dvh)_minmax(0,1fr)] max-md:grid-cols-1 md:grid-cols-[minmax(20rem,var(--app-sidebar-width))_1fr] md:grid-rows-1 ${isMainCatalogView ? 'max-md:grid-rows-1!' : ''}`}>
 			<SideWrapper
 				state={sideState}
 				backendError={backendError}
 				onRetryBackendAction={onRetryBackendAction}
 			/>
-			{showMap && <MapWrapper state={mapState} />}
+			<div className={`${isMainCatalogView ? 'max-md:hidden' : ''}`}>
+				<MapWrapper state={mapState} />
+			</div>
 		</div>
 	);
 }
@@ -109,7 +108,6 @@ function AuthenticatedAppRoutes(): ReactElement {
 	const {isReady, backendError, retryBackendAction} = useBackend();
 	const {viewMode, selectedAlbumID} = useView();
 	const isMainCatalogView = viewMode === 'timeline' || (viewMode === 'album' && !selectedAlbumID);
-	const showMap = !isMainCatalogView;
 
 	if (backendError) {
 		return (
@@ -118,7 +116,7 @@ function AuthenticatedAppRoutes(): ReactElement {
 				mapState={'backend-error'}
 				backendError={backendError}
 				onRetryBackendAction={retryBackendAction}
-				showMap={showMap}
+				isMainCatalogView={isMainCatalogView}
 			/>
 		);
 	}
@@ -128,7 +126,7 @@ function AuthenticatedAppRoutes(): ReactElement {
 			<AppShell
 				sideState={'backend-loading'}
 				mapState={'backend-loading'}
-				showMap={showMap}
+				isMainCatalogView={isMainCatalogView}
 			/>
 		);
 	}
@@ -137,7 +135,7 @@ function AuthenticatedAppRoutes(): ReactElement {
 		<AppShell
 			sideState={'ready'}
 			mapState={'ready'}
-			showMap={showMap}
+			isMainCatalogView={isMainCatalogView}
 		/>
 	);
 }
