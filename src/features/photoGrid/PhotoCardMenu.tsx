@@ -3,7 +3,7 @@
 import * as ContextMenu from '@radix-ui/react-context-menu';
 
 import {useBackend, useCatalog, useSelection, useUIMap} from '@/shared/context/AppContext';
-import {toggleAssetHidden} from '@/shared/services/backendApi';
+import {bulkToggleAssetHidden, toggleAssetHidden} from '@/shared/services/backendApi';
 import {immichPhotoURL} from '@/utils/backendUrls';
 
 import type {TAssetRow} from '@/shared/types/asset';
@@ -43,9 +43,18 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 		window.open(safeImmichPhotoURL, '_blank', 'noopener,noreferrer');
 	}
 
+	const isBulk = isSelected && selectedAssets.length > 1;
+	const bulkCount = isBulk ? selectedAssets.length : 0;
+
 	async function handleToggleHidden(): Promise<void> {
 		try {
-			await toggleAssetHidden(asset.immichID, !asset.isHidden);
+			if (isBulk) {
+				const ids = selectedAssets.map(a => a.immichID);
+				await bulkToggleAssetHidden(ids, !asset.isHidden);
+				clearSelectionAction();
+			} else {
+				await toggleAssetHidden(asset.immichID, !asset.isHidden);
+			}
 			await loadPageAction(currentPage);
 		} catch (err: unknown) {
 			console.error('Failed to toggle hidden state:', err);
@@ -99,8 +108,10 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 							'flex cursor-pointer select-none items-center rounded-sm px-2.5 py-1.5 text-[0.8125rem] text-(--color-text) outline-none data-highlighted:bg-(--color-hover)'
 						}
 						onSelect={handleToggleHidden}>
-						{asset.isHidden && 'Unhide'}
-						{!asset.isHidden && 'Hide'}
+						{asset.isHidden && !isBulk && 'Unhide'}
+						{asset.isHidden && isBulk && `Unhide ${bulkCount} photos`}
+						{!asset.isHidden && !isBulk && 'Hide'}
+						{!asset.isHidden && isBulk && `Hide ${bulkCount} photos`}
 					</ContextMenu.Item>
 					<ContextMenu.Item
 						className={

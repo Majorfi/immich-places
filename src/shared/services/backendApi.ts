@@ -423,6 +423,26 @@ export async function gpxPreview(
 	return parseJSON(response, isGPXPreviewResponse, 'Invalid GPX preview response payload');
 }
 
+export async function bulkToggleAssetHidden(
+	assetIDs: string[],
+	isHidden: boolean,
+	opts: TRequestOptions = {}
+): Promise<void> {
+	const response = await backendFetch(
+		`${BASE}/assets/bulk-hidden`,
+		{
+			method: 'PUT',
+			headers: {'Content-Type': 'application/json'}, //eslint-disable-line
+			body: JSON.stringify({assetIDs, isHidden})
+		},
+		opts
+	);
+	if (!response.ok) {
+		const msg = await readErrorMessage(response);
+		throw new Error(msg ?? `Failed to bulk update hidden state: ${response.status}`);
+	}
+}
+
 export async function toggleAssetHidden(assetID: string, isHidden: boolean, opts: TRequestOptions = {}): Promise<void> {
 	const response = await backendFetch(
 		`${BASE}/assets/${encodeURIComponent(assetID)}/hidden`,
