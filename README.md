@@ -50,7 +50,7 @@ The app has two parts:
 From this repo root, create `.env` with the values below:
 
 ```bash
-cp backend/.env.example .env
+cp .env.example .env
 ```
 
 Then edit `.env`:
