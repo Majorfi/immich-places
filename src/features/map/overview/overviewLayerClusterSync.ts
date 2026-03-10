@@ -44,6 +44,7 @@ type TClusterEventArgs = Pick<
 	| 'groupMovePillRef'
 	| 'groupAnchorMarkerRef'
 	| 'pendingSelectionMarkerRef'
+	| 'openContextMenuRef'
 >;
 
 type TGroupMoveModeRefs = Pick<TClusterEventArgs, 'groupMovePillRef' | 'groupAnchorMarkerRef'>;
@@ -451,6 +452,7 @@ export function attachClusterEvents(
 		setLocationRef,
 		isSpiderfiedRef,
 		spiderCenterRef,
+		openContextMenuRef,
 		...groupMoveRefs
 	}: TClusterEventArgs
 ): void {
@@ -480,6 +482,33 @@ export function attachClusterEvents(
 			setLocationRef,
 			groupMoveRefs
 		);
+	});
+
+	layer.on('clustercontextmenu', (event: L.LeafletEvent) => {
+		const clusterEvent = event as L.LeafletMouseEvent & {layer: L.MarkerCluster};
+		if (clusterEvent.originalEvent) {
+			clusterEvent.originalEvent.preventDefault();
+			clusterEvent.originalEvent.stopPropagation();
+		}
+		const cluster = clusterEvent.layer;
+		const bounds = cluster.getBounds();
+		const canSpiderfy = isSamePositionCluster(bounds) && map.getZoom() >= OVERVIEW_CLUSTER_CLICK_ZOOM;
+		openContextMenuRef.current({
+			type: 'cluster',
+			x: clusterEvent.originalEvent.clientX,
+			y: clusterEvent.originalEvent.clientY,
+			canSpiderfy,
+			onZoom: () => {
+				if (isSamePositionCluster(bounds)) {
+					map.flyTo(bounds.getCenter(), OVERVIEW_CLUSTER_CLICK_ZOOM);
+				} else {
+					cluster.zoomToBounds({padding: OVERVIEW_CLUSTER_CLICK_PADDING});
+				}
+			},
+			onSpiderfy: () => {
+				cluster.spiderfy();
+			}
+		});
 	});
 }
 

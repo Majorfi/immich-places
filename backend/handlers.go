@@ -407,6 +407,46 @@ func (h *Handlers) handleUpdateHidden(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handlers) handleBulkUpdateHidden(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromContext(r)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	var req BulkHiddenUpdateRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1024*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.IsHidden == nil {
+		writeError(w, http.StatusBadRequest, "isHidden is required")
+		return
+	}
+	if len(req.AssetIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "assetIDs must not be empty")
+		return
+	}
+
+	for _, id := range req.AssetIDs {
+		if !isValidUUID(id) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid asset ID: %s", id))
+			return
+		}
+	}
+
+	if err := h.db.bulkUpdateAssetHidden(r.Context(), user.ID, req.AssetIDs, *req.IsHidden); err != nil {
+		log.Printf("Failed to bulk update hidden state: %v", err)
+		writeError(w, http.StatusInternalServerError, "failed to update hidden state")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handlers) resolveAndUpdateLocation(ctx context.Context, immich HandlerImmichAPI, userID, assetID string, lat, lon float64) error {
 	allIDs := []string{assetID}
 

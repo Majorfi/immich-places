@@ -1,6 +1,7 @@
 import type {TAssetRow} from '@/shared/types/asset';
 import type {
 	TGPSFilter,
+	TMapContextMenuState,
 	TMapMarker,
 	TPendingLocation,
 	TPendingLocationsByAssetID,
@@ -37,6 +38,7 @@ export type TUseOverviewLayerArgs = {
 	groupMovePillRef: RefObject<L.Marker | null>;
 	groupAnchorMarkerRef: RefObject<L.Marker | null>;
 	pendingSelectionMarkerRef: RefObject<L.Marker | null>;
+	openContextMenuRef: RefObject<(menu: TMapContextMenuState) => void>;
 };
 
 export type TUseOverviewLayerReconcileArgs = {

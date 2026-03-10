@@ -60,6 +60,7 @@ func main() {
 	protectedMux.HandleFunc("GET /assets/{assetID}/preview", handlers.handleGetPreview)
 	protectedMux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	protectedMux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
+	protectedMux.HandleFunc("PUT /assets/bulk-hidden", handlers.handleBulkUpdateHidden)
 	protectedMux.HandleFunc("GET /assets/{assetID}/suggestions", handlers.handleGetSuggestions)
 	protectedMux.HandleFunc("GET /frequent-locations", handlers.handleGetFrequentLocations)
 	protectedMux.HandleFunc("GET /assets/{assetID}/page-info", handlers.handleGetAssetPageInfo)

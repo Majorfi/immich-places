@@ -160,7 +160,7 @@ export function LocationConfirm(): ReactElement | null {
 		return (
 			<div
 				className={
-					'w-full min-w-md flex items-center gap-3 rounded-lg bg-(--color-surface) px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.1)]'
+					'flex w-full min-w-0 items-center gap-3 rounded-lg bg-(--color-surface) px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.1)] md:min-w-md'
 				}>
 				<div className={'flex min-w-0 flex-1 flex-col gap-0.5'}>
 					<span className={'block truncate text-[0.8125rem] font-medium'}>
@@ -187,7 +187,7 @@ export function LocationConfirm(): ReactElement | null {
 	return (
 		<div
 			className={
-				'w-full min-w-md flex items-center gap-3 rounded-lg bg-(--color-surface) px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.1)]'
+				'flex w-full min-w-0 items-center gap-3 rounded-lg bg-(--color-surface) px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.1)] md:min-w-md'
 			}>
 			<div className={'flex min-w-0 flex-1 flex-col gap-0.5'}>
 				<span className={'block truncate text-[0.8125rem] font-medium'}>

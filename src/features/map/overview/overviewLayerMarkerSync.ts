@@ -322,6 +322,19 @@ function attachClickHandlers(
 			map
 		});
 	});
+
+	marker.on('contextmenu', (event: L.LeafletMouseEvent) => {
+		if (event.originalEvent) {
+			event.originalEvent.preventDefault();
+			event.originalEvent.stopPropagation();
+		}
+		args.openContextMenuRef.current({
+			type: 'marker',
+			x: event.originalEvent.clientX,
+			y: event.originalEvent.clientY,
+			assetID
+		});
+	});
 }
 
 /**

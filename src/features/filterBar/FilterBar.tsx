@@ -47,6 +47,7 @@ type TFilterBarProps = {
 	albumName?: string | null;
 	onBackAction?: () => void;
 	trailingAction?: ReactElement;
+	hideSettingsOnMobile?: boolean;
 };
 
 /**
@@ -95,12 +96,14 @@ export function FilterBar({
 	onSyncAction,
 	albumName,
 	onBackAction,
-	trailingAction
+	trailingAction,
+	hideSettingsOnMobile = false
 }: TFilterBarProps): ReactElement {
 	const [isOpen, setIsOpen] = useState(true);
 	const [openPanelHeightPx, setOpenPanelHeightPx] = useState(160);
 	const panelBodyRef = useRef<HTMLDivElement | null>(null);
 	const visibleMarkerLimitOptions = buildVisibleMarkerLimitOptions(visibleMarkerTotalCount);
+	const hasVisibleMarkerLimitOptions = visibleMarkerLimitOptions.length > 0;
 	const activeVisibleMarkerLimit = resolveActiveVisibleMarkerLimit(visibleMarkerLimit, visibleMarkerLimitOptions);
 	const activeVisibleMarkerLimitIndex = visibleMarkerLimitOptions.indexOf(activeVisibleMarkerLimit);
 	const canDecreaseVisibleMarkerLimit = activeVisibleMarkerLimitIndex > 0;
@@ -119,10 +122,12 @@ export function FilterBar({
 		);
 	}
 	let markerMaxLabel = '';
-	if (visibleMarkerLimitOptions.length > 0) {
+	if (hasVisibleMarkerLimitOptions) {
 		markerMaxLabel = formatMarkerLimitOption(visibleMarkerLimitOptions[visibleMarkerLimitOptions.length - 1]);
 	}
-	const markerMaxText = `max ${markerMaxLabel}`;
+	const markerMaxText = `max: ${markerMaxLabel}`;
+	const hideSettingsClass = hideSettingsOnMobile ? 'hidden md:inline-flex' : '';
+	const hidePanelOnMobileClass = hideSettingsOnMobile ? 'hidden md:block' : '';
 
 	const onDecreaseVisibleMarkerLimitAction = (): void => {
 		if (!canDecreaseVisibleMarkerLimit) {
@@ -182,7 +187,7 @@ export function FilterBar({
 					}}
 					disabled={isSyncing}
 					title={isSyncing ? 'Syncing...' : 'Resync with Immich'}
-					className={`${toolButtonClass} disabled:cursor-default disabled:opacity-40`}>
+					className={cn(toolButtonClass, hideSettingsClass, 'disabled:cursor-default disabled:opacity-40')}>
 					<svg
 						width={'12'}
 						height={'12'}
@@ -199,6 +204,7 @@ export function FilterBar({
 					onClick={() => setIsOpen(value => !value)}
 					className={cn(
 						filterButtonClass,
+						hideSettingsClass,
 						isOpen && 'bg-(--color-primary) text-white',
 						!isOpen && 'bg-(--color-bg) text-(--color-text-secondary) hover:text-(--color-text)'
 					)}>
@@ -207,7 +213,7 @@ export function FilterBar({
 				{trailingAction && <div className={'ml-1'}>{trailingAction}</div>}
 			</div>
 			<div
-				className={FILTER_BAR_TRANSITION_CLASS}
+				className={cn(FILTER_BAR_TRANSITION_CLASS, hidePanelOnMobileClass)}
 				style={{
 					maxHeight: isOpen ? `${openPanelHeightPx}px` : '0px',
 					opacity: isOpen ? 1 : 0
@@ -239,26 +245,31 @@ export function FilterBar({
 							options={GRID_COLUMN_OPTIONS}
 							onChangeAction={onGridColumnsAction}
 						/>
-						<HiddenFilterGroup
-							hiddenFilter={hiddenFilter}
-							onHiddenFilterAction={onHiddenFilterAction}
-						/>
 					</div>
-					{visibleMarkerLimitOptions.length > 0 && (
-						<div className={'flex gap-1.5'}>
-							<div className={'flex-1 rounded-lg bg-(--color-bg) p-2.5'}>
-								<div
-									className={
-										'mb-1 text-[0.5625rem] font-semibold uppercase tracking-[0.08em] text-(--color-text-secondary)'
-									}>
-									{'Markers'}
+					<div className={'flex gap-1.5'}>
+						{hasVisibleMarkerLimitOptions && (
+							<div className={'min-w-0 basis-1/2 rounded-lg bg-(--color-bg) p-2.5'}>
+								<div className={'mb-1 flex items-center justify-between'}>
+									<div
+										className={
+											'text-[0.5625rem] font-semibold uppercase tracking-[0.08em] text-(--color-text-secondary)'
+										}>
+										{'Markers'}
+									</div>
+									<div
+										className={
+											'ml-2 shrink-0 whitespace-nowrap text-[0.5625rem] text-(--color-text-secondary)'
+										}>
+										{markerMaxText}
+									</div>
 								</div>
-								<div className={'flex items-center gap-1.5'}>
+								<div className={'flex items-center gap-1'}>
 									<button
 										onClick={onDecreaseVisibleMarkerLimitAction}
 										disabled={!canDecreaseVisibleMarkerLimit}
 										className={cn(
 											optionButtonClass,
+											'px-1.5',
 											'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)',
 											'disabled:cursor-default disabled:opacity-40'
 										)}>
@@ -266,7 +277,7 @@ export function FilterBar({
 									</button>
 									<div
 										className={
-											'min-w-[4.5rem] text-center text-[0.6875rem] font-semibold text-(--color-text)'
+											'min-w-[3.5rem] text-center text-[0.6875rem] font-semibold text-(--color-text)'
 										}>
 										{formatMarkerLimitOption(activeVisibleMarkerLimit)}
 									</div>
@@ -275,18 +286,22 @@ export function FilterBar({
 										disabled={!canIncreaseVisibleMarkerLimit}
 										className={cn(
 											optionButtonClass,
+											'px-1.5',
 											'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)',
 											'disabled:cursor-default disabled:opacity-40'
 										)}>
 										{`+${increaseStepLabel}`}
 									</button>
-									<div className={'ml-auto text-[0.625rem] text-(--color-text-secondary)'}>
-										{markerMaxText}
-									</div>
 								</div>
 							</div>
+						)}
+						<div className={cn('min-w-0', hasVisibleMarkerLimitOptions ? 'basis-1/2' : 'flex-1')}>
+							<HiddenFilterGroup
+								hiddenFilter={hiddenFilter}
+								onHiddenFilterAction={onHiddenFilterAction}
+							/>
 						</div>
-					)}
+					</div>
 				</div>
 			</div>
 			{syncError && <div className={'px-3 pb-2 text-[0.6875rem] text-[#b91c1c]'}>{syncError}</div>}

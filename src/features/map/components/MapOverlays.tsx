@@ -3,7 +3,7 @@
 import {PlaceSearch} from '@/features/search/PlaceSearch';
 import {LocationConfirm} from '@/features/selection/LocationConfirm';
 import {SuggestionPanel} from '@/features/suggestions/SuggestionPanel';
-import {MAP_CONTROL_OFFSET_PX, MAP_CONTROL_Z_INDEX, MAP_OVERLAY_BOTTOM_WIDTH, MAP_OVERLAY_TOP_WIDTH} from '@/utils/map';
+import {MAP_CONTROL_OFFSET_PX, MAP_CONTROL_Z_INDEX, MAP_OVERLAY_BOTTOM_WIDTH} from '@/utils/map';
 
 import type {ReactElement} from 'react';
 
@@ -21,11 +21,12 @@ export function MapOverlays(): ReactElement {
 	return (
 		<>
 			<div
-				className={'absolute left-1/2 min-w-md -translate-x-1/2'}
+				className={
+					'absolute left-2 right-[3.5rem] sm:left-1/2 sm:right-auto sm:w-[calc(100%-2rem)] sm:max-w-[720px] sm:-translate-x-1/2'
+				}
 				style={{
 					top: overlayOffset,
-					zIndex: MAP_CONTROL_Z_INDEX,
-					width: MAP_OVERLAY_TOP_WIDTH
+					zIndex: MAP_CONTROL_Z_INDEX
 				}}>
 				<PlaceSearch />
 				<SuggestionPanel />

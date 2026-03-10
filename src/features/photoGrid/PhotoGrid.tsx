@@ -1,6 +1,6 @@
 'use client';
 
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import {PHOTO_GRID_FADE_ANIMATION} from '@/features/photoGrid/constant';
 import {PhotoCard} from '@/features/photoGrid/PhotoCard';
@@ -8,6 +8,7 @@ import {PhotoGridStatePanels} from '@/features/photoGrid/PhotoGridStatePanels';
 import {usePhotoGridFocusScroll, usePhotoGridFocusSelection} from '@/features/photoGrid/useFocusedAsset';
 import {useVirtualizedGrid} from '@/features/photoGrid/useVirtualizedGrid';
 import {useSelection, useUIMap} from '@/shared/context/AppContext';
+import {cn} from '@/utils/cn';
 import {
 	PHOTO_GRID_FADE_ANIMATION_BASE_DELAY_MS,
 	PHOTO_GRID_FADE_ANIMATION_MAX_OFFSET,
@@ -43,6 +44,7 @@ type TPhotoGridProps = {
 	isLoading: boolean;
 	isSyncing: boolean;
 	error: string | null;
+	mobileMaxVisibleRows?: number | null;
 };
 
 /**
@@ -63,11 +65,13 @@ export function PhotoGrid({
 	gridColumns,
 	isLoading,
 	isSyncing,
-	error
+	error,
+	mobileMaxVisibleRows
 }: TPhotoGridProps): ReactElement {
 	const {focusedAssetID, clearFocusedAssetAction} = useUIMap();
 	const {toggleAssetAction, shiftSelectAction} = useSelection();
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const [isMobileViewport, setIsMobileViewport] = useState(false);
 	const {handleScroll, rowHeight, startIndex, visibleAssets, topSpacerHeight, bottomSpacerHeight, viewportHeight} =
 		useVirtualizedGrid({assets, gridColumns, scrollResetKey, scrollContainerRef});
 
@@ -86,11 +90,43 @@ export function PhotoGrid({
 		scrollContainerRef
 	});
 
+	useEffect(() => {
+		const mediaQuery = window.matchMedia('(max-width: 767px)');
+		const updateViewportFlag = (): void => {
+			setIsMobileViewport(mediaQuery.matches);
+		};
+		updateViewportFlag();
+		if (typeof mediaQuery.addEventListener === 'function') {
+			mediaQuery.addEventListener('change', updateViewportFlag);
+			return () => {
+				mediaQuery.removeEventListener('change', updateViewportFlag);
+			};
+		}
+		mediaQuery.addListener(updateViewportFlag);
+		return () => {
+			mediaQuery.removeListener(updateViewportFlag);
+		};
+	}, []);
+
+	const isMobileGridHeightLimited =
+		isMobileViewport && typeof mobileMaxVisibleRows === 'number' && mobileMaxVisibleRows > 0;
+	let gridMaxHeightStyle: {maxHeight: string} | undefined;
+	if (isMobileGridHeightLimited) {
+		gridMaxHeightStyle = {
+			maxHeight: `${Math.max(1, rowHeight * mobileMaxVisibleRows)}px`
+		};
+	}
+
 	return (
 		<div
 			ref={scrollContainerRef}
 			onScroll={handleScroll}
-			className={'flex flex-1 flex-col overflow-y-auto'}>
+			className={cn(
+				'flex flex-col overflow-y-auto',
+				!isMobileGridHeightLimited && 'flex-1',
+				isMobileGridHeightLimited && 'shrink-0 md:flex-1'
+			)}
+			style={gridMaxHeightStyle}>
 			<PhotoGridStatePanels
 				isLoading={isLoading}
 				isSyncing={isSyncing}

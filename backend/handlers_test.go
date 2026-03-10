@@ -41,6 +41,7 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
+	mux.HandleFunc("PUT /assets/bulk-hidden", handlers.handleBulkUpdateHidden)
 	mux.HandleFunc("GET /assets/{assetID}/page-info", handlers.handleGetAssetPageInfo)
 	mux.HandleFunc("GET /sync/status", handlers.handleSyncStatus)
 	mux.HandleFunc("GET /assets/{assetID}/thumbnail", handlers.handleGetThumbnail)
@@ -348,6 +349,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
+	mux.HandleFunc("PUT /assets/bulk-hidden", handlers.handleBulkUpdateHidden)
 	mux.HandleFunc("GET /assets/{assetID}/page-info", handlers.handleGetAssetPageInfo)
 	mux.HandleFunc("GET /sync/status", handlers.handleSyncStatus)
 	mux.HandleFunc("GET /assets/{assetID}/thumbnail", handlers.handleGetThumbnail)
@@ -901,6 +903,75 @@ func TestHiddenFilterQueryParamValidation(t *testing.T) {
 				t.Errorf("expected %d, got %d (body: %s)", tt.status, rec.Code, rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestHandleBulkUpdateHiddenSuccess(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	d := handlers.db.(*Database)
+	seedAsset(t, d, "00000000-0000-0000-0000-000000000001", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, d, "00000000-0000-0000-0000-000000000002", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
+	seedAsset(t, d, "00000000-0000-0000-0000-000000000003", ptr(35.68), ptr(139.69), "2024-01-03T12:00:00Z")
+
+	req := withTestUser(httptest.NewRequest("PUT", "/assets/bulk-hidden",
+		strings.NewReader(`{"assetIDs":["00000000-0000-0000-0000-000000000001","00000000-0000-0000-0000-000000000002"],"isHidden":true}`)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	ctx := context.Background()
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	if err != nil {
+		t.Fatalf("countFilteredAssets: %v", err)
+	}
+	if hidden != 2 {
+		t.Errorf("expected 2 hidden assets, got %d", hidden)
+	}
+}
+
+func TestHandleBulkUpdateHiddenEmptyArray(t *testing.T) {
+	_, mux := newTestHandlers(t)
+
+	req := withTestUser(httptest.NewRequest("PUT", "/assets/bulk-hidden",
+		strings.NewReader(`{"assetIDs":[],"isHidden":true}`)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty array, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHandleBulkUpdateHiddenMissingIsHidden(t *testing.T) {
+	_, mux := newTestHandlers(t)
+
+	req := withTestUser(httptest.NewRequest("PUT", "/assets/bulk-hidden",
+		strings.NewReader(`{"assetIDs":["00000000-0000-0000-0000-000000000001"]}`)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for missing isHidden, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHandleBulkUpdateHiddenInvalidUUID(t *testing.T) {
+	_, mux := newTestHandlers(t)
+
+	req := withTestUser(httptest.NewRequest("PUT", "/assets/bulk-hidden",
+		strings.NewReader(`{"assetIDs":["not-a-uuid"],"isHidden":true}`)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid UUID, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
 }
 
