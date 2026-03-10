@@ -97,18 +97,20 @@ export function useMapAutoFit({
 			if (!albumFilter) {
 				programmaticMoveRef.current = true;
 				map.flyTo(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, {duration: MAP_FLY_DURATION_SECONDS});
+				return;
 			}
-			return;
 		}
 
 		const boundsKey = resolveAutoFitKey(viewMode, gpsFilter, albumFilter, mapMarkers.length);
 		if (!boundsKey) {
 			return;
 		}
-		if (fittedBoundsKeyRef.current === boundsKey) {
+		if (!hasAlbumChanged && fittedBoundsKeyRef.current === boundsKey) {
 			return;
 		}
-		fittedBoundsKeyRef.current = boundsKey;
+		if (!hasAlbumChanged) {
+			fittedBoundsKeyRef.current = boundsKey;
+		}
 
 		const bounds = L.latLngBounds(mapMarkers.map(m => L.latLng(m.latitude, m.longitude)));
 		if (!bounds.isValid()) {
