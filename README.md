@@ -119,6 +119,7 @@ The following Immich permissions are required:
 - `asset.update`
 - `asset.view`
 - `album.read`
+- `library.read` (if External Library is used)
 - `stack.read`
 
 ## Required environment variables
