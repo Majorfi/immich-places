@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
@@ -17,6 +18,9 @@ type Config struct {
 	AllowInsecure       bool   `env:"ALLOW_INSECURE" envDefault:"false"`
 	RegistrationEnabled bool   `env:"REGISTRATION_ENABLED" envDefault:"true"`
 	EncryptionKey       string `env:"ENCRYPTION_KEY,notEmpty"`
+	DefaultTimezone     string `env:"DEFAULT_TIMEZONE"`
+
+	defaultTimezoneLocation *time.Location
 }
 
 func loadConfig() (*Config, error) {
@@ -37,6 +41,14 @@ func loadConfig() (*Config, error) {
 
 	if !cfg.TrustProxyTLS && !cfg.AllowInsecure {
 		return nil, fmt.Errorf("TRUST_PROXY_TLS is false and no TLS is configured; set ALLOW_INSECURE=true to run without TLS")
+	}
+
+	if cfg.DefaultTimezone != "" {
+		loc, err := time.LoadLocation(cfg.DefaultTimezone)
+		if err != nil {
+			return nil, fmt.Errorf("invalid DEFAULT_TIMEZONE %q: %w", cfg.DefaultTimezone, err)
+		}
+		cfg.defaultTimezoneLocation = loc
 	}
 
 	return &cfg, nil
