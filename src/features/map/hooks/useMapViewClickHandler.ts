@@ -141,5 +141,3 @@ export function useMapClickHandler({
 		setLocationRef
 	]);
 }
-
-export type {TUseMapClickHandlerArgs, TAnchorMarker};

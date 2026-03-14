@@ -9,9 +9,9 @@ export const SUGGESTION_ALBUM_BONUS = 1;
 /** Decimal precision used to normalize cluster coordinates. */
 export const SUGGESTION_COORDINATE_PRECISION_DIGITS = 2;
 /** Chevron transition duration (ms). */
-export const CHEVRON_ROTATE_TRANSITION_MS = 200;
+const CHEVRON_ROTATE_TRANSITION_MS = 200;
 /** Suggestion menu fade-in duration (ms). */
-export const SUGGESTION_MENU_ANIMATION_MS = 150;
+const SUGGESTION_MENU_ANIMATION_MS = 150;
 
 /** CSS transition token for chevron rotation. */
 export const CHEVRON_TRANSITION = `transform ${CHEVRON_ROTATE_TRANSITION_MS}ms`;

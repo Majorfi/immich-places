@@ -23,11 +23,6 @@ type TUIMapControllerArgs = {
 	focusPageRef: RefObject<number | null>;
 };
 /**
- * Re-exported map UI controller type from shared context types.
- */
-export type {TUIMapController} from '@/shared/types/context';
-
-/**
  * Build map-related UI actions and focus state.
  *
  * Manages:

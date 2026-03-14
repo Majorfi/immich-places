@@ -10,6 +10,7 @@ import {
 	SUGGESTION_WEEKLY_SCORE
 } from '@/features/suggestions/constant';
 import {fetchSuggestions} from '@/shared/services/backendApi';
+import {getErrorMessage} from '@/utils/error';
 import {SUGGESTION_CATEGORY_KEY, SUGGESTION_CATEGORY_LABEL, SUGGESTION_PANEL_MAX_ITEMS} from '@/utils/suggestions';
 
 import type {TLocationCluster, TSuggestionCategory, TSuggestionsResponse} from '@/shared/types/suggestion';
@@ -221,7 +222,7 @@ export function useSuggestions(
 				}
 				setSuggestions([]);
 				setCategories([]);
-				setError(error instanceof Error ? error.message : 'Failed to load suggestions');
+				setError(getErrorMessage(error, 'Failed to load suggestions'));
 			});
 
 		return () => {

@@ -1,9 +1,9 @@
-export const MIN_LATITUDE = -90;
-export const MAX_LATITUDE = 90;
-export const MIN_LONGITUDE = -180;
-export const MAX_LONGITUDE = 180;
+const MIN_LATITUDE = -90;
+const MAX_LATITUDE = 90;
+const MIN_LONGITUDE = -180;
+const MAX_LONGITUDE = 180;
 
-export function parseCoordinateValue(value: string, minimum: number, maximum: number): number | null {
+function parseCoordinateValue(value: string, minimum: number, maximum: number): number | null {
 	const parsed = Number.parseFloat(value.trim());
 	if (!Number.isFinite(parsed)) {
 		return null;

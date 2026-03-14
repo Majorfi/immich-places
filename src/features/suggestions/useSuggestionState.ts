@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {fetchFrequentLocations} from '@/shared/services/backendApi';
+import {getErrorMessage} from '@/utils/error';
 import {
 	SUGGESTION_CATEGORY_KEY,
 	SUGGESTION_CATEGORY_LABEL,
@@ -15,7 +16,7 @@ import type {TLocationCluster, TSuggestionCategory, TSuggestionCategoryKey} from
 /**
  * Color map used by suggestion category keys.
  */
-export const categoryColors: Record<TSuggestionCategoryKey, string> = {
+const categoryColors: Record<TSuggestionCategoryKey, string> = {
 	suggested: '#2563eb',
 	album: '#0d9488',
 	sameDay: '#d97706',
@@ -101,7 +102,7 @@ function useFrequentSuggestionClusters(
 				if (controller.signal.aborted) {
 					return;
 				}
-				setError(error instanceof Error ? error.message : 'Failed to load frequent locations');
+				setError(getErrorMessage(error, 'Failed to load frequent locations'));
 			});
 		return () => controller.abort();
 	}, [selectedAssetsCount, frequentClusters.length, hasFrequentSuggestions, requestLoad]);

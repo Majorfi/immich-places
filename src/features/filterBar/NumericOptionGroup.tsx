@@ -1,6 +1,6 @@
 'use client';
 
-import {optionButtonClass} from '@/features/filterBar/constants';
+import {optionButtonClass} from '@/features/filterBar/constant';
 import {cn} from '@/utils/cn';
 
 import type {ReactElement} from 'react';

@@ -10,7 +10,7 @@ import {
 	SATELLITE_TILE_URL,
 	TILE_ATTRIBUTION,
 	TILE_URL
-} from '@/features/map/constants';
+} from '@/features/map/constant';
 import {useMapDropHandlers} from '@/features/map/hooks/useMapDropHandlers';
 import {useMapBootstrap} from '@/features/map/hooks/useMapViewBootstrap';
 import {useMapClickHandler} from '@/features/map/hooks/useMapViewClickHandler';

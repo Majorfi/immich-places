@@ -8,7 +8,7 @@ import {
 	MAP_ICON_SELECTED_BORDER,
 	MAP_ICON_SELECTED_SHADOW,
 	MAP_ICON_UNSELECTED_SHADOW
-} from '@/features/map/constants';
+} from '@/features/map/constant';
 import {thumbnailURL} from '@/utils/backendUrls';
 import {
 	MAP_ICON_BADGE_FONT_SIZE_PX,

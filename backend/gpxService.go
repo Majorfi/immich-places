@@ -13,6 +13,25 @@ import (
 
 const coordTolerance = 1e-6
 
+var trackPointTimeFormats = []string{
+	time.RFC3339,
+	time.RFC3339Nano,
+	"2006-01-02T15:04:05.999999999",
+	"2006-01-02T15:04:05",
+	"2006-01-02 15:04:05.999999999",
+	"2006-01-02 15:04:05",
+}
+
+func parseTrackPointTime(raw string) (time.Time, bool) {
+	for _, format := range trackPointTimeFormats {
+		t, err := time.Parse(format, raw)
+		if err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
 var (
 	tzFinder     tzf.F
 	tzFinderOnce sync.Once
@@ -81,13 +100,10 @@ func parseGPX(data []byte) (parsedGPX, error) {
 		}
 		for _, seg := range trk.Segments {
 			for _, pt := range seg.Points {
-				t, err := time.Parse(time.RFC3339, pt.Time)
-				if err != nil {
-					t, err = time.Parse("2006-01-02T15:04:05.000Z", pt.Time)
-					if err != nil {
-						skippedCount++
-						continue
-					}
+				t, ok := parseTrackPointTime(pt.Time)
+				if !ok {
+					skippedCount++
+					continue
 				}
 				points = append(points, trackPoint{
 					latitude:  pt.Lat,

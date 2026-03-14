@@ -43,8 +43,6 @@ export const PENDING_MARKER_SEARCH_ZOOM = 16;
 export const PENDING_MARKER_SUGGESTION_ZOOM = 18;
 /** Minimum zoom before showing pending markers when no selection exists. */
 export const PENDING_MARKER_NO_SELECTION_MIN_ZOOM = 18;
-/** Minimum zoom before showing pending markers when selection exists. */
-export const PENDING_MARKER_SELECTION_MIN_ZOOM = 13;
 /** Z-index offset to ensure pending marker prominence. */
 export const PENDING_MARKER_Z_INDEX_OFFSET = 1000;
 
@@ -59,8 +57,6 @@ export const OVERVIEW_CLUSTER_CLICK_PADDING: [number, number] = [30, 30];
 /** Spread threshold for markers sharing same position in overview rendering. */
 export const OVERVIEW_CLUSTER_SAME_POSITION_SPREAD_THRESHOLD = 0.001;
 
-/** Photo marker size in overview list mode. */
-export const MAP_PHOTO_MARKER_SIZE = 48;
 /** Marker size used in overview clusters and map overlays. */
 export const MAP_OVERVIEW_MARKER_SIZE = 48;
 /** Search pin width in pixels. */
@@ -79,16 +75,12 @@ export const MAP_LOCATION_SOURCE_DRAG_DROP = 'drag-drop';
 /** Source value for marker drag edits. */
 export const MAP_LOCATION_SOURCE_MARKER_DRAG = 'marker-drag';
 
-/** Map overlays z-index baseline. */
-export const MAP_OVERLAYS_Z_INDEX = 1000;
 /** Map control z-index baseline. */
 export const MAP_CONTROL_Z_INDEX = 1001;
 /** Primary color used by map markers. */
 export const MAP_ICON_PRIMARY_COLOR = '#216142';
 /** Primary text color used in map icons. */
 export const MAP_ICON_TEXT_COLOR = '#fff';
-/** Badge text color used in marker icons. */
-export const MAP_ICON_BADGE_TEXT_COLOR = '#fff';
 /** Border width used for map icons. */
 export const MAP_ICON_BORDER_WIDTH_PX = 2;
 /** Badge icon size in pixels. */
@@ -99,15 +91,11 @@ export const MAP_ICON_BADGE_FONT_SIZE_PX = 10;
 export const MAP_ICON_BADGE_FONT_WEIGHT = 600;
 /** Gradient secondary color for map icon rendering. */
 export const MAP_ICON_GRADIENT_MID_COLOR = '#216142';
-/** Angular offset for marker gradient direction. */
-export const MAP_ICON_GRADIENT_ANGLE_DEGS = 145;
 /** Control offset from map edge. */
 export const MAP_CONTROL_OFFSET_PX = 16;
 /** Vertical spacing between control groups in `rem`. */
 export const MAP_CONTROL_STACK_GAP_REM = 0.25;
 /** Control button size in pixels. */
 export const MAP_CONTROL_BUTTON_SIZE_PX = 32;
-/** Map overlay width at top placement. */
-export const MAP_OVERLAY_TOP_WIDTH = 'min(720px,calc(100%-1rem))';
 /** Map overlay width at bottom placement. */
 export const MAP_OVERLAY_BOTTOM_WIDTH = 'min(420px,calc(100%-2rem))';

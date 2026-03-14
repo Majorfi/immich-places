@@ -2,9 +2,9 @@
  * Pagination rendering constants and helpers.
  */
 /** Number of page buttons shown before collapsing into ellipsis. */
-export const PAGINATION_ALL_PAGES_LIMIT = 7;
+const PAGINATION_ALL_PAGES_LIMIT = 7;
 /** Neighbor radius around current page before ellipsis appears. */
-export const PAGINATION_NEIGHBOR_WINDOW = 1;
+const PAGINATION_NEIGHBOR_WINDOW = 1;
 
 /**
  * Builds a compact page-range model for paginator UI.

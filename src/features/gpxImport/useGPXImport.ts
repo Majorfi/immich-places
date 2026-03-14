@@ -6,7 +6,7 @@ import {gpxPreview} from '@/shared/services/backendApi';
 
 import type {TGPXPreviewResponse} from '@/features/gpxImport/gpxImportTypes';
 
-export type TGPXImportStep = 'upload' | 'preview';
+type TGPXImportStep = 'upload' | 'preview';
 
 type TGPXImportState = {
 	step: TGPXImportStep;

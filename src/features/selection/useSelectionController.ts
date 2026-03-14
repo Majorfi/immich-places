@@ -14,9 +14,6 @@ type TSelectionControllerArgs = {
 	onBatchSavedAction: () => Promise<void>;
 };
 
-/** Re-exports shared controller type from context contract. */
-export type {TSelectionController} from '@/shared/types/context';
-
 /**
  * Compose selection workflows and expose controller-ready state/actions.
  *

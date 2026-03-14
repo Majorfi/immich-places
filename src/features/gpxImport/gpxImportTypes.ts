@@ -3,7 +3,7 @@ export type TGPXTrackPoint = {
 	longitude: number;
 };
 
-export type TGPXTrackSummary = {
+type TGPXTrackSummary = {
 	name: string;
 	points: TGPXTrackPoint[];
 	startTime: string;

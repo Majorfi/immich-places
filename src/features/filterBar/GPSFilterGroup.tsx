@@ -1,6 +1,6 @@
 'use client';
 
-import {GPS_LABEL, gpsOptions} from '@/features/filterBar/constants';
+import {GPS_LABEL, gpsOptions} from '@/features/filterBar/constant';
 import {cn} from '@/utils/cn';
 import {isGPSFilterWithoutLocations} from '@/utils/view';
 

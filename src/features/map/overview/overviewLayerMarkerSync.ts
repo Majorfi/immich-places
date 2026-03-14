@@ -348,7 +348,6 @@ function handleMarkerClick(args: TUseOverviewLayerReconcileArgs, marker: L.Marke
 	const {assetID, markerData} = params;
 	switch (resolveMarkerClickAction(args, assetID)) {
 		case 'assign-location':
-			console.log('assign-location');
 			args.setLocationRef.current({
 				latitude: markerData.latitude,
 				longitude: markerData.longitude,

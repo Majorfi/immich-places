@@ -6,7 +6,7 @@ import {
 	MAP_CONTROL_OFFSET,
 	MAP_CONTROL_PANEL_CLASS,
 	MAP_CONTROL_STACK_GAP
-} from '@/features/map/constants';
+} from '@/features/map/constant';
 import {MAP_CONTROL_Z_INDEX} from '@/utils/map';
 
 import type {TMapTileLayer} from '@/utils/map';

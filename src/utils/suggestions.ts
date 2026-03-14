@@ -1,7 +1,5 @@
 import type {TSuggestionCategoryKey} from '@/shared/types/suggestion';
 
-export type {TSuggestionCategoryKey} from '@/shared/types/suggestion';
-
 /**
  * Canonical suggestion category keys used by UI sections and translations.
  */

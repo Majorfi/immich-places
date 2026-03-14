@@ -4,6 +4,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {fetchSyncStatus, triggerFullSync, triggerSync} from '@/shared/services/backendApi';
 import {isAbortError, waitForDelay} from '@/utils/abort';
+import {getErrorMessage} from '@/utils/error';
 import {
 	RESYNC_BACKOFF_MULTIPLIER,
 	RESYNC_INITIAL_POLL_DELAY_MS,
@@ -139,7 +140,7 @@ export function useResync({
 				if (isAbortError(error)) {
 					return false;
 				}
-				setSyncError(error instanceof Error ? error.message : 'Sync failed');
+				setSyncError(getErrorMessage(error, 'Sync failed'));
 			} finally {
 				if (abortRef.current === controller) {
 					abortRef.current = null;

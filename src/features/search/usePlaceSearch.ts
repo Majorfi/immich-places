@@ -5,6 +5,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {SEARCH_CLICK_OUTSIDE_EVENT} from '@/features/search/constant';
 import {searchPlaces} from '@/features/search/nominatim';
 import {parseCoordinatePair} from '@/utils/coordinates';
+import {getErrorMessage} from '@/utils/error';
 import {PLACE_SEARCH_DEBOUNCE_MS} from '@/utils/search';
 
 import type {TNominatimResult} from '@/shared/types/nominatim';
@@ -89,7 +90,7 @@ export function usePlaceSearch({
 				return;
 			}
 			setResults([]);
-			setError(error instanceof Error ? error.message : 'Failed to search locations');
+			setError(getErrorMessage(error, 'Failed to search locations'));
 		} finally {
 			if (requestIDRef.current === requestID) {
 				setIsSearching(false);

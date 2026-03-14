@@ -6,6 +6,7 @@ import {useEffect, useState} from 'react';
 import {APIKeySetup} from '@/features/auth/APIKeySetup';
 import {getAuthStatus} from '@/features/auth/authApi';
 import {useAuth} from '@/features/auth/AuthContext';
+import {getErrorMessage} from '@/utils/error';
 import {AUTH_INPUT_CLASS, MINIMUM_PASSWORD_LENGTH} from '@/features/auth/constant';
 
 import type {ChangeEvent, InputHTMLAttributes, ReactElement, ReactNode} from 'react';
@@ -60,7 +61,7 @@ function AuthForms(): ReactElement {
 					return;
 				}
 				setIsRegistrationEnabled(false);
-				setAuthStatusError(error instanceof Error ? error.message : 'Failed to load auth status');
+				setAuthStatusError(getErrorMessage(error, 'Failed to load auth status'));
 			});
 
 		return () => {

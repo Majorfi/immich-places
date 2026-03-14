@@ -6,6 +6,10 @@ services:
         environment:
             - PORT=${FRONTEND_PORT:-3032}
             - BACKEND_URL=http://backend:8082
+            # - GEOCODE_PROVIDER=${GEOCODE_PROVIDER:-nominatim}
+            # - GEOCODE_API_KEY=${GEOCODE_API_KEY:-}
+            # - GEOCODE_URL=${GEOCODE_URL:-https://nominatim.openstreetmap.org}
+            # - GEOCODE_TIMEOUT=${GEOCODE_TIMEOUT:-10}
         depends_on:
             - backend
         restart: unless-stopped

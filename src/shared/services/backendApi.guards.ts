@@ -207,11 +207,11 @@ export function isLibraryRow(value: unknown): value is TLibraryRow {
 	);
 }
 
-export function isGPXTrackPoint(value: unknown): value is TGPXTrackPoint {
+function isGPXTrackPoint(value: unknown): value is TGPXTrackPoint {
 	return isRecord(value) && isFiniteNumber(value.latitude) && isFiniteNumber(value.longitude);
 }
 
-export function isGPXMatchResult(value: unknown): value is TGPXMatchResult {
+function isGPXMatchResult(value: unknown): value is TGPXMatchResult {
 	if (!isRecord(value)) {
 		return false;
 	}

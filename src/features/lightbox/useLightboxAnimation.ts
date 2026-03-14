@@ -5,7 +5,7 @@ import {LIGHTBOX_UNMOUNT_DELAY_MS} from '@/features/lightbox/constant';
 /**
  * Animation state returned by the lightbox animation hook.
  */
-export type TUseLightboxAnimationResult = {
+type TUseLightboxAnimationResult = {
 	isMounted: boolean;
 	isVisible: boolean;
 	displayAssetID: string | null;

@@ -1,6 +1,6 @@
 'use client';
 
-import {HIDDEN_LABEL, hiddenOptions} from '@/features/filterBar/constants';
+import {HIDDEN_LABEL, hiddenOptions} from '@/features/filterBar/constant';
 import {cn} from '@/utils/cn';
 
 import type {THiddenFilter} from '@/shared/types/map';

@@ -16,8 +16,6 @@ import type {RefObject, UIEvent} from 'react';
 /**
  * Public virtualized grid state contract exposed by `useVirtualizedGrid`.
  */
-export type {TVirtualizedGridState} from '@/shared/types/grid';
-
 type TUseVirtualizedGridArgs = {
 	assets: TAssetRow[];
 	gridColumns: number;

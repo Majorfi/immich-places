@@ -11,6 +11,7 @@ import {
 	isAuthErrorWithCode
 } from '@/features/auth/authApi';
 import {clearLibraryCache} from '@/features/librarySettings/LibrarySettingsDialog';
+import {getErrorMessage} from '@/utils/error';
 import {PLACE_SEARCH_HISTORY_KEY} from '@/features/search/constant';
 
 import type {TAuthUser, TMeResponse} from '@/shared/types/auth';
@@ -100,7 +101,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 				clearAuthState();
 				return;
 			}
-			setError(error instanceof Error ? error.message : 'Failed to refresh session');
+			setError(getErrorMessage(error, 'Failed to refresh session'));
 		}
 	}, [applyMeResponse, clearAuthState]);
 
@@ -121,7 +122,7 @@ export function AuthProvider({children}: {children: ReactNode}): ReactElement {
 					clearAuthState();
 					return;
 				}
-				setError(error instanceof Error ? error.message : 'Failed to load session');
+				setError(getErrorMessage(error, 'Failed to load session'));
 			})
 			.finally(() => {
 				if (controller.signal.aborted) {

@@ -50,5 +50,3 @@ export type TUseOverviewLayerReconcileArgs = {
 	savedLocationsByAssetID: TPendingLocationsByAssetID;
 	selectedAssetIDsRef: RefObject<Set<string>>;
 } & TUseOverviewLayerArgs;
-
-export type TMarkerSyncArgs = TUseOverviewLayerReconcileArgs;

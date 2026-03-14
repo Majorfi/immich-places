@@ -136,7 +136,7 @@ func TestMapMarkersLimitValidation(t *testing.T) {
 		{"non-numeric limit returns 400", "/map-markers?limit=abc", 400},
 		{"negative limit returns 400", "/map-markers?limit=-1", 400},
 		{"zero limit returns 400", "/map-markers?limit=0", 400},
-		{"too large limit returns 400", "/map-markers?limit=100001", 400},
+		{"too large limit is clamped to max", "/map-markers?limit=100001", 200},
 	}
 
 	for _, tt := range tests {

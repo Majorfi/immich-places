@@ -26,15 +26,15 @@ export const MAP_ICON_BADGE_OFFSET_PX = -4;
 /** Horizontal inner padding used by map icon badges. */
 export const MAP_ICON_BADGE_PADDING_PX = 4;
 /** Shadow Y offset used for marker icon elevation. */
-export const MAP_ICON_SHADOW_OFFSET_Y_PX = 2;
+const MAP_ICON_SHADOW_OFFSET_Y_PX = 2;
 /** Blur radius for marker icon drop shadows. */
-export const MAP_ICON_SHADOW_BLUR_PX = 6;
+const MAP_ICON_SHADOW_BLUR_PX = 6;
 /** Alpha channel for base marker icon shadow. */
-export const MAP_ICON_SHADOW_BASE_ALPHA = 0.25;
+const MAP_ICON_SHADOW_BASE_ALPHA = 0.25;
 /** Alpha channel for selected marker icon shadow. */
-export const MAP_ICON_SELECTED_SHADOW_ALPHA = 0.3;
+const MAP_ICON_SELECTED_SHADOW_ALPHA = 0.3;
 /** Alpha channel for unselected marker icon shadow. */
-export const MAP_ICON_UNSELECTED_SHADOW_ALPHA = 0.2;
+const MAP_ICON_UNSELECTED_SHADOW_ALPHA = 0.2;
 /** Border CSS for selected map icon state. */
 export const MAP_ICON_SELECTED_BORDER = `${MAP_ICON_BORDER_WIDTH_PX}px solid ${MAP_ICON_PRIMARY_COLOR}`;
 /** Border CSS for default/unselected map icon state. */
@@ -42,7 +42,7 @@ export const MAP_ICON_DEFAULT_BORDER = `${MAP_ICON_BORDER_WIDTH_PX}px solid #fff
 /** Gradient fill for default map icon fill. */
 export const MAP_ICON_GRADIENT = `linear-gradient(145deg, ${MAP_ICON_PRIMARY_COLOR}, ${MAP_ICON_GRADIENT_MID_COLOR})`;
 /** Base box shadow style for map icons. */
-export const MAP_ICON_SHADOW = `0 ${MAP_ICON_SHADOW_OFFSET_Y_PX}px ${MAP_ICON_SHADOW_BLUR_PX}px rgba(0,0,0,${MAP_ICON_SHADOW_BASE_ALPHA})`;
+const MAP_ICON_SHADOW = `0 ${MAP_ICON_SHADOW_OFFSET_Y_PX}px ${MAP_ICON_SHADOW_BLUR_PX}px rgba(0,0,0,${MAP_ICON_SHADOW_BASE_ALPHA})`;
 /** Selected state shadow for prominent map icons. */
 export const MAP_ICON_SELECTED_SHADOW = `0 0 0 ${MAP_ICON_BORDER_WIDTH_PX}px ${MAP_ICON_PRIMARY_COLOR}, 0 ${MAP_ICON_SHADOW_OFFSET_Y_PX}px ${MAP_ICON_SHADOW_BLUR_PX}px rgba(0,0,0,${MAP_ICON_SELECTED_SHADOW_ALPHA})`;
 /** Unselected state shadow for muted map icons. */
@@ -57,11 +57,11 @@ export const CLUSTER_ICON_BADGE_PADDING_X_PX = 4;
 /** Default border radius for cluster badge rendering. */
 export const CLUSTER_ICON_BADGE_RADIUS_PX = CLUSTER_ICON_BADGE_SIZE_PX / 2;
 /** Y offset for cluster icon shadow. */
-export const CLUSTER_ICON_SHADOW_OFFSET_Y_PX = 2;
+const CLUSTER_ICON_SHADOW_OFFSET_Y_PX = 2;
 /** Blur radius for cluster icon shadow. */
-export const CLUSTER_ICON_SHADOW_BLUR_PX = 6;
+const CLUSTER_ICON_SHADOW_BLUR_PX = 6;
 /** Alpha channel used for cluster icon shadow. */
-export const CLUSTER_ICON_SHADOW_ALPHA = 0.25;
+const CLUSTER_ICON_SHADOW_ALPHA = 0.25;
 /** Shared container CSS for cluster icon wrapper. */
 export const CLUSTER_ICON_CONTAINER_STYLE = 'position:relative;';
 /** Border color around photo circle. */

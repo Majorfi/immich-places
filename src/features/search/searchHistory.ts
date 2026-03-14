@@ -147,7 +147,7 @@ export function getHistoryStorage(): THistoryStorage | null {
  * @param rawPayload - String payload read from storage.
  * @returns Parsed and normalized history entries.
  */
-export function parseHistoryPayload(rawPayload: string | null): THistoryEntry[] {
+function parseHistoryPayload(rawPayload: string | null): THistoryEntry[] {
 	if (!rawPayload) {
 		return [];
 	}
@@ -196,7 +196,7 @@ function writeHistoryToStorage(history: THistoryEntry[], storage: THistoryStorag
  * @param entry - Raw history entry candidate.
  * @param storage - Optional storage target.
  */
-export function saveToHistory(entry: THistoryEntry, storage: THistoryStorage | null): void {
+function saveToHistory(entry: THistoryEntry, storage: THistoryStorage | null): void {
 	if (!storage) {
 		return;
 	}

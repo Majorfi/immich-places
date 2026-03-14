@@ -25,7 +25,7 @@ export type TAnchorMarker = L.Marker & {
 	groupMoveHiddenPendingMarkerVisibility?: string | null;
 };
 
-export type TLayerWithPosition = L.Layer & {
+type TLayerWithPosition = L.Layer & {
 	getLatLng: () => L.LatLng;
 	getElement?: () => HTMLElement | null | undefined;
 	getChildCount?: () => number;

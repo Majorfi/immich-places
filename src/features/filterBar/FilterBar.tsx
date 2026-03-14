@@ -3,7 +3,7 @@
 import {useEffect, useRef, useState} from 'react';
 
 import {FILTER_BAR_TRANSITION_CLASS} from '@/features/filterBar/constant';
-import {filterButtonClass, optionButtonClass, toolButtonClass} from '@/features/filterBar/constants';
+import {filterButtonClass, optionButtonClass, toolButtonClass} from '@/features/filterBar/constant';
 import {FilterIcon} from '@/features/filterBar/FilterIcon';
 import {GPSFilterGroup} from '@/features/filterBar/GPSFilterGroup';
 import {HeaderTitle} from '@/features/filterBar/HeaderTitle';

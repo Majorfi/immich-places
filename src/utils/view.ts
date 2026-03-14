@@ -26,11 +26,11 @@ export const DEFAULT_GRID_COLUMNS = 3;
 /** Default cap for visible markers on the map. */
 export const DEFAULT_VISIBLE_MARKER_LIMIT = 10000;
 /** Minimum visible marker cap exposed in the UI. */
-export const VISIBLE_MARKER_LIMIT_MIN = 1000;
+const VISIBLE_MARKER_LIMIT_MIN = 1000;
 /** Maximum visible marker cap exposed in the UI. */
-export const VISIBLE_MARKER_LIMIT_MAX = 100000;
+const VISIBLE_MARKER_LIMIT_MAX = 100000;
 /** Increment used by marker-limit button options. */
-export const VISIBLE_MARKER_LIMIT_INCREMENT = 1000;
+const VISIBLE_MARKER_LIMIT_INCREMENT = 1000;
 
 /** Allowed page size options available in pagination controls. */
 export const PAGE_SIZE_OPTIONS = [60, 90, 120] as const;

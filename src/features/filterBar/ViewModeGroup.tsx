@@ -1,6 +1,6 @@
 'use client';
 
-import {VIEW_MODE_LABEL, viewModeOptions} from '@/features/filterBar/constants';
+import {VIEW_MODE_LABEL, viewModeOptions} from '@/features/filterBar/constant';
 import {cn} from '@/utils/cn';
 
 import type {TViewMode} from '@/shared/types/view';

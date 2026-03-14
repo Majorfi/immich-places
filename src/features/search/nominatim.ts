@@ -1,10 +1,5 @@
 import {parseCoordinatePair} from '@/utils/coordinates';
-import {
-	DEFAULT_GEOCODE_RESULT_LIMIT,
-	LOCAL_GEOCODE_SEARCH_PATH,
-	MAX_GEOCODE_RESULT_LIMIT,
-	NOMINATIM_BASE_URL
-} from '@/utils/geocoding';
+import {DEFAULT_GEOCODE_RESULT_LIMIT, LOCAL_GEOCODE_SEARCH_PATH, MAX_GEOCODE_RESULT_LIMIT} from '@/utils/geocoding';
 
 import type {TNominatimResult} from '@/shared/types/nominatim';
 
@@ -12,17 +7,12 @@ import type {TNominatimResult} from '@/shared/types/nominatim';
  * Search options accepted by the remote Nominatim-backed search API.
  */
 type TNominatimSearchOptions = {
+	baseURL: string;
 	signal?: AbortSignal;
 	limit?: number;
 	acceptLanguage?: string;
 };
 
-/**
- * Convert a raw service payload item into a typed Nominatim result.
- *
- * @param item - Raw geocoder item from JSON response.
- * @returns Normalized result or `null` if payload is invalid.
- */
 function parseTextValue(value: unknown): string | null {
 	if (typeof value === 'string') {
 		return value;
@@ -34,22 +24,29 @@ function parseTextValue(value: unknown): string | null {
 }
 
 function parsePlaceID(rec: Record<string, unknown>): number | null {
-	const placeIdValue = parseTextValue(rec.place_id);
-	const alternatePlaceIdValue = parseTextValue(rec.placeID);
+	const rawPlaceID = parseTextValue(rec.place_id);
+	const altPlaceID = parseTextValue(rec.placeID);
 
-	if (placeIdValue !== null) {
-		const parsed = Number.parseInt(placeIdValue, 10);
+	if (rawPlaceID !== null) {
+		const parsed = Number.parseInt(rawPlaceID, 10);
 		if (Number.isFinite(parsed)) {
 			return parsed;
 		}
 	}
-	if (alternatePlaceIdValue !== null) {
-		const parsed = Number.parseInt(alternatePlaceIdValue, 10);
+	if (altPlaceID !== null) {
+		const parsed = Number.parseInt(altPlaceID, 10);
 		if (Number.isFinite(parsed)) {
 			return parsed;
 		}
 	}
 
+	return null;
+}
+
+function parseStringField(value: unknown): string | null {
+	if (typeof value === 'string') {
+		return value;
+	}
 	return null;
 }
 
@@ -62,9 +59,9 @@ function toTNominatimResult(item: unknown): TNominatimResult | null {
 	const placeID = parsePlaceID(rec);
 	const rawLat = parseTextValue(rec.lat);
 	const rawLon = parseTextValue(rec.lon);
-	const type = typeof rec.type === 'string' ? rec.type : null;
-	const displayName = typeof rec.display_name === 'string' ? rec.display_name : null;
-	const legacyDisplayName = typeof rec.displayName === 'string' ? rec.displayName : null;
+	const type = parseStringField(rec.type);
+	const displayName = parseStringField(rec.display_name);
+	const legacyDisplayName = parseStringField(rec.displayName);
 
 	if (
 		placeID === null ||
@@ -95,34 +92,32 @@ function toTNominatimResult(item: unknown): TNominatimResult | null {
  * @param limit - Optional requested count.
  * @returns Limit constrained to configured bounds.
  */
-function normalizeLimit(limit?: number): number {
-	if (!Number.isFinite(limit)) {
+function normalizeLimit(limit: number | undefined): number {
+	if (limit === undefined || !Number.isFinite(limit)) {
 		return DEFAULT_GEOCODE_RESULT_LIMIT;
 	}
-	const clamped = Math.min(MAX_GEOCODE_RESULT_LIMIT, Math.max(1, Math.trunc(limit ?? DEFAULT_GEOCODE_RESULT_LIMIT)));
-	return clamped;
+	return Math.min(MAX_GEOCODE_RESULT_LIMIT, Math.max(1, Math.trunc(limit)));
 }
 
 /**
  * Parse and validate Nominatim response payload.
  *
  * @param data - Unknown JSON payload from geocoding endpoint.
- * @throws Error when payload shape is invalid.
- * @returns Array of validated results.
+ * @throws Error when payload is not an array.
+ * @returns Array of validated results (invalid items are skipped).
  */
 function parseTNominatimResults(data: unknown): TNominatimResult[] {
 	if (!Array.isArray(data)) {
 		throw new Error('Invalid geocode response payload');
 	}
-	const parsedResults: TNominatimResult[] = [];
+	const results: TNominatimResult[] = [];
 	for (const item of data) {
-		const parsedItem = toTNominatimResult(item);
-		if (!parsedItem) {
-			throw new Error('Invalid geocode result item');
+		const parsed = toTNominatimResult(item);
+		if (parsed) {
+			results.push(parsed);
 		}
-		parsedResults.push(parsedItem);
 	}
-	return parsedResults;
+	return results;
 }
 
 /**
@@ -160,7 +155,7 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
  */
 export async function searchPlacesFromNominatim(
 	query: string,
-	options: TNominatimSearchOptions = {}
+	options: TNominatimSearchOptions
 ): Promise<TNominatimResult[]> {
 	const trimmed = query.trim();
 	if (!trimmed) {
@@ -181,7 +176,7 @@ export async function searchPlacesFromNominatim(
 		headers.set('Accept-Language', options.acceptLanguage.slice(0, 128));
 	}
 
-	const response = await fetch(`${NOMINATIM_BASE_URL}/search?${params}`, {
+	const response = await fetch(`${options.baseURL}/search?${params}`, {
 		headers,
 		signal: options.signal,
 		cache: 'no-store'

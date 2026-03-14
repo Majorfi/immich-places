@@ -4,6 +4,7 @@ import {useCallback, useState} from 'react';
 
 import {delayMs, saveAssetLocationsWithRetry} from '@/features/selection/locationSave';
 import {useSelectionState} from '@/features/selection/useSelectionState';
+import {getErrorMessage} from '@/utils/error';
 import {LOCATION_SAVE_REQUEST_DELAY_MS} from '@/utils/locationAssignment';
 
 import type {TSelectMode} from '@/features/selection/useSelectionState';
@@ -308,7 +309,7 @@ export function useLocationAssignment(
 			try {
 				await notifyBatchSaved();
 			} catch (error) {
-				const message = error instanceof Error ? error.message : 'Failed to refresh catalog after save';
+				const message = getErrorMessage(error, 'Failed to refresh catalog after save');
 				setError(message);
 				return createPartialResult(totalCount, message);
 			}
@@ -318,7 +319,7 @@ export function useLocationAssignment(
 
 			return {status: 'saved'};
 		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Failed to save location';
+			const message = getErrorMessage(error, 'Failed to save location');
 			setError(message);
 			return createPartialResult(totalCount, message);
 		} finally {

@@ -3,7 +3,7 @@
 import L from 'leaflet';
 import {useEffect} from 'react';
 
-import {TILE_ATTRIBUTION, TILE_URL} from '@/features/map/constants';
+import {TILE_ATTRIBUTION, TILE_URL} from '@/features/map/constant';
 import {
 	MAP_BOUNDS_DEBOUNCE_MS,
 	MAP_BOUNDS_KEY_DECIMALS,

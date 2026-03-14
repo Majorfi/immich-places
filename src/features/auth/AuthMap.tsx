@@ -3,7 +3,7 @@
 import L from 'leaflet';
 import {useEffect, useRef} from 'react';
 
-import {TILE_ATTRIBUTION, TILE_URL} from '@/features/map/constants';
+import {TILE_ATTRIBUTION, TILE_URL} from '@/features/map/constant';
 import {MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, MAP_TILE_MAX_ZOOM} from '@/utils/map';
 
 import type {ReactElement} from 'react';

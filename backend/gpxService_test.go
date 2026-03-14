@@ -284,3 +284,131 @@ func TestBuildTrackSummaryDownsamples(t *testing.T) {
 		t.Errorf("expected pointCount 1000, got %d", summary.PointCount)
 	}
 }
+
+func TestParseGPXIssue23NokiaSportsTracker(t *testing.T) {
+	gpx := `<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="Nokia Sports Tracker" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<metadata>
+<name>07.01.2010 14:36</name>
+<desc>Test</desc>
+<author><name>Test1</name></author>
+<time>2010-01-07T14:37:04.96</time>
+</metadata>
+<trk>
+<name>07.01.2010 14:36</name>
+<trkseg>
+<trkpt lat="47.271980" lon="11.785735">
+<ele>1813.0</ele>
+<speed>3.5</speed>
+<course>214.9</course>
+<desc>Speed 3.5 km/h Distance 0.00 km</desc>
+<time>2010-01-07T14:37:39.99</time>
+<name>1</name>
+</trkpt>
+<trkpt lat="47.271635" lon="11.785380">
+<ele>1813.0</ele>
+<speed>4.9</speed>
+<course>151.4</course>
+<desc>Speed 4.9 km/h Distance 0.05 km</desc>
+<time>2010-01-07T14:37:45.33</time>
+<name>2</name>
+</trkpt>
+<trkpt lat="47.271618" lon="11.785393">
+<ele>1813.0</ele>
+<speed>3.4</speed>
+<course>259.4</course>
+<desc>Speed 3.4 km/h Distance 0.05 km</desc>
+<time>2010-01-07T14:37:46.33</time>
+<name>3</name>
+</trkpt>
+<trkpt lat="47.271023" lon="11.780713">
+<ele>1730.5</ele>
+<speed>2.4</speed>
+<course>217.9</course>
+<desc>Speed 2.4 km/h Distance 0.41 km</desc>
+<time>2010-01-07T14:37:50.63</time>
+<name>4</name>
+</trkpt>
+</trkseg>
+</trk>
+</gpx>`
+	result, err := parseGPX([]byte(gpx))
+	if err != nil {
+		t.Fatalf("unexpected error parsing Nokia Sports Tracker GPX (issue #23): %v", err)
+	}
+	if len(result.points) != 4 {
+		t.Fatalf("expected 4 points, got %d", len(result.points))
+	}
+	if result.name != "07.01.2010 14:36" {
+		t.Errorf("expected track name '07.01.2010 14:36', got %q", result.name)
+	}
+
+	first := result.points[0]
+	if first.latitude != 47.271980 {
+		t.Errorf("first point latitude: expected 47.271980, got %f", first.latitude)
+	}
+	if first.longitude != 11.785735 {
+		t.Errorf("first point longitude: expected 11.785735, got %f", first.longitude)
+	}
+	if first.elevation != 1813.0 {
+		t.Errorf("first point elevation: expected 1813.0, got %f", first.elevation)
+	}
+
+	last := result.points[3]
+	if last.latitude != 47.271023 {
+		t.Errorf("last point latitude: expected 47.271023, got %f", last.latitude)
+	}
+	if last.longitude != 11.780713 {
+		t.Errorf("last point longitude: expected 11.780713, got %f", last.longitude)
+	}
+	if last.elevation != 1730.5 {
+		t.Errorf("last point elevation: expected 1730.5, got %f", last.elevation)
+	}
+
+	if !result.points[0].time.Before(result.points[1].time) {
+		t.Error("points not sorted by time")
+	}
+}
+
+func TestParseTrackPointTime(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+	}{
+		{"RFC3339 UTC", "2010-01-07T14:37:39Z"},
+		{"RFC3339 offset", "2010-01-07T14:37:39+01:00"},
+		{"RFC3339Nano UTC", "2010-01-07T14:37:39.123Z"},
+		{"RFC3339Nano offset", "2010-01-07T14:37:39.123+01:00"},
+		{"naive with fractional", "2010-01-07T14:37:39.99"},
+		{"naive no fractional", "2010-01-07T14:37:39"},
+		{"space with fractional", "2010-01-07 14:37:39.123"},
+		{"space no fractional", "2010-01-07 14:37:39"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, ok := parseTrackPointTime(tc.input)
+			if !ok {
+				t.Fatalf("failed to parse %q", tc.input)
+			}
+			if result.Year() != 2010 || result.Month() != 1 || result.Day() != 7 {
+				t.Errorf("wrong date from %q: got %v", tc.input, result)
+			}
+		})
+	}
+}
+
+func TestParseTrackPointTimeInvalid(t *testing.T) {
+	invalid := []string{
+		"not-a-date",
+		"07/01/2010 14:37:39",
+		"2010-01-07",
+		"",
+	}
+	for _, input := range invalid {
+		_, ok := parseTrackPointTime(input)
+		if ok {
+			t.Errorf("expected failure for %q, but it parsed", input)
+		}
+	}
+}

@@ -5,7 +5,6 @@ import {isRecord, isString} from '@/utils/typeGuards';
 import type {TAuthErrorCode, TAuthUser, TMeResponse} from '@/shared/types/auth';
 
 const BASE = getClientBackendBaseURL();
-export type {TAuthUser, TMeResponse} from '@/shared/types/auth';
 
 /**
  * Registration status payload returned by `/auth/status`.

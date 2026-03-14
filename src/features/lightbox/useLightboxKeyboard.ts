@@ -5,7 +5,7 @@ import {KEYDOWN_EVENT, KEY_ARROW_LEFT, KEY_ARROW_RIGHT, KEY_ESCAPE} from '@/feat
 /**
  * Arguments required to wire keyboard controls for the lightbox.
  */
-export type TUseLightboxKeyboardArgs = {
+type TUseLightboxKeyboardArgs = {
 	isEnabled: boolean;
 	closeLightbox: () => void;
 	goPrev: () => void;

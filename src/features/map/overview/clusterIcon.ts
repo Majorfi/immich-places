@@ -14,7 +14,7 @@ import {
 	CLUSTER_ICON_PHOTO_BORDER_COLOR,
 	CLUSTER_ICON_PHOTO_SHADOW,
 	CLUSTER_ICON_SELECTED_BADGE_COLOR
-} from '@/features/map/constants';
+} from '@/features/map/constant';
 import {OVERVIEW_CLUSTER_ICON_SIZE} from '@/features/map/icons';
 
 type TClusterIconArgs = {

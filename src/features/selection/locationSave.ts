@@ -1,4 +1,5 @@
 import {saveAssetLocation} from '@/shared/services/backendApi';
+import {getErrorMessage} from '@/utils/error';
 import {LOCATION_SAVE_REQUEST_DELAY_MS} from '@/utils/locationAssignment';
 
 type TSaveBatchResult = {
@@ -42,7 +43,7 @@ async function saveOneAssetLocation(assetID: string, latitude: number, longitude
 	} catch (error) {
 		return {
 			ok: false,
-			error: error instanceof Error ? error.message : 'Unknown save failure'
+			error: getErrorMessage(error, 'Unknown save failure')
 		};
 	}
 }

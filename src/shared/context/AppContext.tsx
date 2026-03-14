@@ -134,11 +134,6 @@ export function useUIMap(): TUIMapContextValue {
 }
 
 /**
- * Re-exported map scene value shape used by map composition consumers.
- */
-export type {TMapSceneValue} from '@/shared/types/context';
-
-/**
  * Access map scene context used by map render flows.
  *
  * @returns Map scene context value from nearest `AppProvider`.

@@ -184,7 +184,7 @@ function parseHiddenFilter(value: string | null): THiddenFilter {
  * @param state - Full synchronization state.
  * @returns A query string (starting with `?`) or empty string.
  */
-export function buildURLFromState(state: TURLSyncState): string {
+function buildURLFromState(state: TURLSyncState): string {
 	const params = new URLSearchParams();
 	if (state.gpsFilter !== GPS_FILTER_DEFAULT) {
 		params.set(URL_PARAM_GPS_FILTER, state.gpsFilter);
