@@ -68,8 +68,13 @@ func (h *Handlers) handleGPXPreview(w http.ResponseWriter, r *http.Request) {
 	timezoneName := finder.GetTimezoneName(gpx.points[midIdx].longitude, gpx.points[midIdx].latitude)
 	trackTimezone, err := time.LoadLocation(timezoneName)
 	if err != nil {
-		log.Printf("Failed to load timezone %q, falling back to UTC: %v", timezoneName, err)
-		trackTimezone = time.UTC
+		if h.defaultTimezone != nil {
+			log.Printf("Failed to load timezone %q, using DEFAULT_TIMEZONE %q: %v", timezoneName, h.defaultTimezone, err)
+			trackTimezone = h.defaultTimezone
+		} else {
+			log.Printf("Failed to load timezone %q, falling back to UTC: %v", timezoneName, err)
+			trackTimezone = time.UTC
+		}
 	}
 
 	trackStart := gpx.points[0].time

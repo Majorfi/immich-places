@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata"
 )
 
 type contextKey string
@@ -40,7 +41,7 @@ func main() {
 	nominatim := newNominatimClient()
 	syncService := newSyncService(db, immichFactory, nominatim)
 	suggestions := newSuggestionService(db)
-	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions)
+	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation)
 	libraryHandlers := newLibraryHandlers(db, immichFactory, syncService)
 	authHandlers := newAuthHandlers(db, immichFactory, syncService, cfg.RegistrationEnabled, !cfg.AllowInsecure)
 
