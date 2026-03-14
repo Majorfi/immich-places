@@ -11,6 +11,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -43,6 +44,7 @@ type Handlers struct {
 	immichExternalURL string
 	syncService       *SyncService
 	suggestions       *SuggestionService
+	defaultTimezone   *time.Location
 }
 
 func parseAssetID(r *http.Request) (string, error) {
@@ -66,13 +68,14 @@ func proxyImmichImage(w http.ResponseWriter, resp *http.Response) {
 	}
 }
 
-func newHandlers(db HandlerStore, immichFactory *ImmichClientFactory, immichExternalURL string, syncService *SyncService, suggestions *SuggestionService) *Handlers {
+func newHandlers(db HandlerStore, immichFactory *ImmichClientFactory, immichExternalURL string, syncService *SyncService, suggestions *SuggestionService, defaultTimezone *time.Location) *Handlers {
 	return &Handlers{
 		db:                db,
 		immichFactory:     immichFactory,
 		immichExternalURL: immichExternalURL,
 		syncService:       syncService,
 		suggestions:       suggestions,
+		defaultTimezone:   defaultTimezone,
 	}
 }
 

@@ -26,6 +26,7 @@ services:
             - PORT=8082
             - TRUST_PROXY_TLS=${TRUST_PROXY_TLS:-true}
             - ALLOW_INSECURE=${ALLOW_INSECURE:-false}
+            - DEFAULT_TIMEZONE=${DEFAULT_TIMEZONE:-}
         volumes:
             - ${BACKEND_DATA_VOLUME:-backend-data}:/data
         restart: unless-stopped
