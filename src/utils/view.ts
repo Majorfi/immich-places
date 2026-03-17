@@ -32,8 +32,10 @@ const VISIBLE_MARKER_LIMIT_MAX = 100000;
 /** Increment used by marker-limit button options. */
 const VISIBLE_MARKER_LIMIT_INCREMENT = 1000;
 
+/** Sentinel value representing "show all items on a single page". */
+export const PAGE_SIZE_ALL = 10000;
 /** Allowed page size options available in pagination controls. */
-export const PAGE_SIZE_OPTIONS = [60, 90, 120] as const;
+export const PAGE_SIZE_OPTIONS = [60, 90, 120, PAGE_SIZE_ALL] as const;
 /** Allowed grid column options available in view controls. */
 export const GRID_COLUMN_OPTIONS = [1, 2, 3, 4] as const;
 
