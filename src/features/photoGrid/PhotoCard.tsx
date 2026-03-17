@@ -104,23 +104,16 @@ export function PhotoCard({
 						<svg
 							width={'13'}
 							height={'13'}
-							viewBox={'0 0 15 15'}
+							viewBox={'0 0 24 24'}
 							fill={'none'}
 							xmlns={'http://www.w3.org/2000/svg'}
 							aria-hidden={'true'}>
 							<path
 								d={
-									'M13.5 9.4V11.6C13.5 12.45 12.8 13.15 11.95 13.15H3.55C2.7 13.15 2 12.45 2 11.6V3.55C2 2.7 2.7 2 3.55 2H6.05'
+									'M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15'
 								}
 								stroke={'currentColor'}
-								strokeWidth={'1.2'}
-								strokeLinecap={'round'}
-								strokeLinejoin={'round'}
-							/>
-							<path
-								d={'M12.9 2H8.2M13.1 2V6.7M13.1 2L6.9 8.2'}
-								stroke={'currentColor'}
-								strokeWidth={'1.2'}
+								strokeWidth={'1.5'}
 								strokeLinecap={'round'}
 								strokeLinejoin={'round'}
 							/>
