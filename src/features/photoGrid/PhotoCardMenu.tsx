@@ -5,6 +5,7 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import {useBackend, useCatalog, useSelection, useUIMap} from '@/shared/context/AppContext';
 import {bulkToggleAssetHidden, toggleAssetHidden} from '@/shared/services/backendApi';
 import {immichPhotoURL} from '@/utils/backendUrls';
+import {MAP_LOCATION_SOURCE_GO_TO} from '@/utils/map';
 
 import type {TAssetRow} from '@/shared/types/asset';
 import type {ReactElement, ReactNode} from 'react';
@@ -27,7 +28,8 @@ type TPhotoCardMenuProps = {
 export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps): ReactElement {
 	const {health} = useBackend();
 	const {assets, loadPageAction, currentPage} = useCatalog();
-	const {selectedAssets, toggleAssetAction, selectAllAction, clearSelectionAction} = useSelection();
+	const {selectedAssets, toggleAssetAction, selectAllAction, clearSelectionAction, setLocationAction} =
+		useSelection();
 	const {openLightboxAction} = useUIMap();
 
 	const immichURL = health?.immichURL ?? '';
@@ -43,6 +45,7 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 		window.open(safeImmichPhotoURL, '_blank', 'noopener,noreferrer');
 	}
 
+	const hasLocation = asset.latitude !== null && asset.longitude !== null;
 	const isBulk = isSelected && selectedAssets.length > 1;
 	const bulkCount = isBulk ? selectedAssets.length : 0;
 
@@ -123,6 +126,21 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 						}}>
 						{'Preview'}
 					</ContextMenu.Item>
+					{hasLocation && (
+						<ContextMenu.Item
+							className={
+								'flex cursor-pointer select-none items-center rounded-sm px-2.5 py-1.5 text-[0.8125rem] text-(--color-text) outline-none data-highlighted:bg-(--color-hover)'
+							}
+							onSelect={() => {
+								setLocationAction({
+									latitude: asset.latitude!,
+									longitude: asset.longitude!,
+									source: MAP_LOCATION_SOURCE_GO_TO
+								});
+							}}>
+							{'Go to location'}
+						</ContextMenu.Item>
+					)}
 					{safeImmichPhotoURL && (
 						<ContextMenu.Item
 							className={

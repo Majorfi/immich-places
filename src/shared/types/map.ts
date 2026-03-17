@@ -11,7 +11,7 @@ export type THiddenFilter = 'all' | 'hidden' | 'visible';
 export type TPendingLocation = {
 	latitude: number;
 	longitude: number;
-	source: 'map-click' | 'search' | 'suggestion' | 'drag-drop' | 'marker-drag' | 'gpx-import';
+	source: 'map-click' | 'search' | 'suggestion' | 'drag-drop' | 'marker-drag' | 'gpx-import' | 'go-to';
 	sourceLabel?: string;
 	isAlreadyApplied?: boolean;
 };
