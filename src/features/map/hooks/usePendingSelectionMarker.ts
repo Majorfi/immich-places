@@ -122,14 +122,16 @@ export function usePendingSelectionMarker({
 		const existingMarkerPosition = markerRef.current?.getLatLng() ?? null;
 		clearMarker(markerRef);
 
-		if (pendingLocation && selectedAssets.length === 0) {
-			createDraggableMarker(
-				map,
-				{latitude: pendingLocation.latitude, longitude: pendingLocation.longitude},
-				markerRef,
-				setLocationAction,
-				clearLocationAction
-			);
+		if (pendingLocation) {
+			if (selectedAssets.length === 0) {
+				createDraggableMarker(
+					map,
+					{latitude: pendingLocation.latitude, longitude: pendingLocation.longitude},
+					markerRef,
+					setLocationAction,
+					clearLocationAction
+				);
+			}
 
 			const isSamePosition = hasSameLocation(existingMarkerPosition, {
 				latitude: pendingLocation.latitude,
