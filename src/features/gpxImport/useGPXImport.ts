@@ -12,45 +12,63 @@ type TGPXImportState = {
 	step: TGPXImportStep;
 	isLoading: boolean;
 	error: string | null;
-	preview: TGPXPreviewResponse | null;
+	previews: TGPXPreviewResponse[];
 };
 
 const INITIAL_STATE: TGPXImportState = {
 	step: 'upload',
 	isLoading: false,
 	error: null,
-	preview: null
+	previews: []
 };
 
-type TUseGPXImportReturn = TGPXImportState & {
-	uploadAndPreview: (file: File, maxGapSeconds?: number) => Promise<void>;
+export type TUseGPXImportReturn = TGPXImportState & {
+	uploadAndPreview: (files: File[], maxGapSeconds?: number) => Promise<void>;
 	reset: () => void;
 };
 
 export function useGPXImport(): TUseGPXImportReturn {
 	const [state, setState] = useState<TGPXImportState>(INITIAL_STATE);
 
-	const uploadAndPreview = useCallback(async (file: File, maxGapSeconds?: number): Promise<void> => {
+	const uploadAndPreview = useCallback(async (files: File[], maxGapSeconds?: number): Promise<void> => {
+		if (files.length === 0) {
+			return;
+		}
 		setState(prev => ({...prev, step: 'upload', isLoading: true, error: null}));
-		try {
-			const response = await gpxPreview(file, maxGapSeconds);
-			setState({
-				step: 'preview',
-				isLoading: false,
-				error: null,
-				preview: response
-			});
-		} catch (err) {
-			let errorMessage = 'Failed to process GPX file';
-			if (err instanceof Error) {
-				errorMessage = err.message;
+
+		const results = await Promise.allSettled(files.map(file => gpxPreview(file, maxGapSeconds)));
+
+		const successes: TGPXPreviewResponse[] = [];
+		const errors: string[] = [];
+
+		for (let i = 0; i < results.length; i++) {
+			const result = results[i];
+			if (result.status === 'fulfilled') {
+				successes.push(result.value);
+			} else {
+				const fileName = files[i].name;
+				const reason = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+				errors.push(`${fileName}: ${reason}`);
 			}
+		}
+
+		if (successes.length === 0) {
 			setState(prev => ({
 				...prev,
 				isLoading: false,
-				error: errorMessage
+				error: errors.join('\n')
 			}));
+			return;
 		}
+
+		const errorSuffix = errors.length > 0 ? `Failed: ${errors.join(', ')}` : null;
+
+		setState({
+			step: 'preview',
+			isLoading: false,
+			error: errorSuffix,
+			previews: successes
+		});
 	}, []);
 
 	const reset = useCallback(() => {

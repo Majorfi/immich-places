@@ -6,6 +6,7 @@ import {useEffect} from 'react';
 import {searchPinIcon} from '@/features/map/icons';
 import {
 	MAP_FLY_DURATION_SECONDS,
+	MAP_LOCATION_SOURCE_GO_TO,
 	MAP_LOCATION_SOURCE_MARKER_DRAG,
 	MAP_LOCATION_SOURCE_SEARCH,
 	MAP_LOCATION_SOURCE_SUGGESTION,
@@ -73,7 +74,7 @@ function createDraggableMarker(
  * Resolves zoom for a newly placed pending marker based on its source.
  */
 function resolvePendingZoom(map: L.Map, source: TPendingLocation['source']): number {
-	if (source === MAP_LOCATION_SOURCE_SEARCH) {
+	if (source === MAP_LOCATION_SOURCE_SEARCH || source === MAP_LOCATION_SOURCE_GO_TO) {
 		return PENDING_MARKER_SEARCH_ZOOM;
 	}
 	if (source === MAP_LOCATION_SOURCE_SUGGESTION) {
@@ -122,14 +123,26 @@ export function usePendingSelectionMarker({
 		const existingMarkerPosition = markerRef.current?.getLatLng() ?? null;
 		clearMarker(markerRef);
 
-		if (pendingLocation && selectedAssets.length === 0) {
-			createDraggableMarker(
-				map,
-				{latitude: pendingLocation.latitude, longitude: pendingLocation.longitude},
-				markerRef,
-				setLocationAction,
-				clearLocationAction
-			);
+		if (pendingLocation && pendingLocation.source === MAP_LOCATION_SOURCE_GO_TO) {
+			const zoom = resolvePendingZoom(map, pendingLocation.source);
+			programmaticMoveRef.current = true;
+			map.flyTo([pendingLocation.latitude, pendingLocation.longitude], zoom, {
+				duration: MAP_FLY_DURATION_SECONDS
+			});
+			clearLocationAction(true);
+			return;
+		}
+
+		if (pendingLocation) {
+			if (selectedAssets.length === 0) {
+				createDraggableMarker(
+					map,
+					{latitude: pendingLocation.latitude, longitude: pendingLocation.longitude},
+					markerRef,
+					setLocationAction,
+					clearLocationAction
+				);
+			}
 
 			const isSamePosition = hasSameLocation(existingMarkerPosition, {
 				latitude: pendingLocation.latitude,

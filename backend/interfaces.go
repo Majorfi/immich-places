@@ -41,6 +41,9 @@ type HandlerStore interface {
 	getAlbumsWithNoGPSCount(ctx context.Context, userID string) ([]AlbumRow, error)
 	getAlbumsWithGPSCount(ctx context.Context, userID string) ([]AlbumRow, error)
 	getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool, timeStart, timeEnd string) ([]AssetRow, error)
+	getFavoritePlaces(ctx context.Context, userID string) ([]FavoritePlaceRow, error)
+	addFavoritePlace(ctx context.Context, userID string, latitude, longitude float64, displayName string) error
+	removeFavoritePlace(ctx context.Context, userID string, latitude, longitude float64) error
 }
 
 type SuggestionStore interface {

@@ -12,7 +12,7 @@ import {useBackend} from '@/shared/context/AppContext';
 import type {ReactElement} from 'react';
 
 type TGPXImportProps = {
-	uploadAndPreview: (file: File, maxGapSeconds?: number) => Promise<void>;
+	uploadAndPreview: (files: File[], maxGapSeconds?: number) => Promise<void>;
 	isLoading: boolean;
 	error: string | null;
 };

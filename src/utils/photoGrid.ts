@@ -5,10 +5,6 @@
 export const PHOTO_GRID_GAP_PX = 3;
 /** Internal grid container padding in px. */
 export const PHOTO_GRID_PADDING_PX = 3;
-/** Number of extra rows rendered around viewport for smoother scrolling. */
-export const PHOTO_GRID_ROW_OVERSCAN = 6;
-/** Fallback row height when metadata is unavailable. */
-export const PHOTO_GRID_FALLBACK_ROW_HEIGHT = 120;
 /** Fade-in animation applied to photos. */
 export const PHOTO_GRID_FADE_ANIMATION = 'elFadeIn 300ms ease-out both';
 /** Base delay for staggered fade animations. */

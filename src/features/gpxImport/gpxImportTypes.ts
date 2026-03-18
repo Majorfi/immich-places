@@ -19,6 +19,7 @@ export type TGPXMatchResult = {
 	elevation: number;
 	timeGap: number;
 	isAlreadyApplied: boolean;
+	trackName?: string;
 };
 
 export type TGPXPreviewResponse = {

@@ -3,6 +3,7 @@
 import {PlaceSearch} from '@/features/search/PlaceSearch';
 import {LocationConfirm} from '@/features/selection/LocationConfirm';
 import {SuggestionPanel} from '@/features/suggestions/SuggestionPanel';
+import {useFavoriteState} from '@/features/suggestions/useFavoriteState';
 import {MAP_CONTROL_OFFSET_PX, MAP_CONTROL_Z_INDEX, MAP_OVERLAY_BOTTOM_WIDTH} from '@/utils/map';
 
 import type {ReactElement} from 'react';
@@ -17,6 +18,7 @@ import type {ReactElement} from 'react';
  */
 export function MapOverlays(): ReactElement {
 	const overlayOffset = `${MAP_CONTROL_OFFSET_PX / 16}rem`;
+	const favoriteState = useFavoriteState();
 
 	return (
 		<>
@@ -28,8 +30,8 @@ export function MapOverlays(): ReactElement {
 					top: overlayOffset,
 					zIndex: MAP_CONTROL_Z_INDEX
 				}}>
-				<PlaceSearch />
-				<SuggestionPanel />
+				<PlaceSearch favoriteState={favoriteState} />
+				<SuggestionPanel favoriteState={favoriteState} />
 			</div>
 			<div
 				className={'pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col gap-2'}

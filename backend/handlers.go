@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	maxAssetsPageSize       = 120
+	maxAssetsPageSize       = 10000
 	defaultAssetsPageSize   = 20
 	maxPageInfoPageSize     = 500
 	defaultPageInfoPageSize = 90
@@ -504,6 +504,88 @@ func (h *Handlers) handleGetSuggestions(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, suggestions)
+}
+
+func (h *Handlers) handleGetFavoritePlaces(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getUserFromContext(r)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	places, err := h.db.getFavoritePlaces(ctx, user.ID)
+	if err != nil {
+		log.Printf("Failed to get favorite places: %v", err)
+		writeError(w, http.StatusInternalServerError, "failed to get favorite places")
+		return
+	}
+
+	if places == nil {
+		places = []FavoritePlaceRow{}
+	}
+
+	writeJSON(w, http.StatusOK, places)
+}
+
+func (h *Handlers) handleAddFavoritePlace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getUserFromContext(r)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	var req AddFavoritePlaceRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		writeError(w, http.StatusBadRequest, "latitude, longitude, and displayName are required")
+		return
+	}
+
+	if err := h.db.addFavoritePlace(ctx, user.ID, *req.Latitude, *req.Longitude, req.DisplayName); err != nil {
+		log.Printf("Failed to add favorite place: %v", err)
+		writeError(w, http.StatusInternalServerError, "failed to add favorite place")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) handleRemoveFavoritePlace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getUserFromContext(r)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	var req RemoveFavoritePlaceRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		writeError(w, http.StatusBadRequest, "latitude and longitude are required")
+		return
+	}
+
+	if err := h.db.removeFavoritePlace(ctx, user.ID, *req.Latitude, *req.Longitude); err != nil {
+		log.Printf("Failed to remove favorite place: %v", err)
+		writeError(w, http.StatusInternalServerError, "failed to remove favorite place")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handlers) handleGetFrequentLocations(w http.ResponseWriter, r *http.Request) {

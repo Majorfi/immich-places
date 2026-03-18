@@ -6,7 +6,6 @@ and focus behavior for the photos shown on the map/list views.
 ## What this feature owns
 
 - Fetching and paging asset data for the current filters and album context.
-- Virtualizing the grid so only visible photo tiles are rendered.
 - Rendering cards with selection state, status panels, and card context menus.
 - Synchronizing external focus events (for map focus or deep link navigation) into grid
   selection and scroll position.
@@ -14,7 +13,7 @@ and focus behavior for the photos shown on the map/list views.
 ## Files
 
 - `PhotoGrid.tsx`
-    - Composes the visible state panels and virtualized tile list.
+    - Composes the visible state panels and tile list.
     - Orchestrates focus hooks and wires selection handlers from global context.
 - `PhotoGridStatePanels.tsx`
     - Renders loading, syncing, error, and empty-state UI blocks.
@@ -23,24 +22,20 @@ and focus behavior for the photos shown on the map/list views.
     - Handles click and drag interactions for that tile.
 - `PhotoCardMenu.tsx`
     - Provides card actions (select, clear/select all, preview, open in Immich).
-- `useVirtualizedGrid.ts`
-    - Computes row heights, visible window, spacers, and scroll handling.
 - `useAssets.ts`
     - Loads assets from API, handles page/filter changes, and supports abortable requests.
 - `useFocusedAsset.ts`
-    - Hooks that react to `focusedAssetID` by selecting and centering the relevant tile.
+    - Hook that reacts to `focusedAssetID` by selecting the relevant tile.
 - `constant.ts`
     - Re-exports animation value used by the grid component.
 
 ## Data flow
 
-1. `PhotoGrid` gets paged assets and renders `PhotoGridStatePanels` plus a virtualized
-   card list.
+1. `PhotoGrid` gets paged assets and renders `PhotoGridStatePanels` plus the card list.
 2. `useAssets` fetches/normalizes page results and tracks loading/error state.
-3. `useVirtualizedGrid` narrows rendering to the visible tile window.
-4. `PhotoGrid` renders `PhotoCard` for each visible asset, passing selection handlers.
-5. Focus-related hooks from `useFocusedAsset` keep map-driven focus in sync with grid
-   selection and viewport.
+3. `PhotoGrid` renders `PhotoCard` for each asset, passing selection handlers.
+4. Focus-related hook from `useFocusedAsset` keeps map-driven focus in sync with grid
+   selection.
 
 ## Notes
 

@@ -9,7 +9,7 @@ import type {ReactElement} from 'react';
 type TGPXImportDialogProps = {
 	isOpen: boolean;
 	onClose: () => void;
-	uploadAndPreview: (file: File, maxGapSeconds?: number) => Promise<void>;
+	uploadAndPreview: (files: File[], maxGapSeconds?: number) => Promise<void>;
 	isLoading: boolean;
 	error: string | null;
 };
@@ -27,49 +27,54 @@ export function GPXImportDialog({
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const [maxGap, setMaxGap] = useState(600);
 	const [isDragOver, setIsDragOver] = useState(false);
+	const [dropError, setDropError] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!isOpen) {
 			setMaxGap(600);
 			setIsDragOver(false);
+			setDropError(null);
+			if (fileInputRef.current) {
+				fileInputRef.current.value = '';
+			}
 		}
 	}, [isOpen]);
 
-	const handleFileSelected = useCallback(
-		(file: File) => {
-			void uploadAndPreview(file, maxGap);
+	const handleFilesSelected = useCallback(
+		(files: File[]) => {
+			void uploadAndPreview(files, maxGap);
 		},
 		[uploadAndPreview, maxGap]
 	);
 
 	const handleInputChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const file = e.target.files?.[0];
-			if (file) {
-				handleFileSelected(file);
+			const fileList = e.target.files;
+			if (!fileList || fileList.length === 0) {
+				return;
 			}
+			handleFilesSelected(Array.from(fileList));
 		},
-		[handleFileSelected]
+		[handleFilesSelected]
 	);
-
-	const [dropError, setDropError] = useState<string | null>(null);
 
 	const handleDrop = useCallback(
 		(e: React.DragEvent) => {
 			e.preventDefault();
 			setIsDragOver(false);
 			setDropError(null);
-			const file = e.dataTransfer.files[0];
-			if (!file) {
+			const fileList = e.dataTransfer.files;
+			if (!fileList || fileList.length === 0) {
 				return;
 			}
-			if (!file.name.endsWith('.gpx')) {
+			const gpxFiles = Array.from(fileList).filter(f => f.name.endsWith('.gpx'));
+			if (gpxFiles.length === 0) {
 				setDropError('Only .gpx files are supported');
 				return;
 			}
-			handleFileSelected(file);
+			handleFilesSelected(gpxFiles);
 		},
-		[handleFileSelected]
+		[handleFilesSelected]
 	);
 
 	const dropzoneBaseClass =
@@ -78,7 +83,7 @@ export function GPXImportDialog({
 	if (isDragOver) {
 		dropzoneClass = `${dropzoneBaseClass} border-(--color-primary) bg-(--color-primary)/5`;
 	}
-	let dropzoneLabel = 'Drop .gpx file or click to browse';
+	let dropzoneLabel = 'Drop .gpx files or click to browse';
 	if (isLoading) {
 		dropzoneLabel = 'Processing...';
 	}
@@ -152,6 +157,7 @@ export function GPXImportDialog({
 						ref={fileInputRef}
 						type={'file'}
 						accept={'.gpx'}
+						multiple
 						onChange={handleInputChange}
 						className={'hidden'}
 					/>
@@ -170,7 +176,12 @@ export function GPXImportDialog({
 							<input
 								type={'number'}
 								value={maxGap}
-								onChange={e => setMaxGap(Number(e.target.value))}
+								onChange={e => {
+									const parsed = Number(e.target.value);
+									if (Number.isFinite(parsed) && parsed >= 0) {
+										setMaxGap(parsed);
+									}
+								}}
 								min={0}
 								className={inputClass}
 							/>

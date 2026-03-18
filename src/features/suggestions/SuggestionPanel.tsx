@@ -1,24 +1,22 @@
 'use client';
 
+import {FavoritePill} from '@/features/suggestions/FavoritePill';
 import {RecentPill} from '@/features/suggestions/RecentPill';
 import {SuggestionsPill} from '@/features/suggestions/SuggestionsPill';
 import {useCatalog} from '@/shared/context/AppContext';
 
+import type {TFavoriteState} from '@/features/suggestions/useFavoriteState';
 import type {ReactElement} from 'react';
 
-/**
- * Wrapper panel that hosts suggestion pills and displays catalog suggestion errors.
- *
- * @returns Suggestion UI row with suggestion and recent-location pills.
- */
-export function SuggestionPanel(): ReactElement {
+export function SuggestionPanel({favoriteState}: {favoriteState: TFavoriteState}): ReactElement {
 	const {suggestionsError} = useCatalog();
 
 	return (
 		<div className={'mt-2'}>
 			<div className={'flex items-start gap-2'}>
 				<SuggestionsPill />
-				<RecentPill />
+				<FavoritePill favoriteState={favoriteState} />
+				<RecentPill favoriteState={favoriteState} />
 			</div>
 			{suggestionsError && (
 				<p

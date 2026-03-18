@@ -289,7 +289,8 @@ func TestPaginationValidation(t *testing.T) {
 		{"non-numeric page", "/assets?page=abc", 400},
 		{"non-numeric pageSize", "/assets?pageSize=abc", 400},
 		{"page zero", "/assets?page=0", 400},
-		{"pageSize too large", "/assets?pageSize=999", 400},
+		{"pageSize too large", "/assets?pageSize=10001", 400},
+		{"pageSize max allowed", "/assets?pageSize=10000", 200},
 		{"negative pageSize", "/assets?pageSize=-1", 400},
 	}
 

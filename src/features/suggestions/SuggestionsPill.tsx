@@ -2,7 +2,8 @@
 
 import {useState} from 'react';
 
-import {CHEVRON_TRANSITION, PANEL_FADE_IN_ANIMATION} from '@/features/suggestions/constant';
+import {ChevronIcon} from '@/features/suggestions/ChevronIcon';
+import {PANEL_FADE_IN_ANIMATION} from '@/features/suggestions/constant';
 import {
 	categoryColor,
 	clusterStableKey,
@@ -16,30 +17,6 @@ import {useCatalog, useSelection} from '@/shared/context/AppContext';
 import {MAP_LOCATION_SOURCE_SUGGESTION} from '@/utils/map';
 
 import type {ReactElement} from 'react';
-
-/**
- * Small chevron icon showing expanded/collapsed state.
- *
- * @param open - Whether the menu is expanded.
- * @returns Chevron SVG.
- */
-function Chevron({open}: {open: boolean}): ReactElement {
-	return (
-		<svg
-			width={'10'}
-			height={'10'}
-			viewBox={'0 0 10 10'}
-			style={{transform: open ? 'rotate(180deg)' : '', transition: CHEVRON_TRANSITION}}>
-			<path
-				d={'M2 4l3 3 3-3'}
-				stroke={'currentColor'}
-				strokeWidth={'1.5'}
-				fill={'none'}
-				strokeLinecap={'round'}
-			/>
-		</svg>
-	);
-}
 
 /**
  * Main suggestions pill that opens categorized clusters and applies selected location.
@@ -93,7 +70,7 @@ export function SuggestionsPill(): ReactElement {
 				{suggestionCount > 0
 					? `${suggestionCount} ${suggestionCount === 1 ? 'suggestion' : 'suggestions'}`
 					: 'Suggestions'}
-				{hasContent && <Chevron open={isExpanded} />}
+				{hasContent && <ChevronIcon open={isExpanded} />}
 			</button>
 			{isExpanded && activeCategory && (
 				<div

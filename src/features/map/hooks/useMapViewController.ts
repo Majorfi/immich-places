@@ -3,6 +3,7 @@
 import L from 'leaflet';
 import {useCallback, useRef, useState} from 'react';
 
+import {useGPXImportContext} from '@/features/gpxImport/GPXImportContext';
 import {
 	GEOLOCATION_PERMISSION_ERROR,
 	GEOLOCATION_UNAVAILABLE_ERROR,
@@ -273,11 +274,14 @@ export function useMapViewController({
 		[isAssetSelected, selectedAssets, setLocationAction]
 	);
 
+	const {uploadAndPreview: gpxUploadAndPreview} = useGPXImportContext();
+
 	const {handleDragOver, handleDrop: handleMapDrop} = useMapDropHandlers({
 		mapInstanceRef,
 		containerRef,
 		resolveAssetByID,
-		onDropAction: handleDropToMap
+		onDropAction: handleDropToMap,
+		onGPXFileDropAction: gpxUploadAndPreview
 	});
 
 	return {

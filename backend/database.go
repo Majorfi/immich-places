@@ -377,6 +377,43 @@ func (d *Database) getSameDayAssets(ctx context.Context, userID, dateTimeOrigina
 	return scanAssetRows(rows)
 }
 
+func (d *Database) getFavoritePlaces(ctx context.Context, userID string) ([]FavoritePlaceRow, error) {
+	rows, err := d.db.QueryContext(ctx,
+		"SELECT ID, latitude, longitude, displayName, createdAt FROM favoritePlaces WHERE userID = ? ORDER BY createdAt DESC LIMIT 30",
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var places []FavoritePlaceRow
+	for rows.Next() {
+		var p FavoritePlaceRow
+		if err := rows.Scan(&p.ID, &p.Latitude, &p.Longitude, &p.DisplayName, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		places = append(places, p)
+	}
+	return places, rows.Err()
+}
+
+func (d *Database) addFavoritePlace(ctx context.Context, userID string, latitude, longitude float64, displayName string) error {
+	_, err := d.db.ExecContext(ctx,
+		"INSERT OR IGNORE INTO favoritePlaces (userID, latitude, longitude, displayName) VALUES (?, ?, ?, ?)",
+		userID, latitude, longitude, displayName,
+	)
+	return err
+}
+
+func (d *Database) removeFavoritePlace(ctx context.Context, userID string, latitude, longitude float64) error {
+	_, err := d.db.ExecContext(ctx,
+		"DELETE FROM favoritePlaces WHERE userID = ? AND latitude = ? AND longitude = ?",
+		userID, latitude, longitude,
+	)
+	return err
+}
+
 func (d *Database) getFrequentLocations(ctx context.Context, userID string, limit int) ([]FrequentLocationRow, error) {
 	rows, err := d.db.QueryContext(ctx,
 		"SELECT latitude, longitude, label, assetCount FROM frequentLocations WHERE userID = ? ORDER BY assetCount DESC LIMIT ?",
@@ -729,6 +766,7 @@ func (d *Database) deleteUserSyncData(ctx context.Context, userID string) error 
 		"albumAssets",
 		"albums",
 		"frequentLocations",
+		"favoritePlaces",
 		"assets",
 		"syncState",
 	}

@@ -214,6 +214,25 @@ type LibraryUpdateRequest struct {
 	IsHidden *bool `json:"isHidden" validate:"required"`
 }
 
+type FavoritePlaceRow struct {
+	ID          int     `json:"ID"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+	DisplayName string  `json:"displayName"`
+	CreatedAt   string  `json:"createdAt"`
+}
+
+type AddFavoritePlaceRequest struct {
+	Latitude    *float64 `json:"latitude" validate:"required,min=-90,max=90"`
+	Longitude   *float64 `json:"longitude" validate:"required,min=-180,max=180"`
+	DisplayName string   `json:"displayName" validate:"required"`
+}
+
+type RemoveFavoritePlaceRequest struct {
+	Latitude  *float64 `json:"latitude" validate:"required,min=-90,max=90"`
+	Longitude *float64 `json:"longitude" validate:"required,min=-180,max=180"`
+}
+
 type GPXTrackPoint struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`

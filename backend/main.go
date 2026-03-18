@@ -71,6 +71,9 @@ func main() {
 	protectedMux.HandleFunc("GET /libraries", libraryHandlers.handleGetLibraries)
 	protectedMux.HandleFunc("PUT /libraries/{libraryID}", libraryHandlers.handleUpdateLibrary)
 	protectedMux.HandleFunc("POST /libraries/refresh", libraryHandlers.handleRefreshLibraries)
+	protectedMux.HandleFunc("GET /favorite-places", handlers.handleGetFavoritePlaces)
+	protectedMux.HandleFunc("POST /favorite-places", handlers.handleAddFavoritePlace)
+	protectedMux.HandleFunc("DELETE /favorite-places", handlers.handleRemoveFavoritePlace)
 	protectedMux.HandleFunc("POST /gpx/preview", handlers.handleGPXPreview)
 
 	mainMux := http.NewServeMux()

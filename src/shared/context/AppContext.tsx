@@ -2,6 +2,7 @@
 
 import {createContext, useContext} from 'react';
 
+import {GPXImportProvider} from '@/features/gpxImport/GPXImportContext';
 import {useAppProviderState} from '@/shared/context/useAppProviderState';
 
 import type {
@@ -54,7 +55,9 @@ export function AppProvider({children}: {children: ReactNode}): ReactElement {
 				<CatalogContext.Provider value={catalogValue}>
 					<SelectionContext.Provider value={selectionValue}>
 						<UIMapContext.Provider value={uiMapValue}>
-							<MapSceneContext.Provider value={mapSceneValue}>{children}</MapSceneContext.Provider>
+							<MapSceneContext.Provider value={mapSceneValue}>
+								<GPXImportProvider>{children}</GPXImportProvider>
+							</MapSceneContext.Provider>
 						</UIMapContext.Provider>
 					</SelectionContext.Provider>
 				</CatalogContext.Provider>

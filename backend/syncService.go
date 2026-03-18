@@ -227,7 +227,7 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 		}
 	}
 	s.recomputeFrequentLocations(ctx, userID)
-	albumErr := s.syncAlbums(ctx, userID, immich)
+	albumErr := s.syncAlbums(ctx, userID, immich, true)
 
 	if albumErr != nil {
 		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", albumErr))
@@ -295,7 +295,7 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 		s.recomputeFrequentLocations(ctx, userID)
 	}
 
-	albumErr := s.syncAlbums(ctx, userID, immich)
+	albumErr := s.syncAlbums(ctx, userID, immich, false)
 
 	if albumErr != nil {
 		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", albumErr))
@@ -448,7 +448,7 @@ type albumFetchResult struct {
 	assetIDs []string
 }
 
-func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich SyncImmichAPI) error {
+func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich SyncImmichAPI, forceRefresh bool) error {
 	log.Printf("Syncing albums for user %s...", userID)
 
 	listCtx, listCancel := context.WithTimeout(ctx, 30*time.Second)
@@ -463,7 +463,7 @@ func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich Sync
 		return fmt.Errorf("get album updatedAt map: %w", err)
 	}
 
-	albumIDs, changedWork := s.upsertAlbumMetadata(ctx, userID, albums, existingAlbums, immich)
+	albumIDs, changedWork := s.upsertAlbumMetadata(ctx, userID, albums, existingAlbums, forceRefresh)
 
 	if err := s.fetchAndReplaceAlbumAssets(ctx, userID, changedWork, immich); err != nil {
 		return err
@@ -477,7 +477,7 @@ func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich Sync
 	return nil
 }
 
-func (s *SyncService) upsertAlbumMetadata(ctx context.Context, userID string, albums []ImmichAlbumResponse, existing map[string]string, _ SyncImmichAPI) ([]string, []albumWork) {
+func (s *SyncService) upsertAlbumMetadata(ctx context.Context, userID string, albums []ImmichAlbumResponse, existing map[string]string, forceRefresh bool) ([]string, []albumWork) {
 	albumIDs := make([]string, 0, len(albums))
 	work := make([]albumWork, 0, len(albums))
 
@@ -489,7 +489,7 @@ func (s *SyncService) upsertAlbumMetadata(ctx context.Context, userID string, al
 			continue
 		}
 
-		changed := existing[album.ID] != album.UpdatedAt
+		changed := forceRefresh || existing[album.ID] != album.UpdatedAt
 		work = append(work, albumWork{album: album, changed: changed})
 	}
 

@@ -44,7 +44,7 @@ type TPhotoListProps = {
 		onVisibleMarkerLimitAction: (limit: number) => void;
 		onViewModeAction: (mode: TViewMode) => void;
 		onBackToAlbumsAction: () => void;
-		gpxPreview: TGPXPreviewResponse | null;
+		gpxPreviews: TGPXPreviewResponse[];
 		gpxError: string | null;
 		onGPXResetAction: () => void;
 		onGPXCancelAction: () => void;
@@ -110,7 +110,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		onVisibleMarkerLimitAction,
 		onViewModeAction,
 		onBackToAlbumsAction,
-		gpxPreview,
+		gpxPreviews,
 		gpxError,
 		onGPXResetAction,
 		onGPXCancelAction
@@ -145,10 +145,11 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		scrollResetKey = `${viewMode}:${selectedAlbumID}:${currentPage}`;
 	}
 
+	const isGPXActive = gpxPreviews.length > 0;
 	let effectiveAlbumName = selectedAlbum?.albumName;
 	let effectiveBackAction = onBackToAlbumsAction;
-	if (gpxPreview) {
-		effectiveAlbumName = 'GPX Import';
+	if (isGPXActive) {
+		effectiveAlbumName = gpxPreviews.length > 1 ? `GPX Import (${gpxPreviews.length} tracks)` : 'GPX Import';
 		effectiveBackAction = onGPXCancelAction;
 	}
 
@@ -177,14 +178,14 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				trailingAction={view.trailingAction}
 				hideSettingsOnMobile={shouldShowAlbumDetail}
 			/>
-			{gpxPreview && (
+			{isGPXActive && (
 				<GPXImportPanel
-					preview={gpxPreview}
+					previews={gpxPreviews}
 					error={gpxError}
 					onReset={onGPXResetAction}
 				/>
 			)}
-			{!gpxPreview && (
+			{!isGPXActive && (
 				<div
 					key={contentKey}
 					className={contentClass}>

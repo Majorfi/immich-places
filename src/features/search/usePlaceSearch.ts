@@ -79,8 +79,16 @@ export function usePlaceSearch({
 			if (requestIDRef.current !== requestID) {
 				return;
 			}
-			setResults(data);
-			setIsOpen(data.length > 0);
+			const seen = new Set<string>();
+			const deduped = data.filter(r => {
+				if (seen.has(r.displayName)) {
+					return false;
+				}
+				seen.add(r.displayName);
+				return true;
+			});
+			setResults(deduped);
+			setIsOpen(deduped.length > 0);
 			setError(null);
 		} catch (error) {
 			if (controller.signal.aborted) {

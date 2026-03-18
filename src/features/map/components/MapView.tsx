@@ -42,12 +42,13 @@ export function MapView(): ReactElement {
 	});
 
 	return (
-		<div className={'relative h-full w-full overflow-hidden rounded-xl border border-(--color-border)'}>
+		<div
+			className={'relative h-full w-full overflow-hidden rounded-xl border border-(--color-border)'}
+			onDragOver={handleDragOver}
+			onDrop={handleDrop}>
 			<div
 				ref={containerRef}
 				className={'h-full w-full'}
-				onDragOver={handleDragOver}
-				onDrop={handleDrop}
 			/>
 			<MapOverlays />
 			<MapControls

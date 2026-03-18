@@ -13,6 +13,7 @@ type TUseMapDropHandlersArgs = {
 	containerRef: MutableRefObject<HTMLDivElement | null>;
 	resolveAssetByID: (assetID: string) => TAssetRow | null;
 	onDropAction?: (asset: TAssetRow, position: {latitude: number; longitude: number}) => void;
+	onGPXFileDropAction?: (files: File[]) => void | Promise<void>;
 };
 
 /**
@@ -33,28 +34,38 @@ export function useMapDropHandlers({
 	mapInstanceRef,
 	containerRef,
 	resolveAssetByID,
-	onDropAction
+	onDropAction,
+	onGPXFileDropAction
 }: TUseMapDropHandlersArgs): TUseMapDropHandlersReturn {
 	const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
 		event.preventDefault();
 		if (event.dataTransfer) {
-			event.dataTransfer.dropEffect = DRAG_DROP_EFFECT_MOVE;
+			const isFileDrag = event.dataTransfer.types.includes('Files');
+			event.dataTransfer.dropEffect = isFileDrag ? 'copy' : DRAG_DROP_EFFECT_MOVE;
 		}
 	}, []);
 
 	const handleDrop = useCallback(
 		(event: DragEvent<HTMLDivElement>) => {
 			event.preventDefault();
+
+			const dataTransfer = event.dataTransfer;
+			if (!dataTransfer) {
+				return;
+			}
+
+			const gpxFiles = Array.from(dataTransfer.files).filter(f => f.name.endsWith('.gpx'));
+			if (gpxFiles.length > 0) {
+				onGPXFileDropAction?.(gpxFiles);
+				return;
+			}
+
 			const mapInstance = mapInstanceRef.current;
 			const container = containerRef.current;
 			if (!mapInstance || !container) {
 				return;
 			}
 
-			const dataTransfer = event.dataTransfer;
-			if (!dataTransfer) {
-				return;
-			}
 			const assetID = dataTransfer.getData(DRAG_DROP_MIME_TEXT);
 			if (!assetID) {
 				return;
@@ -74,7 +85,7 @@ export function useMapDropHandlers({
 			}
 			onDropAction?.(droppedAsset, {latitude: latlng.lat, longitude: latlng.lng});
 		},
-		[mapInstanceRef, containerRef, resolveAssetByID, onDropAction]
+		[mapInstanceRef, containerRef, resolveAssetByID, onDropAction, onGPXFileDropAction]
 	);
 
 	return {handleDragOver, handleDrop};

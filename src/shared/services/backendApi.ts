@@ -6,6 +6,7 @@ import {backendFetch, parseJSON} from '@/shared/services/backendApi.fetch';
 import {
 	isAlbumRow,
 	isAssetPageInfo,
+	isFavoritePlace,
 	isGPXPreviewResponse,
 	isHealthResponse,
 	isLibraryRow,
@@ -25,6 +26,7 @@ import type {TAlbumRow} from '@/shared/types/album';
 import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TAuthErrorCode} from '@/shared/types/auth';
+import type {TFavoritePlace} from '@/shared/types/favoritePlace';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TGPSFilter, THiddenFilter, TMapMarker} from '@/shared/types/map';
@@ -456,5 +458,58 @@ export async function toggleAssetHidden(assetID: string, isHidden: boolean, opts
 	if (!response.ok) {
 		const msg = await readErrorMessage(response);
 		throw new Error(msg ?? `Failed to update hidden state: ${response.status}`);
+	}
+}
+
+export async function fetchFavoritePlaces(opts: TRequestOptions = {}): Promise<TFavoritePlace[]> {
+	const response = await backendFetch(`${BASE}/favorite-places`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch favorite places: ${response.status}`);
+	}
+	return parseJSON(
+		response,
+		(value): value is TFavoritePlace[] => Array.isArray(value) && value.every(isFavoritePlace),
+		'Invalid favorite places response payload'
+	);
+}
+
+export async function addFavoritePlace(
+	latitude: number,
+	longitude: number,
+	displayName: string,
+	opts: TRequestOptions = {}
+): Promise<void> {
+	const response = await backendFetch(
+		`${BASE}/favorite-places`,
+		{
+			method: 'POST',
+			headers: {'Content-Type': 'application/json'}, //eslint-disable-line
+			body: JSON.stringify({latitude, longitude, displayName})
+		},
+		opts
+	);
+	if (!response.ok) {
+		const msg = await readErrorMessage(response);
+		throw new Error(msg ?? `Failed to add favorite place: ${response.status}`);
+	}
+}
+
+export async function removeFavoritePlace(
+	latitude: number,
+	longitude: number,
+	opts: TRequestOptions = {}
+): Promise<void> {
+	const response = await backendFetch(
+		`${BASE}/favorite-places`,
+		{
+			method: 'DELETE',
+			headers: {'Content-Type': 'application/json'}, //eslint-disable-line
+			body: JSON.stringify({latitude, longitude})
+		},
+		opts
+	);
+	if (!response.ok) {
+		const msg = await readErrorMessage(response);
+		throw new Error(msg ?? `Failed to remove favorite place: ${response.status}`);
 	}
 }

@@ -13,6 +13,7 @@ type TNumericOptionGroupProps = {
 	value: number;
 	options: readonly number[];
 	onChangeAction: (next: number) => void;
+	formatLabel?: (option: number) => string;
 };
 
 /**
@@ -24,7 +25,13 @@ type TNumericOptionGroupProps = {
  * @param onChangeAction - Handler for option changes.
  * @returns A labeled set of option buttons.
  */
-export function NumericOptionGroup({label, value, options, onChangeAction}: TNumericOptionGroupProps): ReactElement {
+export function NumericOptionGroup({
+	label,
+	value,
+	options,
+	onChangeAction,
+	formatLabel
+}: TNumericOptionGroupProps): ReactElement {
 	return (
 		<div className={'flex-1 rounded-lg bg-(--color-bg) p-2.5'}>
 			<div
@@ -46,7 +53,7 @@ export function NumericOptionGroup({label, value, options, onChangeAction}: TNum
 								!isActive &&
 									'border-(--color-border) bg-transparent text-(--color-text-secondary) hover:border-(--color-text-secondary)'
 							)}>
-							{option}
+							{formatLabel ? formatLabel(option) : option}
 						</button>
 					);
 				})}

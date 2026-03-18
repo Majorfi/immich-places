@@ -22,12 +22,15 @@ The app has two parts:
 - Interactive map with clustered markers (Leaflet)
 - Drag-and-drop a photo onto the map to assign coordinates
 - Geocoding search (Nominatim/OpenStreetMap) with autocomplete and history
+- Favorite places: star locations from search results for quick access
 - Smart suggestions: locations from same-day, nearby-day, weekly patterns, frequent spots, and album context
+- GPX import: upload one or multiple GPX tracks to batch-assign coordinates to photos by timestamp
 
 **Photo Browsing**
 
-- Virtualized photo grid with configurable columns and page size
+- Photo grid with configurable columns and page size
 - Filter by GPS status (missing / present / all) and by album
+- Go to location: jump to a photo's position on the map from the grid
 - Fullscreen lightbox with keyboard navigation
 - Multi-select with shift+click for bulk operations
 

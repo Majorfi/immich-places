@@ -13,6 +13,7 @@ import {ViewModeGroup} from '@/features/filterBar/ViewModeGroup';
 import {cn} from '@/utils/cn';
 import {
 	GRID_COLUMN_OPTIONS,
+	PAGE_SIZE_ALL,
 	PAGE_SIZE_OPTIONS,
 	buildVisibleMarkerLimitOptions,
 	formatMarkerLimitOption,
@@ -49,6 +50,13 @@ type TFilterBarProps = {
 	trailingAction?: ReactElement;
 	hideSettingsOnMobile?: boolean;
 };
+
+function formatPageSizeLabel(option: number): string {
+	if (option === PAGE_SIZE_ALL) {
+		return 'All';
+	}
+	return String(option);
+}
 
 /**
  * Renders the top-level filter toolbar and expandable filter controls.
@@ -238,6 +246,7 @@ export function FilterBar({
 							value={pageSize}
 							options={PAGE_SIZE_OPTIONS}
 							onChangeAction={onPageSizeAction}
+							formatLabel={formatPageSizeLabel}
 						/>
 						<NumericOptionGroup
 							label={'Grid'}

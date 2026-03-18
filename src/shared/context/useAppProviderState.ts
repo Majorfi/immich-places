@@ -100,7 +100,9 @@ export function useAppProviderState(): TAppProviderState {
 		removeAsset: catalogDomain.removeAsset,
 		refreshHealth,
 		refreshUser,
-		loadAlbumsAction: catalogDomain.loadAlbumsAction
+		loadAlbumsAction: catalogDomain.loadAlbumsAction,
+		loadPageAction: catalogDomain.loadPageAction,
+		currentPage: catalogDomain.currentPage
 	});
 
 	const {

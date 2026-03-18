@@ -1,12 +1,14 @@
 'use client';
 
-import {useCallback} from 'react';
+import {useCallback, useRef} from 'react';
 
 type TUseSelectionCallbacksArgs = {
 	removeAsset: (assetID: string) => void;
 	refreshHealth: () => Promise<void>;
 	refreshUser: () => Promise<void>;
 	loadAlbumsAction: () => Promise<void>;
+	loadPageAction: (page: number) => Promise<void>;
+	currentPage: number;
 };
 
 /**
@@ -30,8 +32,13 @@ export function useSelectionCallbacks({
 	removeAsset,
 	refreshHealth,
 	refreshUser,
-	loadAlbumsAction
+	loadAlbumsAction,
+	loadPageAction,
+	currentPage
 }: TUseSelectionCallbacksArgs): TUseSelectionCallbacksResult {
+	const currentPageRef = useRef(currentPage);
+	currentPageRef.current = currentPage;
+
 	const onAssetSavedAction = useCallback(
 		(assetID: string) => {
 			removeAsset(assetID);
@@ -40,8 +47,8 @@ export function useSelectionCallbacks({
 	);
 
 	const onBatchSavedAction = useCallback(async () => {
-		await Promise.all([refreshHealth(), refreshUser(), loadAlbumsAction()]);
-	}, [refreshHealth, refreshUser, loadAlbumsAction]);
+		await Promise.all([refreshHealth(), refreshUser(), loadAlbumsAction(), loadPageAction(currentPageRef.current)]);
+	}, [refreshHealth, refreshUser, loadAlbumsAction, loadPageAction]);
 
 	return {onAssetSavedAction, onBatchSavedAction};
 }

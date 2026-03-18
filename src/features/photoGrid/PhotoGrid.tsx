@@ -2,14 +2,13 @@
 
 import {useEffect, useRef, useState} from 'react';
 
-import {PHOTO_GRID_FADE_ANIMATION} from '@/features/photoGrid/constant';
 import {PhotoCard} from '@/features/photoGrid/PhotoCard';
 import {PhotoGridStatePanels} from '@/features/photoGrid/PhotoGridStatePanels';
-import {usePhotoGridFocusScroll, usePhotoGridFocusSelection} from '@/features/photoGrid/useFocusedAsset';
-import {useVirtualizedGrid} from '@/features/photoGrid/useVirtualizedGrid';
+import {usePhotoGridFocusSelection} from '@/features/photoGrid/useFocusedAsset';
 import {useSelection, useUIMap} from '@/shared/context/AppContext';
 import {cn} from '@/utils/cn';
 import {
+	PHOTO_GRID_FADE_ANIMATION,
 	PHOTO_GRID_FADE_ANIMATION_BASE_DELAY_MS,
 	PHOTO_GRID_FADE_ANIMATION_MAX_OFFSET,
 	PHOTO_GRID_FADE_ANIMATION_STEP_MS,
@@ -21,12 +20,6 @@ import type {TAssetRow} from '@/shared/types/asset';
 import type {TGPSFilter} from '@/shared/types/map';
 import type {ReactElement} from 'react';
 
-/**
- * Build a reusable staggered animation style for one photo tile.
- *
- * @param delayMs - Delay in milliseconds before the fade-in animation begins.
- * @returns CSS animation settings used by `style`.
- */
 function staggerStyle(delayMs: number): {animation: string; animationDelay: string} {
 	return {
 		animation: PHOTO_GRID_FADE_ANIMATION,
@@ -47,15 +40,6 @@ type TPhotoGridProps = {
 	mobileMaxVisibleRows?: number | null;
 };
 
-/**
- * Renders the paginated photo grid with virtualization and focus handling.
- *
- * The component delegates row-windowing to `useVirtualizedGrid`, then renders
- * only visible assets with spacer rows to preserve scroll height.
- *
- * @param props - Data and state used to drive paging and selection.
- * @returns Rendered grid container including loading/error/empty states.
- */
 export function PhotoGrid({
 	assets,
 	selectedIDs,
@@ -72,8 +56,6 @@ export function PhotoGrid({
 	const {toggleAssetAction, shiftSelectAction} = useSelection();
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const [isMobileViewport, setIsMobileViewport] = useState(false);
-	const {handleScroll, rowHeight, startIndex, visibleAssets, topSpacerHeight, bottomSpacerHeight, viewportHeight} =
-		useVirtualizedGrid({assets, gridColumns, scrollResetKey, scrollContainerRef});
 
 	usePhotoGridFocusSelection({
 		focusedAssetID,
@@ -81,14 +63,24 @@ export function PhotoGrid({
 		toggleAssetAction,
 		clearFocusedAssetAction
 	});
-	usePhotoGridFocusScroll({
-		focusedAssetID,
-		assets,
-		rowHeight,
-		gridColumns,
-		viewportHeight,
-		scrollContainerRef
-	});
+
+	useEffect(() => {
+		if (!focusedAssetID) {
+			return;
+		}
+		const container = scrollContainerRef.current;
+		if (!container) {
+			return;
+		}
+		const element = container.querySelector(`[data-asset-id="${focusedAssetID}"]`);
+		if (element) {
+			element.scrollIntoView({behavior: 'smooth', block: 'center'});
+		}
+	}, [focusedAssetID]);
+
+	useEffect(() => {
+		scrollContainerRef.current?.scrollTo(0, 0);
+	}, [scrollResetKey]);
 
 	useEffect(() => {
 		const mediaQuery = window.matchMedia('(max-width: 767px)');
@@ -112,15 +104,15 @@ export function PhotoGrid({
 		isMobileViewport && typeof mobileMaxVisibleRows === 'number' && mobileMaxVisibleRows > 0;
 	let gridMaxHeightStyle: {maxHeight: string} | undefined;
 	if (isMobileGridHeightLimited) {
+		const fallbackRowHeight = 120;
 		gridMaxHeightStyle = {
-			maxHeight: `${Math.max(1, rowHeight * mobileMaxVisibleRows)}px`
+			maxHeight: `${Math.max(1, fallbackRowHeight * mobileMaxVisibleRows)}px`
 		};
 	}
 
 	return (
 		<div
 			ref={scrollContainerRef}
-			onScroll={handleScroll}
 			className={cn(
 				'flex flex-col overflow-y-auto',
 				!isMobileGridHeightLimited && 'flex-1',
@@ -136,24 +128,19 @@ export function PhotoGrid({
 			/>
 
 			<div
-				aria-hidden
-				style={{height: `${topSpacerHeight}px`}}
-			/>
-			<div
 				className={'grid'}
 				style={{
 					gap: `${PHOTO_GRID_GAP_PX}px`,
 					padding: `${PHOTO_GRID_PADDING_PX}px`,
 					gridTemplateColumns: `repeat(${gridColumns}, 1fr)`
 				}}>
-				{visibleAssets.map((asset, i) => (
+				{assets.map((asset, i) => (
 					<div
 						key={asset.immichID}
 						data-asset-id={asset.immichID}
 						style={staggerStyle(
 							PHOTO_GRID_FADE_ANIMATION_BASE_DELAY_MS +
-								Math.min(startIndex + i, PHOTO_GRID_FADE_ANIMATION_MAX_OFFSET) *
-									PHOTO_GRID_FADE_ANIMATION_STEP_MS
+								Math.min(i, PHOTO_GRID_FADE_ANIMATION_MAX_OFFSET) * PHOTO_GRID_FADE_ANIMATION_STEP_MS
 						)}>
 						<PhotoCard
 							asset={asset}
@@ -165,10 +152,6 @@ export function PhotoGrid({
 					</div>
 				))}
 			</div>
-			<div
-				aria-hidden
-				style={{height: `${bottomSpacerHeight}px`}}
-			/>
 		</div>
 	);
 }
