@@ -3,6 +3,7 @@ import {isFiniteNumber, isNullableFiniteNumber, isNullableString, isRecord, isSt
 import type {TGPXMatchResult, TGPXPreviewResponse, TGPXTrackPoint} from '@/features/gpxImport/gpxImportTypes';
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
+import type {TFavoritePlace} from '@/shared/types/favoritePlace';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TMapMarker} from '@/shared/types/map';
@@ -204,6 +205,19 @@ export function isLibraryRow(value: unknown): value is TLibraryRow {
 		isFiniteNumber(value.assetCount) &&
 		typeof value.isHidden === 'boolean' &&
 		isString(value.syncedAt)
+	);
+}
+
+export function isFavoritePlace(value: unknown): value is TFavoritePlace {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		isFiniteNumber(value.ID) &&
+		isFiniteNumber(value.latitude) &&
+		isFiniteNumber(value.longitude) &&
+		isString(value.displayName) &&
+		isString(value.createdAt)
 	);
 }
 
