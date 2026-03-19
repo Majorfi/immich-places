@@ -13,14 +13,6 @@ import type {TAlbumRow} from '@/shared/types/album';
 import type {TViewMode} from '@/shared/types/view';
 import type {ReactElement} from 'react';
 
-/**
- * Container that resolves shared contexts and maps them into `PhotoList` props.
- *
- * This component acts as the composition boundary between context state and
- * presentational list rendering.
- *
- * @returns Rendered photo list with all required view/catalog/selection bindings.
- */
 export function PhotoListContainer(): ReactElement {
 	const {health, isSyncing, syncError, resyncAction} = useBackend();
 	const {
@@ -37,7 +29,10 @@ export function PhotoListContainer(): ReactElement {
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
-		selectAlbumAction
+		selectAlbumAction,
+		startDate,
+		endDate,
+		setDateRangeAction
 	} = useView();
 	const {
 		albums,
@@ -169,6 +164,11 @@ export function PhotoListContainer(): ReactElement {
 		gpxReset();
 	}, [clearPendingState, gpxReset]);
 
+	let activeGPXPreviews: typeof gpxPreviews = [];
+	if (isGPXPanelActive) {
+		activeGPXPreviews = gpxPreviews;
+	}
+
 	let gpxImportProp:
 		| {
 				uploadAndPreview: (files: File[], maxGapSeconds?: number) => Promise<void>;
@@ -210,8 +210,11 @@ export function PhotoListContainer(): ReactElement {
 				onVisibleMarkerLimitAction: setVisibleMarkerLimitAction,
 				onViewModeAction: handleToggleViewMode,
 				onBackToAlbumsAction: handleBackToAlbums,
-				gpxPreviews: isGPXPanelActive ? gpxPreviews : [],
+				gpxPreviews: activeGPXPreviews,
 				gpxError,
+				startDate,
+				endDate,
+				onDateRangeAction: setDateRangeAction,
 				onGPXResetAction: handleGPXAutoReset,
 				onGPXCancelAction: handleGPXCancel,
 				trailingAction: <UserMenu gpxImport={gpxImportProp} />

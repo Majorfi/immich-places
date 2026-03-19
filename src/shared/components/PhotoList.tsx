@@ -44,6 +44,9 @@ type TPhotoListProps = {
 		onVisibleMarkerLimitAction: (limit: number) => void;
 		onViewModeAction: (mode: TViewMode) => void;
 		onBackToAlbumsAction: () => void;
+		startDate: string | null;
+		endDate: string | null;
+		onDateRangeAction: (startDate: string | null, endDate: string | null) => void;
 		gpxPreviews: TGPXPreviewResponse[];
 		gpxError: string | null;
 		onGPXResetAction: () => void;
@@ -110,6 +113,9 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		onVisibleMarkerLimitAction,
 		onViewModeAction,
 		onBackToAlbumsAction,
+		startDate,
+		endDate,
+		onDateRangeAction,
 		gpxPreviews,
 		gpxError,
 		onGPXResetAction,
@@ -132,12 +138,16 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 	const shouldShowAlbumDetail = viewMode === 'album' && Boolean(selectedAlbumID) && selectedAlbum !== null;
 
 	const albumViewMissingCount = albums.reduce((sum, album) => sum + album.noGPSCount, 0);
-	const globalMissingCount = albums.length > 0 ? albumViewMissingCount : (health?.noGPSAssets ?? null);
-	const effectiveMissingCount = selectedAlbum
-		? selectedAlbum.noGPSCount
-		: selectedAlbumID
-			? null
-			: globalMissingCount;
+	let globalMissingCount: number | null = health?.noGPSAssets ?? null;
+	if (albums.length > 0) {
+		globalMissingCount = albumViewMissingCount;
+	}
+	let effectiveMissingCount: number | null = globalMissingCount;
+	if (selectedAlbum) {
+		effectiveMissingCount = selectedAlbum.noGPSCount;
+	} else if (selectedAlbumID) {
+		effectiveMissingCount = null;
+	}
 	const totalPages = Math.max(1, Math.ceil(total / pageSize));
 	const contentKey = buildContentKey(shouldShowAlbumList, shouldShowAlbumDetail, viewMode, selectedAlbumID);
 	let scrollResetKey = `${viewMode}:${currentPage}`;
@@ -146,10 +156,18 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 	}
 
 	const isGPXActive = gpxPreviews.length > 0;
+	let mobileMaxVisibleRows: number | null = null;
+	if (shouldShowAlbumDetail) {
+		mobileMaxVisibleRows = 1.8;
+	}
 	let effectiveAlbumName = selectedAlbum?.albumName;
 	let effectiveBackAction = onBackToAlbumsAction;
 	if (isGPXActive) {
-		effectiveAlbumName = gpxPreviews.length > 1 ? `GPX Import (${gpxPreviews.length} tracks)` : 'GPX Import';
+		if (gpxPreviews.length > 1) {
+			effectiveAlbumName = `GPX Import (${gpxPreviews.length} tracks)`;
+		} else {
+			effectiveAlbumName = 'GPX Import';
+		}
 		effectiveBackAction = onGPXCancelAction;
 	}
 
@@ -170,6 +188,9 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				onVisibleMarkerLimitAction={onVisibleMarkerLimitAction}
 				viewMode={viewMode}
 				onViewModeAction={onViewModeAction}
+				startDate={startDate}
+				endDate={endDate}
+				onDateRangeAction={onDateRangeAction}
 				isSyncing={isSyncing}
 				syncError={syncError}
 				onSyncAction={onRetrySyncAction}
@@ -209,7 +230,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 							isLoading={isLoadingAssets}
 							isSyncing={isSyncing}
 							error={assetsError}
-							mobileMaxVisibleRows={shouldShowAlbumDetail ? 1.8 : null}
+							mobileMaxVisibleRows={mobileMaxVisibleRows}
 						/>
 					)}
 					{!shouldShowAlbumList && total > 0 && (

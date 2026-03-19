@@ -39,6 +39,9 @@ export type TViewContextValue = {
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
 	selectAlbumAction: (albumID: string | null) => void;
+	startDate: string | null;
+	endDate: string | null;
+	setDateRangeAction: (startDate: string | null, endDate: string | null) => void;
 };
 
 export type TCatalogContextValue = {

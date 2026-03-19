@@ -83,8 +83,11 @@ export function useAppProviderState(): TAppProviderState {
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
+		startDate,
+		endDate,
 		setGPSFilterAction,
-		selectAlbumAction
+		selectAlbumAction,
+		setDateRangeAction
 	} = useViewDomain();
 
 	const catalogDomain = useCatalogDomain({
@@ -93,6 +96,8 @@ export function useAppProviderState(): TAppProviderState {
 		pageSize,
 		viewMode,
 		selectedAlbumID,
+		startDate,
+		endDate,
 		isReady
 	});
 
@@ -206,7 +211,10 @@ export function useAppProviderState(): TAppProviderState {
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
-		selectAlbumAction
+		selectAlbumAction,
+		startDate,
+		endDate,
+		setDateRangeAction
 	});
 
 	const catalogValue = useCatalogValue({

@@ -11,12 +11,6 @@ import type {
 	TViewContextValue
 } from '@/shared/types/context';
 
-/**
- * Memoizes and normalizes backend context values for stable provider references.
-
- * @param input - Raw backend state and actions.
- * @returns Memoized backend context value.
- */
 export function useBackendValue(input: TBackendContextValue): TBackendContextValue {
 	return useMemo<TBackendContextValue>(
 		() => ({
@@ -46,7 +40,6 @@ export function useBackendValue(input: TBackendContextValue): TBackendContextVal
 	);
 }
 
-/** Memoizes and normalizes view context values for stable provider references. */
 export function useViewValue(input: TViewContextValue): TViewContextValue {
 	return useMemo<TViewContextValue>(
 		() => ({
@@ -63,7 +56,10 @@ export function useViewValue(input: TViewContextValue): TViewContextValue {
 			viewMode: input.viewMode,
 			setViewModeAction: input.setViewModeAction,
 			selectedAlbumID: input.selectedAlbumID,
-			selectAlbumAction: input.selectAlbumAction
+			selectAlbumAction: input.selectAlbumAction,
+			startDate: input.startDate,
+			endDate: input.endDate,
+			setDateRangeAction: input.setDateRangeAction
 		}),
 		[
 			input.gpsFilter,
@@ -79,12 +75,14 @@ export function useViewValue(input: TViewContextValue): TViewContextValue {
 			input.viewMode,
 			input.setViewModeAction,
 			input.selectedAlbumID,
-			input.selectAlbumAction
+			input.selectAlbumAction,
+			input.startDate,
+			input.endDate,
+			input.setDateRangeAction
 		]
 	);
 }
 
-/** Memoizes and normalizes catalog context values for stable provider references. */
 export function useCatalogValue(input: TCatalogContextValue): TCatalogContextValue {
 	return useMemo<TCatalogContextValue>(
 		() => ({
@@ -122,7 +120,6 @@ export function useCatalogValue(input: TCatalogContextValue): TCatalogContextVal
 	);
 }
 
-/** Memoizes and normalizes selection context values for stable provider references. */
 export function useSelectionValue(input: TSelectionContextValue): TSelectionContextValue {
 	return useMemo<TSelectionContextValue>(
 		() => ({
@@ -172,7 +169,6 @@ export function useSelectionValue(input: TSelectionContextValue): TSelectionCont
 	);
 }
 
-/** Memoizes and normalizes UI map context values for stable provider references. */
 export function useUIMapValue(input: TUIMapContextValue): TUIMapContextValue {
 	return useMemo<TUIMapContextValue>(
 		() => ({
@@ -196,7 +192,6 @@ export function useUIMapValue(input: TUIMapContextValue): TUIMapContextValue {
 	);
 }
 
-/** Memoizes and normalizes map scene values for map consumers. */
 export function useMapSceneValue(input: TMapSceneValue): TMapSceneValue {
 	return useMemo<TMapSceneValue>(
 		() => ({
