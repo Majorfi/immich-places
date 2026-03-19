@@ -11,6 +11,21 @@
 		--color-hover: #f3f4f6;
 		--color-selected: #eef2ff;
 		--app-sidebar-width: 30rem;
+
+		/* shadcn variable aliases */
+		--background: var(--color-bg);
+		--foreground: var(--color-text);
+		--muted: var(--color-hover);
+		--muted-foreground: var(--color-text-secondary);
+		--popover: var(--color-surface);
+		--popover-foreground: var(--color-text);
+		--primary: var(--color-primary);
+		--primary-foreground: #ffffff;
+		--border: var(--color-border);
+		--ring: var(--color-primary);
+		--accent: #f0f9f4;
+		--accent-foreground: var(--color-primary);
+		--radius: 0.5rem;
 	}
 
 	html,
