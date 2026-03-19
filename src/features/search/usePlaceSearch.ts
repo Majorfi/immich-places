@@ -6,6 +6,7 @@ import {SEARCH_CLICK_OUTSIDE_EVENT} from '@/features/search/constant';
 import {searchPlaces} from '@/features/search/nominatim';
 import {parseCoordinatePair} from '@/utils/coordinates';
 import {getErrorMessage} from '@/utils/error';
+import {parseCoordinateInput} from '@/utils/parseCoordinateInput';
 import {PLACE_SEARCH_DEBOUNCE_MS} from '@/utils/search';
 
 import type {TNominatimResult} from '@/shared/types/nominatim';
@@ -17,9 +18,6 @@ type TUsePlaceSearchArgs = {
 	onResultPersistedAction?: (result: TNominatimResult) => void;
 };
 
-/**
- * Return shape from the place-search hook.
- */
 type TUsePlaceSearchReturn = {
 	query: string;
 	results: TNominatimResult[];
@@ -33,12 +31,6 @@ type TUsePlaceSearchReturn = {
 	setQuery: (value: string) => void;
 };
 
-/**
- * Manages debounced search, request cancellation, outside-click dismissal, and selection.
- *
- * @param args - Callback wiring for location, selection, and persistence actions.
- * @returns Search state and handlers consumed by the search UI.
- */
 export function usePlaceSearch({
 	onLocationSelectedAction,
 	onResultSelectedAction,
@@ -54,11 +46,6 @@ export function usePlaceSearch({
 	const requestIDRef = useRef(0);
 	const abortRef = useRef<AbortController | null>(null);
 
-	/**
-	 * Executes a single search request with abort + stale-response protection.
-	 *
-	 * @param nextQuery - Search text entered by the user.
-	 */
 	const doSearch = useCallback(async (nextQuery: string) => {
 		if (!nextQuery.trim()) {
 			abortRef.current?.abort();
@@ -106,11 +93,6 @@ export function usePlaceSearch({
 		}
 	}, []);
 
-	/**
-	 * Updates query text and schedules debounced search execution.
-	 *
-	 * @param value - New query value from user input.
-	 */
 	const handleChange = useCallback(
 		(value: string) => {
 			setQuery(value);
@@ -125,18 +107,23 @@ export function usePlaceSearch({
 				setIsSearching(false);
 				return;
 			}
+			const coordinates = parseCoordinateInput(value);
+			if (coordinates) {
+				abortRef.current?.abort();
+				onLocationSelectedAction(coordinates.latitude, coordinates.longitude);
+				setResults([]);
+				setError(null);
+				setIsOpen(false);
+				setIsSearching(false);
+				return;
+			}
 			timerRef.current = setTimeout(() => {
 				void doSearch(value);
 			}, PLACE_SEARCH_DEBOUNCE_MS);
 		},
-		[doSearch]
+		[doSearch, onLocationSelectedAction]
 	);
 
-	/**
-	 * Selects a result, updates app location, and persists selected history item.
-	 *
-	 * @param result - Result selected from the search dropdown.
-	 */
 	const handleSelect = useCallback(
 		(result: TNominatimResult) => {
 			const coordinates = parseCoordinatePair(result.lat, result.lon);
@@ -152,9 +139,6 @@ export function usePlaceSearch({
 		[onLocationSelectedAction, onResultSelectedAction, onResultPersistedAction]
 	);
 
-	/**
-	 * Re-opens result list when the input receives focus and has cached results.
-	 */
 	const handleFocus = useCallback(() => {
 		if (results.length > 0) {
 			setIsOpen(true);
