@@ -305,7 +305,7 @@ func TestHiddenLibraryAssetsExcludedFromFilteredAssets(t *testing.T) {
 	db.upsertLibrary(ctx, "lib1", "External", 1)
 	db.updateLibraryVisibility(ctx, "lib1", true)
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "", true, "all", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "", true, "all", "", "", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets: %v", err)
 	}
@@ -313,7 +313,7 @@ func TestHiddenLibraryAssetsExcludedFromFilteredAssets(t *testing.T) {
 		t.Errorf("expected 1 filtered asset, got %d", len(assets))
 	}
 
-	count, err := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	count, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}

@@ -240,7 +240,7 @@ func TestClaimLegacyDataTransfersData(t *testing.T) {
 		t.Error("expected legacy asset transferred to new user")
 	}
 
-	albums, _ := db.getAlbumsWithGPSCount(ctx, testUserID)
+	albums, _ := db.getAlbumsWithGPSCount(ctx, testUserID, "", "")
 	found := false
 	for _, a := range albums {
 		if a.ImmichID == "legacy-album" {

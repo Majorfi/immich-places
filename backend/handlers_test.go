@@ -856,7 +856,7 @@ func TestHandleUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -925,7 +925,7 @@ func TestHandleBulkUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}

@@ -54,7 +54,7 @@ func TestUpsertAndCountAssets(t *testing.T) {
 		t.Errorf("expected 3 total, got %d", total)
 	}
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestUpsertOverwritesExisting(t *testing.T) {
 	if total != 1 {
 		t.Errorf("expected 1 after upsert, got %d", total)
 	}
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 
-	visible, err := db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	visible, err := db.countFilteredAssets(ctx, testUserID, "", true, "visible", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Errorf("expected 1 visible after hiding, got %d", visible)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Errorf("expected 1 hidden, got %d", hidden)
 	}
 
-	all, err := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	all, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets all: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("updateAssetHidden unhide: %v", err)
 	}
 
-	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestIsHiddenSurvivesUpsert(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestIsHiddenSurvivesUpsert(t *testing.T) {
 		t.Fatalf("upsertAssets: %v", err)
 	}
 
-	hidden, err = db.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err = db.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -320,7 +320,7 @@ func TestBulkUpdateAssetLocation(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetLocation: %v", err)
 	}
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -342,7 +342,7 @@ func TestBulkUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetHidden: %v", err)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestBulkUpdateAssetHidden(t *testing.T) {
 		t.Errorf("expected 2 hidden after bulk hide, got %d", hidden)
 	}
 
-	visible, err := db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	visible, err := db.countFilteredAssets(ctx, testUserID, "", true, "visible", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -363,7 +363,7 @@ func TestBulkUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetHidden unhide: %v", err)
 	}
 
-	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible")
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", true, "visible", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible after unhide: %v", err)
 	}
@@ -648,7 +648,7 @@ func TestGetAlbumsWithGPSCount(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	albums, err := db.getAlbumsWithGPSCount(ctx, testUserID)
+	albums, err := db.getAlbumsWithGPSCount(ctx, testUserID, "", "")
 	if err != nil {
 		t.Fatalf("getAlbumsWithGPSCount: %v", err)
 	}
@@ -694,7 +694,7 @@ func TestGetAlbumsWithNoGPSCount(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	albums, err := db.getAlbumsWithNoGPSCount(ctx, testUserID)
+	albums, err := db.getAlbumsWithNoGPSCount(ctx, testUserID, "", "")
 	if err != nil {
 		t.Fatalf("getAlbumsWithNoGPSCount: %v", err)
 	}
@@ -758,7 +758,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	visible, err := db.countFilteredAssets(ctx, testUserID, "album1", true, "visible")
+	visible, err := db.countFilteredAssets(ctx, testUserID, "album1", true, "visible", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -766,7 +766,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 1 visible in album, got %d", visible)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "album1", true, "hidden")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "album1", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -774,7 +774,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 1 hidden in album, got %d", hidden)
 	}
 
-	all, err := db.countFilteredAssets(ctx, testUserID, "album1", true, "all")
+	all, err := db.countFilteredAssets(ctx, testUserID, "album1", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets all: %v", err)
 	}
@@ -782,7 +782,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 2 total in album, got %d", all)
 	}
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", true, "visible", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", true, "visible", "", "", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets visible: %v", err)
 	}
@@ -790,7 +790,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 1 visible asset in album, got %d", len(assets))
 	}
 
-	assets, err = db.getFilteredAssets(ctx, testUserID, "album1", true, "hidden", 1, 10)
+	assets, err = db.getFilteredAssets(ctx, testUserID, "album1", true, "hidden", "", "", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets hidden: %v", err)
 	}
@@ -808,7 +808,7 @@ func TestBuildAssetFilterAlbumNoGPS(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", false, "all", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", false, "all", "", "", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets album no GPS: %v", err)
 	}
@@ -816,7 +816,7 @@ func TestBuildAssetFilterAlbumNoGPS(t *testing.T) {
 		t.Errorf("expected 1 no-GPS asset in album, got %d", len(assets))
 	}
 
-	count, err := db.countFilteredAssets(ctx, testUserID, "album1", false, "all")
+	count, err := db.countFilteredAssets(ctx, testUserID, "album1", false, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -834,7 +834,7 @@ func TestBuildAssetFilterAlbumWithGPS(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", true, "all", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", true, "all", "", "", 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets album with GPS: %v", err)
 	}
