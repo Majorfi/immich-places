@@ -19,7 +19,7 @@ func newTestLibraryHandlers(t *testing.T, immichHandler http.HandlerFunc) (*Libr
 		baseURL:    server.URL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient())
+	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
 	syncService.shutdownCtx = context.Background()
 	handlers := newLibraryHandlers(db, factory, syncService)
 

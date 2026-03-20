@@ -10,6 +10,7 @@ next-env.d.ts
 *.db-wal
 *.db-shm
 backend/immich-places-backend
+backend/immich-places-backend.exe
 .wip
 immich-openapi-specs.json
 .sg

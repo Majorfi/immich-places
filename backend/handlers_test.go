@@ -29,7 +29,7 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 		baseURL:    "http://fake:2283",
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient())
+	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db)
 	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil)
@@ -338,7 +338,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 		baseURL:    server.URL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient())
+	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db)
 	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil)

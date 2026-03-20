@@ -4,6 +4,12 @@ import (
 	"context"
 	"log"
 	"strings"
+	"time"
+)
+
+const (
+	maxGeocodeCacheSize = 10000
+	hereReverseURL      = "https://revgeocode.search.hereapi.com/v1/revgeocode"
 )
 
 // GeocodeProvider abstracts reverse geocoding so different services
@@ -45,7 +51,7 @@ func isWeakResult(label string, lat, lon float64) bool {
 	return strings.TrimSpace(label) == strings.TrimSpace(coords)
 }
 
-func newGeocodeProvider(provider, apiKey string) GeocodeProvider {
+func newGeocodeProvider(provider, apiKey string, timeout time.Duration) GeocodeProvider {
 	switch provider {
 	case "here":
 		if apiKey == "" {
@@ -53,13 +59,13 @@ func newGeocodeProvider(provider, apiKey string) GeocodeProvider {
 		}
 		// Nominatim first, HERE as fallback to save quota
 		return &fallbackGeocoder{
-			primary:   newNominatimClient(),
-			secondary: newHereClient(apiKey),
+			primary:   newNominatimClient(timeout),
+			secondary: newHereClient(apiKey, timeout),
 		}
 	case "nominatim", "":
-		return newNominatimClient()
+		return newNominatimClient(timeout)
 	default:
 		log.Printf("Unknown GEOCODE_PROVIDER %q, falling back to nominatim", provider)
-		return newNominatimClient()
+		return newNominatimClient(timeout)
 	}
 }

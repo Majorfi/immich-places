@@ -38,8 +38,9 @@ func main() {
 	defer db.close()
 
 	immichFactory := newImmichClientFactory(cfg.ImmichURL)
-	geocoder := newGeocodeProvider(cfg.GeocodeProvider, cfg.GeocodeAPIKey)
-	log.Printf("Geocode provider: %s", cfg.GeocodeProvider)
+	geocodeTimeout := time.Duration(cfg.GeocodeTimeoutSecs) * time.Second
+	geocoder := newGeocodeProvider(cfg.GeocodeProvider, cfg.GeocodeAPIKey, geocodeTimeout)
+	log.Printf("Geocode provider: %s (timeout: %v)", cfg.GeocodeProvider, geocodeTimeout)
 	syncService := newSyncService(db, immichFactory, geocoder)
 	suggestions := newSuggestionService(db)
 	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation)

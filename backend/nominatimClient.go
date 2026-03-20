@@ -13,8 +13,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const maxGeocodeCacheSize = 10000
-
 type NominatimClient struct {
 	httpClient *http.Client
 	cache      map[string]string
@@ -22,9 +20,9 @@ type NominatimClient struct {
 	limiter    *rate.Limiter
 }
 
-func newNominatimClient() *NominatimClient {
+func newNominatimClient(timeout time.Duration) *NominatimClient {
 	return &NominatimClient{
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		httpClient: &http.Client{Timeout: timeout},
 		cache:      make(map[string]string),
 		limiter:    rate.NewLimiter(rate.Every(time.Second), 1),
 	}

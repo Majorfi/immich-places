@@ -18,10 +18,10 @@ type HereClient struct {
 	cacheMu    sync.Mutex
 }
 
-func newHereClient(apiKey string) *HereClient {
+func newHereClient(apiKey string, timeout time.Duration) *HereClient {
 	return &HereClient{
 		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		httpClient: &http.Client{Timeout: timeout},
 		cache:      make(map[string]string),
 	}
 }
@@ -42,7 +42,6 @@ type hereReverseResponse struct {
 	} `json:"items"`
 }
 
-
 func (h *HereClient) ReverseGeocode(ctx context.Context, lat, lon float64) (string, error) {
 	key := fmt.Sprintf("%.2f,%.2f", lat, lon)
 
@@ -54,8 +53,8 @@ func (h *HereClient) ReverseGeocode(ctx context.Context, lat, lon float64) (stri
 	h.cacheMu.Unlock()
 
 	reqURL := fmt.Sprintf(
-		"https://revgeocode.search.hereapi.com/v1/revgeocode?at=%f,%f&lang=en-US&apiKey=%s",
-		lat, lon, h.apiKey,
+		"%s?at=%f,%f&apiKey=%s",
+		hereReverseURL, lat, lon, h.apiKey,
 	)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
@@ -70,7 +69,7 @@ func (h *HereClient) ReverseGeocode(ctx context.Context, lat, lon float64) (stri
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		log.Println("HERE API rate limited (429)")
+		log.Printf("HERE API rate limited (429)")
 		return formatCoords(lat, lon), nil
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -105,4 +104,3 @@ func (h *HereClient) ReverseGeocode(ctx context.Context, lat, lon float64) (stri
 
 	return label, nil
 }
-
