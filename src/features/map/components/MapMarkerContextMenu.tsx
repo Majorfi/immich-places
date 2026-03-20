@@ -13,6 +13,7 @@ type TMapMarkerContextMenuProps = {
 	menu: TMapContextMenuState;
 	onCloseAction: () => void;
 	onPreviewAction: (assetID: string) => void;
+	onResetPositionAction?: (assetID: string, originalLatitude: number, originalLongitude: number) => void;
 };
 
 const MENU_ITEM_CLASS =
@@ -24,7 +25,8 @@ const MENU_CONTENT_CLASS =
 export function MapMarkerContextMenu({
 	menu,
 	onCloseAction,
-	onPreviewAction
+	onPreviewAction,
+	onResetPositionAction
 }: TMapMarkerContextMenuProps): ReactElement | null {
 	const {health} = useBackend();
 	const immichURL = health?.immichURL ?? '';
@@ -66,7 +68,7 @@ export function MapMarkerContextMenu({
 						className={MENU_CONTENT_CLASS}
 						align={'start'}
 						sideOffset={0}>
-						{menu.canSpiderfy ? (
+						{menu.canSpiderfy && (
 							<DropdownMenu.Item
 								className={MENU_ITEM_CLASS}
 								onSelect={() => {
@@ -75,7 +77,8 @@ export function MapMarkerContextMenu({
 								}}>
 								{'Expand'}
 							</DropdownMenu.Item>
-						) : (
+						)}
+						{!menu.canSpiderfy && (
 							<DropdownMenu.Item
 								className={MENU_ITEM_CLASS}
 								onSelect={() => {
@@ -89,6 +92,22 @@ export function MapMarkerContextMenu({
 				</DropdownMenu.Portal>
 			</DropdownMenu.Root>
 		);
+	}
+
+	let resetHandler: (() => void) | null = null;
+	if (
+		menu.canResetPosition &&
+		onResetPositionAction &&
+		menu.originalLatitude !== undefined &&
+		menu.originalLongitude !== undefined
+	) {
+		const lat = menu.originalLatitude;
+		const lng = menu.originalLongitude;
+		const assetID = menu.assetID;
+		resetHandler = () => {
+			onResetPositionAction(assetID, lat, lng);
+			onCloseAction();
+		};
 	}
 
 	const safeImmichPhotoURL = immichPhotoURL(immichURL, menu.assetID);
@@ -122,6 +141,16 @@ export function MapMarkerContextMenu({
 							}}>
 							{'Open in Immich'}
 						</DropdownMenu.Item>
+					)}
+					{resetHandler && (
+						<>
+							<DropdownMenu.Separator className={'mx-1 my-1 h-px bg-(--color-border)'} />
+							<DropdownMenu.Item
+								className={MENU_ITEM_CLASS}
+								onSelect={resetHandler}>
+								{'Reset position'}
+							</DropdownMenu.Item>
+						</>
 					)}
 				</DropdownMenu.Content>
 			</DropdownMenu.Portal>

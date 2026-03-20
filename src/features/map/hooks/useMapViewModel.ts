@@ -3,7 +3,8 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {useMapMarkers} from '@/features/map/hooks/useMapMarkers';
-import {useMapScene, useView} from '@/shared/context/AppContext';
+import {hasGPXPendingEntries, matchesGPXStatusFilter} from '@/features/selection/selectionStateHelpers';
+import {useMapScene, useSelection, useView} from '@/shared/context/AppContext';
 
 import type {TViewportBounds} from '@/shared/types/api';
 import type {TAssetRow} from '@/shared/types/asset';
@@ -61,20 +62,26 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		mapBounds,
 		visibleMarkerLimit
 	);
+	const {gpxStatusFilter} = useSelection();
 	const gpxMarkers = useMemo<TMapMarker[]>(() => {
 		const entries = Object.entries(pendingLocationsByAssetID);
-		const hasGPXSource = entries.some(([, loc]) => loc.source === 'gpx-import');
+		const hasGPXSource = hasGPXPendingEntries(pendingLocationsByAssetID);
 		if (!hasGPXSource) {
 			return [];
 		}
 		return entries
-			.filter(([, loc]) => loc.source === 'gpx-import')
+			.filter(([, loc]) => {
+				if (loc.source !== 'gpx-import') {
+					return false;
+				}
+				return matchesGPXStatusFilter(gpxStatusFilter, loc.isAlreadyApplied, loc.hasExistingLocation);
+			})
 			.map(([assetID, location]) => ({
 				immichID: assetID,
 				latitude: location.latitude,
 				longitude: location.longitude
 			}));
-	}, [pendingLocationsByAssetID]);
+	}, [pendingLocationsByAssetID, gpxStatusFilter]);
 
 	const pendingLocationMarkers = useMemo<TMapMarker[]>(() => {
 		const existingIDs = new Set(mapMarkers.map(m => m.immichID));
@@ -88,10 +95,11 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		return markers;
 	}, [mapMarkers, pendingLocationsByAssetID]);
 
-	const hasGPXPreview = gpxMarkers.length > 0;
+	const isGPXMode = useMemo(() => hasGPXPendingEntries(pendingLocationsByAssetID), [pendingLocationsByAssetID]);
 	let effectiveAlbumFilter = albumFilter;
-	let effectiveMapMarkers = hasGPXPreview ? gpxMarkers : mapMarkers;
-	if (hasGPXPreview) {
+	let effectiveMapMarkers = mapMarkers;
+	if (isGPXMode) {
+		effectiveMapMarkers = gpxMarkers;
 		effectiveAlbumFilter = 'gpx-import';
 	} else if (pendingLocationMarkers.length > 0) {
 		effectiveMapMarkers = [...mapMarkers, ...pendingLocationMarkers];

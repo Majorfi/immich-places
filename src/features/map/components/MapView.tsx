@@ -2,6 +2,7 @@
 
 import 'leaflet.markercluster';
 import 'leaflet.markercluster.placementstrategies';
+import {useCallback} from 'react';
 
 import {AssetLightbox} from '@/features/lightbox/AssetLightbox';
 import {MapControls} from '@/features/map/components/MapControls';
@@ -23,7 +24,21 @@ import type {ReactElement} from 'react';
  */
 export function MapView(): ReactElement {
 	const mapModel = useMapViewModel();
-	const {mapMarkersError} = mapModel;
+	const {mapMarkersError, setLocationAction} = mapModel;
+
+	const handleResetPosition = useCallback(
+		(assetID: string, originalLatitude: number, originalLongitude: number) => {
+			setLocationAction({
+				latitude: originalLatitude,
+				longitude: originalLongitude,
+				source: 'gpx-import',
+				targetAssetIDs: [assetID],
+				shouldSkipPendingLocation: true,
+				hasExistingLocation: true
+			});
+		},
+		[setLocationAction]
+	);
 
 	const {
 		containerRef,
@@ -85,6 +100,7 @@ export function MapView(): ReactElement {
 				menu={mapContextMenu}
 				onCloseAction={clearContextMenuAction}
 				onPreviewAction={mapModel.openLightboxAction}
+				onResetPositionAction={handleResetPosition}
 			/>
 		</div>
 	);
