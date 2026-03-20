@@ -59,7 +59,7 @@ export function LocationConfirm(): ReactElement | null {
 			if (loc.source !== 'gpx-import' || loc.isAlreadyApplied) {
 				return false;
 			}
-			return matchesGPXStatusFilter(gpxStatusFilter, false, loc.hasExistingLocation);
+			return matchesGPXStatusFilter(gpxStatusFilter, false, loc.hasExistingLocation ?? false);
 		}).length;
 	}, [pendingLocationsByAssetID, gpxStatusFilter, pendingImageCount]);
 	let editedImageCount = selectedImageCount;

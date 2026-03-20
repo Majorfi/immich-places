@@ -74,7 +74,7 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 				if (loc.source !== 'gpx-import') {
 					return false;
 				}
-				return matchesGPXStatusFilter(gpxStatusFilter, loc.isAlreadyApplied, loc.hasExistingLocation);
+				return matchesGPXStatusFilter(gpxStatusFilter, loc.isAlreadyApplied ?? false, loc.hasExistingLocation ?? false);
 			})
 			.map(([assetID, location]) => ({
 				immichID: assetID,
