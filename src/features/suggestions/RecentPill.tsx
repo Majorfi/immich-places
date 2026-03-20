@@ -9,7 +9,7 @@ import {
 	recentHistoryDisplayName
 } from '@/features/search/searchHistory';
 import {ChevronIcon} from '@/features/suggestions/ChevronIcon';
-import {PANEL_FADE_IN_ANIMATION} from '@/features/suggestions/constant';
+import {PANEL_FADE_IN_ANIMATION, handleActivate} from '@/features/suggestions/constant';
 import {itemClass, panelClass, pillClass} from '@/features/suggestions/useSuggestionState';
 import {StarIcon, resolveStarColorClass} from '@/shared/components/StarIcon';
 import {useSelection} from '@/shared/context/AppContext';
@@ -18,16 +18,7 @@ import {SUGGESTION_PANEL_MAX_ITEMS} from '@/utils/suggestions';
 
 import type {TFavoriteState} from '@/features/suggestions/useFavoriteState';
 import type {THistoryEntry} from '@/shared/types/search';
-import type {KeyboardEvent, ReactElement} from 'react';
-
-function handleActivate(callback: () => void) {
-	return (event: KeyboardEvent) => {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			callback();
-		}
-	};
-}
+import type {ReactElement} from 'react';
 
 function loadHistory(): THistoryEntry[] {
 	return readHistoryFromStorage(getHistoryStorage());

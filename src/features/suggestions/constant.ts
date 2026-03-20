@@ -1,3 +1,14 @@
+import type {KeyboardEvent} from 'react';
+
+export function handleActivate(callback: () => void): (event: KeyboardEvent) => void {
+	return (event: KeyboardEvent) => {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			callback();
+		}
+	};
+}
+
 /** Score weight for same-day suggestion source. */
 export const SUGGESTION_SAME_DAY_SCORE = 6;
 /** Score weight for two-day suggestion source. */
