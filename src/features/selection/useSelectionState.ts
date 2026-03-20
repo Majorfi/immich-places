@@ -2,7 +2,12 @@
 
 import {useCallback, useRef, useState} from 'react';
 
-import {buildTargetAssetIDs, createPendingLocation, resolveAnchorID} from '@/features/selection/selectionStateHelpers';
+import {
+	buildNextPendingLocations,
+	buildTargetAssetIDs,
+	createPendingLocation,
+	resolveAnchorID
+} from '@/features/selection/selectionStateHelpers';
 import {useLocationHistory} from '@/features/selection/useLocationHistory';
 
 import type {TLocationSnapshot} from '@/features/selection/useLocationHistory';
@@ -66,14 +71,12 @@ export function useSelectionState(): TUseSelectionStateReturn {
 		popUndo,
 		pushRedo,
 		popRedo,
-		canUndo,
+		canUndo: canUndoLocation,
 		canRedo: canRedoLocation,
 		clear: clearHistory,
 		beginBatch: beginLocationBatch,
 		endBatch: endLocationBatch
 	} = useLocationHistory();
-
-	const canUndoLocation = canUndo;
 
 	const updateAnchor = useCallback((nextSelected: TAssetRow[]): void => {
 		lastClickedID.current = resolveAnchorID(lastClickedID.current, nextSelected);
@@ -226,26 +229,11 @@ export function useSelectionState(): TUseSelectionStateReturn {
 
 	const setLocation = useCallback(
 		(options: TSetLocationOptions) => {
-			const {
-				latitude,
-				longitude,
-				source,
-				targetAssetIDs,
-				shouldSkipPendingLocation,
-				sourceLabel,
-				isAlreadyApplied
-			} = options;
 			pushUndo(captureSnapshot());
 			const selectedAssetIDs = selectedAssetsRef.current.map(asset => asset.immichID);
-			const nextAssetIDs = buildTargetAssetIDs(targetAssetIDs, selectedAssetIDs);
-			const nextPendingLocation = createPendingLocation(
-				latitude,
-				longitude,
-				source,
-				sourceLabel,
-				isAlreadyApplied
-			);
-			if (shouldSkipPendingLocation) {
+			const nextAssetIDs = buildTargetAssetIDs(options.targetAssetIDs, selectedAssetIDs);
+			const nextPendingLocation = createPendingLocation(options);
+			if (options.shouldSkipPendingLocation) {
 				setPendingLocation(null);
 			} else {
 				setPendingLocation(nextPendingLocation);
@@ -258,24 +246,9 @@ export function useSelectionState(): TUseSelectionStateReturn {
 				return next;
 			});
 			if (nextAssetIDs.length > 0) {
-				setPendingLocationsByAssetID(prev => {
-					const next = {...prev};
-					for (const assetID of nextAssetIDs) {
-						const existing = prev[assetID];
-						if (existing?.source === 'gpx-import') {
-							next[assetID] = createPendingLocation(
-								latitude,
-								longitude,
-								'gpx-import',
-								existing.sourceLabel,
-								isAlreadyApplied
-							);
-						} else {
-							next[assetID] = nextPendingLocation;
-						}
-					}
-					return next;
-				});
+				setPendingLocationsByAssetID(prev =>
+					buildNextPendingLocations(prev, nextAssetIDs, nextPendingLocation, options)
+				);
 			}
 			setError(null);
 		},

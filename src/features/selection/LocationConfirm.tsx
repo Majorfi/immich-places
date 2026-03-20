@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {SAVE_LOCATION_ERROR_MESSAGE} from '@/features/selection/constant';
+import {hasGPXPendingEntries, matchesGPXStatusFilter} from '@/features/selection/selectionStateHelpers';
 import {useSelection} from '@/shared/context/AppContext';
 import {LOCATION_CONFIRM_COORDINATES_DECIMALS} from '@/utils/locationAssignment';
 
@@ -28,7 +29,8 @@ export function LocationConfirm(): ReactElement | null {
 		undoLocationAction,
 		redoLocationAction,
 		canUndoLocation,
-		canRedoLocation
+		canRedoLocation,
+		gpxStatusFilter
 	} = useSelection();
 	const [localSaveError, setLocalSaveError] = useState<string | null>(null);
 
@@ -48,12 +50,22 @@ export function LocationConfirm(): ReactElement | null {
 	const pendingImageCount = pendingAssetIDs.length;
 	const selectedImageCount = selectedAssets.length;
 	const isAllAlreadyApplied = allAlreadyAppliedGPXCount > 0 && pendingImageCount === 0;
-	const editedImageCount = pendingImageCount > 0 ? pendingImageCount : selectedImageCount;
-	let editedImageLabel = 'photos';
-	if (editedImageCount === 1) {
-		editedImageLabel = 'photo';
+	const filteredPendingCount = useMemo(() => {
+		const isGPXMode = hasGPXPendingEntries(pendingLocationsByAssetID);
+		if (!isGPXMode || gpxStatusFilter === 'all') {
+			return pendingImageCount;
+		}
+		return Object.values(pendingLocationsByAssetID).filter(loc => {
+			if (loc.source !== 'gpx-import' || loc.isAlreadyApplied) {
+				return false;
+			}
+			return matchesGPXStatusFilter(gpxStatusFilter, false, loc.hasExistingLocation);
+		}).length;
+	}, [pendingLocationsByAssetID, gpxStatusFilter, pendingImageCount]);
+	let editedImageCount = selectedImageCount;
+	if (filteredPendingCount > 0) {
+		editedImageCount = filteredPendingCount;
 	}
-
 	const visibleError = saveError || localSaveError;
 	const referencePendingLocation = useMemo<TPendingLocation | null>(() => {
 		if (pendingLocation) {
@@ -193,7 +205,7 @@ export function LocationConfirm(): ReactElement | null {
 				<span className={'block truncate text-[0.8125rem] font-medium'}>
 					{editedImageCount}
 					{' edited image'}
-					{editedImageLabel === 'photos' ? 's' : ''}
+					{editedImageCount !== 1 && 's'}
 				</span>
 				<span className={'block font-mono text-[0.75rem] text-(--color-text-secondary)'}>
 					{referenceCoordinateLabel}
@@ -262,7 +274,8 @@ export function LocationConfirm(): ReactElement | null {
 					}
 					onClick={handleSave}
 					disabled={shouldDisableSave}>
-					{isSaving ? 'Saving...' : 'Save Location'}
+					{isSaving && 'Saving...'}
+					{!isSaving && 'Save Location'}
 				</button>
 			</div>
 		</div>

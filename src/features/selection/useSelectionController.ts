@@ -5,6 +5,7 @@ import {useCallback, useState} from 'react';
 import {useLocationAssignment} from '@/features/selection/useLocationAssignment';
 
 import type {TSelectionController} from '@/shared/types/context';
+import type {TGPXStatusFilter} from '@/shared/types/map';
 
 /**
  * Dependencies for building a selection controller instance.
@@ -28,13 +29,7 @@ export function useSelectionController({
 	onBatchSavedAction
 }: TSelectionControllerArgs): TSelectionController {
 	const [mapMarkersVersion, setMapMarkersVersion] = useState(0);
-
-	const handleSaved = useCallback(
-		(assetID: string) => {
-			onAssetSavedAction(assetID);
-		},
-		[onAssetSavedAction]
-	);
+	const [gpxStatusFilter, setGPXStatusFilterAction] = useState<TGPXStatusFilter>('all');
 
 	const handleBatchSaved = useCallback(async () => {
 		await onBatchSavedAction();
@@ -62,7 +57,7 @@ export function useSelectionController({
 		canRedoLocation,
 		beginLocationBatch,
 		endLocationBatch
-	} = useLocationAssignment(handleSaved, handleBatchSaved);
+	} = useLocationAssignment(onAssetSavedAction, handleBatchSaved);
 
 	const bumpMapMarkers = useCallback(() => setMapMarkersVersion(v => v + 1), []);
 
@@ -88,6 +83,8 @@ export function useSelectionController({
 		beginLocationBatch,
 		endLocationBatch,
 		mapMarkersVersion,
-		bumpMapMarkers
+		bumpMapMarkers,
+		gpxStatusFilter,
+		setGPXStatusFilterAction
 	};
 }
