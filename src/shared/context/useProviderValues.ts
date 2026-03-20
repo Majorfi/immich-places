@@ -142,7 +142,9 @@ export function useSelectionValue(input: TSelectionContextValue): TSelectionCont
 			canUndoLocation: input.canUndoLocation,
 			canRedoLocation: input.canRedoLocation,
 			beginLocationBatch: input.beginLocationBatch,
-			endLocationBatch: input.endLocationBatch
+			endLocationBatch: input.endLocationBatch,
+			gpxStatusFilter: input.gpxStatusFilter,
+			setGPXStatusFilterAction: input.setGPXStatusFilterAction
 		}),
 		[
 			input.selectedAssets,
@@ -164,7 +166,9 @@ export function useSelectionValue(input: TSelectionContextValue): TSelectionCont
 			input.canUndoLocation,
 			input.canRedoLocation,
 			input.beginLocationBatch,
-			input.endLocationBatch
+			input.endLocationBatch,
+			input.gpxStatusFilter,
+			input.setGPXStatusFilterAction
 		]
 	);
 }

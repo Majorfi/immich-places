@@ -46,7 +46,14 @@ export function PhotoListContainer(): ReactElement {
 		loadPageAction
 	} = useCatalog();
 	const {mapMarkerCount} = useAuth();
-	const {clearSelectionAction, selectedAssets, pendingLocation, pendingLocationsByAssetID} = useSelection();
+	const {
+		clearSelectionAction,
+		selectedAssets,
+		pendingLocation,
+		pendingLocationsByAssetID,
+		gpxStatusFilter,
+		setGPXStatusFilterAction
+	} = useSelection();
 	const {closeLightboxAction} = useUIMap();
 
 	const {
@@ -55,6 +62,7 @@ export function PhotoListContainer(): ReactElement {
 		error: gpxError,
 		previews: gpxPreviews,
 		uploadAndPreview: gpxUploadAndPreview,
+		setPreviews: gpxSetPreviews,
 		reset: gpxReset
 	} = useGPXImportContext();
 
@@ -172,6 +180,7 @@ export function PhotoListContainer(): ReactElement {
 	let gpxImportProp:
 		| {
 				uploadAndPreview: (files: File[], maxGapSeconds?: number) => Promise<void>;
+				setPreviews: (previews: typeof gpxPreviews) => void;
 				isLoading: boolean;
 				error: string | null;
 		  }
@@ -179,6 +188,7 @@ export function PhotoListContainer(): ReactElement {
 	if (!isGPXPanelActive) {
 		gpxImportProp = {
 			uploadAndPreview: gpxUploadAndPreview,
+			setPreviews: gpxSetPreviews,
 			isLoading: isGPXLoading,
 			error: gpxError
 		};
@@ -187,7 +197,6 @@ export function PhotoListContainer(): ReactElement {
 	return (
 		<PhotoList
 			backend={{
-				health,
 				isSyncing,
 				syncError,
 				onResyncAction: resyncAction
@@ -217,10 +226,11 @@ export function PhotoListContainer(): ReactElement {
 				onDateRangeAction: setDateRangeAction,
 				onGPXResetAction: handleGPXAutoReset,
 				onGPXCancelAction: handleGPXCancel,
-				trailingAction: <UserMenu gpxImport={gpxImportProp} />
+				trailingAction: <UserMenu gpxImport={gpxImportProp} />,
+				gpxStatusFilter,
+				onGPXStatusFilterAction: setGPXStatusFilterAction
 			}}
 			catalog={{
-				albums,
 				assets,
 				total,
 				currentPage,
@@ -230,7 +240,7 @@ export function PhotoListContainer(): ReactElement {
 				assetsError,
 				onLoadPageAction: handleLoadPageAction,
 				onSelectAlbumAction: handleSelectAlbum,
-				onRetrySyncAction: async () => resyncAction()
+				onRetrySyncAction: resyncAction
 			}}
 			selection={{
 				selectedIDs,

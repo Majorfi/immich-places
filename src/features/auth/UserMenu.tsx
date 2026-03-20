@@ -9,10 +9,12 @@ import {GPXImportDialog} from '@/features/gpxImport/GPXImportDialog';
 import {LibrarySettingsDialog} from '@/features/librarySettings/LibrarySettingsDialog';
 import {useBackend} from '@/shared/context/AppContext';
 
+import type {TGPXPreviewResponse} from '@/features/gpxImport/gpxImportTypes';
 import type {ReactElement} from 'react';
 
 type TGPXImportProps = {
 	uploadAndPreview: (files: File[], maxGapSeconds?: number) => Promise<void>;
+	setPreviews: (previews: TGPXPreviewResponse[]) => void;
 	isLoading: boolean;
 	error: string | null;
 };
@@ -22,7 +24,7 @@ type TUserMenuProps = {
 };
 
 export function UserMenu({gpxImport}: TUserMenuProps): ReactElement | null {
-	const {user, hasLibraries, logout} = useAuth();
+	const {user, hasLibraries, hasDawarichCredentials, logout} = useAuth();
 	const {refreshDataAction, resyncAction, fullResyncAction, clearCatalogAction, isSyncing} = useBackend();
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
@@ -94,7 +96,7 @@ export function UserMenu({gpxImport}: TUserMenuProps): ReactElement | null {
 							className={
 								'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text)'
 							}>
-							{'Import GPX'}
+							{'Import Tracks'}
 						</button>
 					)}
 					<button
@@ -105,7 +107,7 @@ export function UserMenu({gpxImport}: TUserMenuProps): ReactElement | null {
 						className={
 							'w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-(--color-text-secondary) hover:bg-(--color-hover) hover:text-(--color-text)'
 						}>
-						{'API Key'}
+						{'API Keys'}
 					</button>
 					<button
 						disabled={isSyncing}
@@ -133,7 +135,7 @@ export function UserMenu({gpxImport}: TUserMenuProps): ReactElement | null {
 			<APIKeyDialog
 				isOpen={isAPIKeyDialogOpen}
 				onClose={() => setIsAPIKeyDialogOpen(false)}
-				onSuccess={() => {
+				onImmichSuccess={() => {
 					clearCatalogAction();
 					resyncAction();
 				}}
@@ -148,8 +150,11 @@ export function UserMenu({gpxImport}: TUserMenuProps): ReactElement | null {
 					isOpen={isGPXImportDialogOpen}
 					onClose={() => setIsGPXImportDialogOpen(false)}
 					uploadAndPreview={gpxImport.uploadAndPreview}
+					setPreviews={gpxImport.setPreviews}
 					isLoading={gpxImport.isLoading}
 					error={gpxImport.error}
+					hasDawarichCredentials={hasDawarichCredentials}
+					onOpenAPIKeys={() => setIsAPIKeyDialogOpen(true)}
 				/>
 			)}
 		</div>

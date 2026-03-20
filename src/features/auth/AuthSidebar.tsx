@@ -6,7 +6,6 @@ import {useEffect, useState} from 'react';
 import {APIKeySetup} from '@/features/auth/APIKeySetup';
 import {getAuthStatus} from '@/features/auth/authApi';
 import {useAuth} from '@/features/auth/AuthContext';
-import {getErrorMessage} from '@/utils/error';
 import {AUTH_INPUT_CLASS, MINIMUM_PASSWORD_LENGTH} from '@/features/auth/constant';
 
 import type {ChangeEvent, InputHTMLAttributes, ReactElement, ReactNode} from 'react';
@@ -44,7 +43,6 @@ export function AuthSidebar(): ReactElement {
 function AuthForms(): ReactElement {
 	const [view, setView] = useState<TAuthView>('login');
 	const [isRegistrationEnabled, setIsRegistrationEnabled] = useState(false);
-	const [authStatusError, setAuthStatusError] = useState<string | null>(null);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -54,14 +52,12 @@ function AuthForms(): ReactElement {
 					return;
 				}
 				setIsRegistrationEnabled(status.registrationEnabled);
-				setAuthStatusError(null);
 			})
-			.catch(error => {
+			.catch(() => {
 				if (controller.signal.aborted) {
 					return;
 				}
 				setIsRegistrationEnabled(false);
-				setAuthStatusError(getErrorMessage(error, 'Failed to load auth status'));
 			});
 
 		return () => {
@@ -77,7 +73,6 @@ function AuthForms(): ReactElement {
 		<LoginForm
 			onSwitchToRegisterAction={() => setView('register')}
 			registrationEnabled={isRegistrationEnabled}
-			authStatusError={authStatusError}
 		/>
 	);
 }
@@ -87,7 +82,6 @@ function AuthForms(): ReactElement {
  *
  * @param onSwitchToRegisterAction - Shows registration form when invoked.
  * @param registrationEnabled - Whether registration is currently supported by the backend.
- * @param authStatusError - Optional backend status error to surface under submit controls.
  * @returns Rendered login form.
  */
 function LoginForm({
@@ -96,12 +90,9 @@ function LoginForm({
 }: {
 	onSwitchToRegisterAction: () => void;
 	registrationEnabled: boolean;
-	authStatusError: string | null;
 }): ReactElement {
 	const {login, error} = useAuth();
-	const [email, setEmail] = useState(() => {
-		return '';
-	});
+	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -143,7 +134,8 @@ function LoginForm({
 					className={
 						'cursor-pointer rounded-lg border-0 bg-(--color-primary) py-2 text-sm font-medium text-white disabled:opacity-50'
 					}>
-					{isSubmitting ? 'Signing in...' : 'Sign in'}
+					{isSubmitting && 'Signing in...'}
+					{!isSubmitting && 'Sign in'}
 				</button>
 				<button
 					type={'button'}
@@ -229,7 +221,8 @@ function RegisterForm({onSwitchToLoginAction}: {onSwitchToLoginAction: () => voi
 					className={
 						'cursor-pointer rounded-lg border-0 bg-(--color-primary) py-2 text-sm font-medium text-white disabled:opacity-50'
 					}>
-					{isSubmitting ? 'Creating account...' : 'Create account'}
+					{isSubmitting && 'Creating account...'}
+					{!isSubmitting && 'Create account'}
 				</button>
 				<button
 					type={'button'}

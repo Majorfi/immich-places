@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 
 import {searchPlacesFromNominatim} from '@/features/search/nominatim';
+import {getErrorMessage} from '@/utils/error';
 import {
 	DEFAULT_GEOCODE_RESULT_LIMIT,
 	GEOCODE_QUERY_MAX_LENGTH,
@@ -8,7 +9,6 @@ import {
 	GEOCODE_UPSTREAM_TIMEOUT_MS,
 	GEOCODE_URL
 } from '@/utils/geocoding';
-import {getErrorMessage} from '@/utils/error';
 import {hasControlChars} from '@/utils/string';
 
 import type {TNominatimResult} from '@/shared/types/nominatim';

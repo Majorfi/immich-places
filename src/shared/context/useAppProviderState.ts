@@ -131,6 +131,8 @@ export function useAppProviderState(): TAppProviderState {
 		canRedoLocation,
 		beginLocationBatch,
 		endLocationBatch,
+		gpxStatusFilter,
+		setGPXStatusFilterAction,
 		mapMarkersVersion,
 		bumpMapMarkers
 	} = useSelectionController({onAssetSavedAction, onBatchSavedAction});
@@ -254,7 +256,9 @@ export function useAppProviderState(): TAppProviderState {
 		canUndoLocation,
 		canRedoLocation,
 		beginLocationBatch,
-		endLocationBatch
+		endLocationBatch,
+		gpxStatusFilter,
+		setGPXStatusFilterAction
 	});
 
 	const uiMapValue = useUIMapValue({
