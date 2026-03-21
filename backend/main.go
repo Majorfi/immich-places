@@ -43,7 +43,7 @@ func main() {
 	log.Printf("Geocode provider: %s (timeout: %v)", cfg.GeocodeProvider, geocodeTimeout)
 	syncService := newSyncService(db, immichFactory, geocoder)
 	suggestions := newSuggestionService(db)
-	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation)
+	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation, geocoder)
 	libraryHandlers := newLibraryHandlers(db, immichFactory, syncService)
 	authHandlers := newAuthHandlers(db, immichFactory, syncService, cfg.RegistrationEnabled, !cfg.AllowInsecure)
 	dawarichHandlers := newDawarichHandlers(db, cfg.DawarichURL, cfg.defaultTimezoneLocation)
@@ -83,6 +83,7 @@ func main() {
 	protectedMux.HandleFunc("DELETE /dawarich/settings", dawarichHandlers.handleDeleteDawarichSettings)
 	protectedMux.HandleFunc("GET /dawarich/tracks", dawarichHandlers.handleDawarichTracks)
 	protectedMux.HandleFunc("POST /dawarich/preview", dawarichHandlers.handleDawarichPreview)
+	protectedMux.HandleFunc("GET /geocode/search", handlers.handleGeocodeSearch)
 
 	mainMux := http.NewServeMux()
 	mainMux.HandleFunc("GET /health", handlers.handleHealth)

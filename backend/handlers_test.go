@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -32,7 +33,7 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db)
-	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil)
+	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil, newNominatimClient(10*time.Second))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handlers.handleHealth)
@@ -341,7 +342,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db)
-	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil)
+	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil, newNominatimClient(10*time.Second))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handlers.handleHealth)
@@ -991,5 +992,133 @@ func TestAlbumsEndpointReturnsEmptyList(t *testing.T) {
 	json.NewDecoder(rec.Body).Decode(&albums)
 	if len(albums) != 0 {
 		t.Errorf("expected 0 albums, got %d", len(albums))
+	}
+}
+
+type mockGeocoder struct {
+	forwardResults []SearchResult
+	forwardErr     error
+	callCount      int
+}
+
+func (m *mockGeocoder) ReverseGeocode(_ context.Context, _, _ float64) (string, error) {
+	return "Mock Location", nil
+}
+
+func (m *mockGeocoder) ForwardSearch(_ context.Context, _ string, _ int, _ string) ([]SearchResult, error) {
+	m.callCount++
+	return m.forwardResults, m.forwardErr
+}
+
+func newGeocodeSearchMux(geocoder GeocodeProvider) *http.ServeMux {
+	h := &Handlers{geocoder: geocoder}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /geocode/search", h.handleGeocodeSearch)
+	return mux
+}
+
+func TestGeocodeSearchSuccess(t *testing.T) {
+	mock := &mockGeocoder{
+		forwardResults: []SearchResult{
+			{PlaceID: 1, Lat: "48.85", Lon: "2.35", DisplayName: "Paris", Type: "city"},
+		},
+	}
+	mux := newGeocodeSearchMux(mock)
+
+	req := withTestUser(httptest.NewRequest("GET", "/geocode/search?q=Paris", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	var results []SearchResult
+	json.NewDecoder(rec.Body).Decode(&results)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].DisplayName != "Paris" {
+		t.Errorf("expected Paris, got %s", results[0].DisplayName)
+	}
+	if rec.Header().Get("Cache-Control") != "private, no-store, max-age=0" {
+		t.Errorf("expected no-cache header, got %s", rec.Header().Get("Cache-Control"))
+	}
+}
+
+func TestGeocodeSearchEmptyResults(t *testing.T) {
+	mock := &mockGeocoder{forwardResults: nil}
+	mux := newGeocodeSearchMux(mock)
+
+	req := withTestUser(httptest.NewRequest("GET", "/geocode/search?q=xyznonexistent", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var results []SearchResult
+	json.NewDecoder(rec.Body).Decode(&results)
+	if len(results) != 0 {
+		t.Errorf("expected 0 results, got %d", len(results))
+	}
+}
+
+func TestGeocodeSearchQueryTooShort(t *testing.T) {
+	mock := &mockGeocoder{}
+	mux := newGeocodeSearchMux(mock)
+
+	req := withTestUser(httptest.NewRequest("GET", "/geocode/search?q=a", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if mock.callCount != 0 {
+		t.Errorf("expected no geocoder calls, got %d", mock.callCount)
+	}
+}
+
+func TestGeocodeSearchMissingQuery(t *testing.T) {
+	mock := &mockGeocoder{}
+	mux := newGeocodeSearchMux(mock)
+
+	req := withTestUser(httptest.NewRequest("GET", "/geocode/search", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestGeocodeSearchControlCharsRejected(t *testing.T) {
+	mock := &mockGeocoder{}
+	mux := newGeocodeSearchMux(mock)
+
+	req := withTestUser(httptest.NewRequest("GET", "/geocode/search?q=Paris%00injected", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestGeocodeSearchProviderError(t *testing.T) {
+	mock := &mockGeocoder{forwardErr: fmt.Errorf("upstream failure")}
+	mux := newGeocodeSearchMux(mock)
+
+	req := withTestUser(httptest.NewRequest("GET", "/geocode/search?q=Paris", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("expected 502, got %d", rec.Code)
+	}
+	if mock.callCount != 2 {
+		t.Errorf("expected 2 calls (initial + retry), got %d", mock.callCount)
 	}
 }

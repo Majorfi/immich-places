@@ -12,10 +12,11 @@ const (
 	hereReverseURL      = "https://revgeocode.search.hereapi.com/v1/revgeocode"
 )
 
-// GeocodeProvider abstracts reverse geocoding so different services
+// GeocodeProvider abstracts geocoding so different services
 // (Nominatim, HERE, ...) can be swapped via configuration.
 type GeocodeProvider interface {
 	ReverseGeocode(ctx context.Context, lat, lon float64) (string, error)
+	ForwardSearch(ctx context.Context, query string, limit int, lang string) ([]SearchResult, error)
 }
 
 // fallbackGeocoder tries the primary provider first; if the result looks like
@@ -29,15 +30,39 @@ type fallbackGeocoder struct {
 func (f *fallbackGeocoder) ReverseGeocode(ctx context.Context, lat, lon float64) (string, error) {
 	label, err := f.primary.ReverseGeocode(ctx, lat, lon)
 	if err != nil {
+		log.Printf("[geocode] Reverse geocode: Nominatim failed, trying HERE: %v", err)
 		return f.secondary.ReverseGeocode(ctx, lat, lon)
 	}
 	if isWeakResult(label, lat, lon) {
-		better, err := f.secondary.ReverseGeocode(ctx, lat, lon)
-		if err == nil && !isWeakResult(better, lat, lon) {
+		better, secErr := f.secondary.ReverseGeocode(ctx, lat, lon)
+		if secErr != nil {
+			log.Printf("[geocode] Reverse geocode: HERE failed: %v", secErr)
+			return label, nil
+		}
+		if !isWeakResult(better, lat, lon) {
 			return better, nil
 		}
 	}
 	return label, nil
+}
+
+func (f *fallbackGeocoder) ForwardSearch(ctx context.Context, query string, limit int, lang string) ([]SearchResult, error) {
+	results, err := f.primary.ForwardSearch(ctx, query, limit, lang)
+	if err != nil {
+		log.Printf("[geocode] Forward search: Nominatim failed, trying HERE: %v", err)
+		return f.secondary.ForwardSearch(ctx, query, limit, lang)
+	}
+	if len(results) == 0 {
+		log.Printf("[geocode] Forward search: Nominatim returned 0 results for %q, trying HERE", query)
+		fallbackResults, fallbackErr := f.secondary.ForwardSearch(ctx, query, limit, lang)
+		if fallbackErr != nil {
+			return nil, fallbackErr
+		}
+		log.Printf("[geocode] Forward search: HERE returned %d results for %q", len(fallbackResults), query)
+		return fallbackResults, nil
+	}
+	log.Printf("[geocode] Forward search: Nominatim returned %d results", len(results))
+	return results, nil
 }
 
 // isWeakResult returns true when the geocode label is just formatted
@@ -65,7 +90,7 @@ func newGeocodeProvider(provider, apiKey string, timeout time.Duration) GeocodeP
 	case "nominatim", "":
 		return newNominatimClient(timeout)
 	default:
-		log.Printf("Unknown GEOCODE_PROVIDER %q, falling back to nominatim", provider)
-		return newNominatimClient(timeout)
+		log.Fatalf("Unknown GEOCODE_PROVIDER %q — supported: nominatim, here", provider)
+		return nil
 	}
 }

@@ -45,6 +45,7 @@ type Handlers struct {
 	syncService       *SyncService
 	suggestions       *SuggestionService
 	defaultTimezone   *time.Location
+	geocoder          GeocodeProvider
 }
 
 func parseAssetID(r *http.Request) (string, error) {
@@ -68,7 +69,7 @@ func proxyImmichImage(w http.ResponseWriter, resp *http.Response) {
 	}
 }
 
-func newHandlers(db HandlerStore, immichFactory *ImmichClientFactory, immichExternalURL string, syncService *SyncService, suggestions *SuggestionService, defaultTimezone *time.Location) *Handlers {
+func newHandlers(db HandlerStore, immichFactory *ImmichClientFactory, immichExternalURL string, syncService *SyncService, suggestions *SuggestionService, defaultTimezone *time.Location, geocoder GeocodeProvider) *Handlers {
 	return &Handlers{
 		db:                db,
 		immichFactory:     immichFactory,
@@ -76,6 +77,7 @@ func newHandlers(db HandlerStore, immichFactory *ImmichClientFactory, immichExte
 		syncService:       syncService,
 		suggestions:       suggestions,
 		defaultTimezone:   defaultTimezone,
+		geocoder:          geocoder,
 	}
 }
 
@@ -107,6 +109,62 @@ func (h *Handlers) handleHealth(w http.ResponseWriter, r *http.Request) {
 		ImmichURL:   h.immichExternalURL,
 		SyncVersion: syncVersion,
 	})
+}
+
+func (h *Handlers) handleGeocodeSearch(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if len(query) < 2 || len(query) > 200 {
+		writeError(w, http.StatusBadRequest, "query must be 2-200 characters")
+		return
+	}
+	for _, c := range query {
+		if c < 0x20 && c != '\t' {
+			writeError(w, http.StatusBadRequest, "query contains invalid characters")
+			return
+		}
+	}
+
+	limit, err := queryInt(r, "limit", 5)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if limit < 1 || limit > 10 {
+		limit = 5
+	}
+
+	lang := r.Header.Get("Accept-Language")
+
+	ctx := r.Context()
+	results, err := h.geocoder.ForwardSearch(ctx, query, limit, lang)
+	if err != nil {
+		log.Printf("Forward search failed, retrying: %v", err)
+		retryTimer := time.NewTimer(500 * time.Millisecond)
+		defer retryTimer.Stop()
+		select {
+		case <-retryTimer.C:
+		case <-ctx.Done():
+			writeError(w, http.StatusGatewayTimeout, "geocode request timed out")
+			return
+		}
+		results, err = h.geocoder.ForwardSearch(ctx, query, limit, lang)
+	}
+	if err != nil {
+		log.Printf("Forward search retry failed: %v", err)
+		if ctx.Err() != nil {
+			writeError(w, http.StatusGatewayTimeout, "geocode request timed out")
+			return
+		}
+		writeError(w, http.StatusBadGateway, "geocode provider request failed")
+		return
+	}
+
+	if results == nil {
+		results = []SearchResult{}
+	}
+
+	w.Header().Set("Cache-Control", "private, no-store, max-age=0")
+	writeJSON(w, http.StatusOK, results)
 }
 
 func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
@@ -236,6 +294,19 @@ func (h *Handlers) handleGetAlbums(w http.ResponseWriter, r *http.Request) {
 	gpsFilter := r.URL.Query().Get("gpsFilter")
 	startDate := r.URL.Query().Get("startDate")
 	endDate := r.URL.Query().Get("endDate")
+
+	if startDate != "" {
+		if _, err := time.Parse("2006-01-02", startDate); err != nil {
+			writeError(w, http.StatusBadRequest, "startDate must be a valid date (YYYY-MM-DD)")
+			return
+		}
+	}
+	if endDate != "" {
+		if _, err := time.Parse("2006-01-02", endDate); err != nil {
+			writeError(w, http.StatusBadRequest, "endDate must be a valid date (YYYY-MM-DD)")
+			return
+		}
+	}
 
 	var albums []AlbumRow
 	var err error
