@@ -34,9 +34,10 @@ func (n *NominatimClient) ForwardSearch(ctx context.Context, query string, limit
 		return nil, fmt.Errorf("Nominatim request build: %w", err)
 	}
 	req.Header.Set("User-Agent", "ImmichPlaces/1.0")
-	if lang != "" {
-		req.Header.Set("Accept-Language", lang)
+	if lang == "" {
+		lang = "en"
 	}
+	req.Header.Set("Accept-Language", lang)
 
 	resp, err := n.httpClient.Do(req)
 	if err != nil {
@@ -44,6 +45,10 @@ func (n *NominatimClient) ForwardSearch(ctx context.Context, query string, limit
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		n.adaptRateLimiter(resp)
+		return nil, fmt.Errorf("Nominatim rate limited (429)")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Nominatim search returned status %d", resp.StatusCode)
 	}
@@ -83,9 +88,10 @@ func (h *HereClient) ForwardSearch(ctx context.Context, query string, limit int,
 	params.Set("q", query)
 	params.Set("limit", strconv.Itoa(limit))
 	params.Set("apiKey", h.apiKey)
-	if lang != "" {
-		params.Set("lang", lang)
+	if lang == "" {
+		lang = "en"
 	}
+	params.Set("lang", lang)
 
 	reqURL := hereForwardURL + "?" + params.Encode()
 
@@ -100,6 +106,9 @@ func (h *HereClient) ForwardSearch(ctx context.Context, query string, limit int,
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, fmt.Errorf("HERE API rate limited (429)")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HERE search returned status %d", resp.StatusCode)
 	}

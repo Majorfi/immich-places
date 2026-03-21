@@ -11,7 +11,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// HereClient implements GeocodeProvider using the HERE Geocoding & Search API v1.
+const hereReverseURL = "https://revgeocode.search.hereapi.com/v1/revgeocode"
+
 type HereClient struct {
 	apiKey     string
 	httpClient *http.Client
@@ -29,8 +30,6 @@ func newHereClient(apiKey string, timeout time.Duration) *HereClient {
 	}
 }
 
-// hereReverseResponse models the relevant fields from
-// GET https://revgeocode.search.hereapi.com/v1/revgeocode
 type hereReverseResponse struct {
 	Items []struct {
 		Title   string `json:"title"`
