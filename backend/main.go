@@ -39,8 +39,12 @@ func main() {
 
 	immichFactory := newImmichClientFactory(cfg.ImmichURL)
 	geocodeTimeout := time.Duration(cfg.GeocodeTimeoutSecs) * time.Second
-	geocoder := newGeocodeProvider(cfg.GeocodeProvider, cfg.GeocodeAPIKey, geocodeTimeout)
-	log.Printf("Geocode provider: %s (timeout: %v)", cfg.GeocodeProvider, geocodeTimeout)
+	geocoder := newGeocodeProvider(cfg.GeocodeProvider, geocodeKeys{
+		here:   cfg.HereAPIKey,
+		google: cfg.GoogleAPIKey,
+		legacy: cfg.GeocodeAPIKey,
+	}, geocodeTimeout)
+	log.Printf("Geocode provider: %s (timeout: %v)", describeProvider(geocoder), geocodeTimeout)
 	syncService := newSyncService(db, immichFactory, geocoder)
 	suggestions := newSuggestionService(db)
 	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation, geocoder)
