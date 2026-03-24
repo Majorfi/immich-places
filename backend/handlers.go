@@ -65,7 +65,7 @@ func proxyImmichImage(w http.ResponseWriter, resp *http.Response) {
 	w.Header().Set("Cache-Control", "private, max-age=86400")
 	w.WriteHeader(resp.StatusCode)
 	if _, err := io.Copy(w, resp.Body); err != nil {
-		log.Printf("Failed to proxy image: %v", err)
+		log.Printf("[API] Failed to proxy image: %v", err)
 	}
 }
 
@@ -138,7 +138,7 @@ func (h *Handlers) handleGeocodeSearch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	results, err := h.geocoder.ForwardSearch(ctx, query, limit, lang)
 	if err != nil {
-		log.Printf("Forward search failed, retrying: %v", err)
+		log.Printf("[API] Forward search failed, retrying: %v", err)
 		retryTimer := time.NewTimer(500 * time.Millisecond)
 		defer retryTimer.Stop()
 		select {
@@ -150,7 +150,7 @@ func (h *Handlers) handleGeocodeSearch(w http.ResponseWriter, r *http.Request) {
 		results, err = h.geocoder.ForwardSearch(ctx, query, limit, lang)
 	}
 	if err != nil {
-		log.Printf("Forward search retry failed: %v", err)
+		log.Printf("[API] Forward search retry failed: %v", err)
 		if ctx.Err() != nil {
 			writeError(w, http.StatusGatewayTimeout, "geocode request timed out")
 			return
@@ -486,7 +486,7 @@ func (h *Handlers) handleUpdateLocation(w http.ResponseWriter, r *http.Request) 
 
 	err = h.resolveAndUpdateLocation(r.Context(), client, user.ID, assetID, *req.Latitude, *req.Longitude)
 	if err != nil {
-		log.Printf("Failed to update location for %s: %v", assetID, err)
+		log.Printf("[API] Failed to update location for %s: %v", assetID, err)
 		if errors.Is(err, errImmichUpdateFailed) {
 			writeError(w, http.StatusBadGateway, "failed to update location in Immich")
 		} else {
@@ -529,7 +529,7 @@ func (h *Handlers) handleUpdateHidden(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "asset not found")
 			return
 		}
-		log.Printf("Failed to update hidden state for %s: %v", assetID, err)
+		log.Printf("[API] Failed to update hidden state for %s: %v", assetID, err)
 		writeError(w, http.StatusInternalServerError, "failed to update hidden state")
 		return
 	}
@@ -569,7 +569,7 @@ func (h *Handlers) handleBulkUpdateHidden(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.db.bulkUpdateAssetHidden(r.Context(), user.ID, req.AssetIDs, *req.IsHidden); err != nil {
-		log.Printf("Failed to bulk update hidden state: %v", err)
+		log.Printf("[API] Failed to bulk update hidden state: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to update hidden state")
 		return
 	}
@@ -625,7 +625,7 @@ func (h *Handlers) handleGetSuggestions(w http.ResponseWriter, r *http.Request) 
 			writeError(w, http.StatusNotFound, "asset not found")
 			return
 		}
-		log.Printf("Failed to get suggestions: %v", err)
+		log.Printf("[API] Failed to get suggestions: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to get suggestions")
 		return
 	}
@@ -643,7 +643,7 @@ func (h *Handlers) handleGetFavoritePlaces(w http.ResponseWriter, r *http.Reques
 
 	places, err := h.db.getFavoritePlaces(ctx, user.ID)
 	if err != nil {
-		log.Printf("Failed to get favorite places: %v", err)
+		log.Printf("[API] Failed to get favorite places: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to get favorite places")
 		return
 	}
@@ -677,7 +677,7 @@ func (h *Handlers) handleAddFavoritePlace(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.db.addFavoritePlace(ctx, user.ID, *req.Latitude, *req.Longitude, req.DisplayName); err != nil {
-		log.Printf("Failed to add favorite place: %v", err)
+		log.Printf("[API] Failed to add favorite place: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to add favorite place")
 		return
 	}
@@ -707,7 +707,7 @@ func (h *Handlers) handleRemoveFavoritePlace(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.db.removeFavoritePlace(ctx, user.ID, *req.Latitude, *req.Longitude); err != nil {
-		log.Printf("Failed to remove favorite place: %v", err)
+		log.Printf("[API] Failed to remove favorite place: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to remove favorite place")
 		return
 	}
@@ -725,7 +725,7 @@ func (h *Handlers) handleGetFrequentLocations(w http.ResponseWriter, r *http.Req
 
 	freqLocs, err := h.db.getFrequentLocations(ctx, user.ID, frequentLocationsLimit)
 	if err != nil {
-		log.Printf("Failed to get frequent locations: %v", err)
+		log.Printf("[API] Failed to get frequent locations: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to get frequent locations")
 		return
 	}
@@ -774,7 +774,7 @@ func (h *Handlers) handleGetAssetPageInfo(w http.ResponseWriter, r *http.Request
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "asset not found")
 		} else {
-			log.Printf("Failed to get asset page info for %s: %v", assetID, err)
+			log.Printf("[API] Failed to get asset page info for %s: %v", assetID, err)
 			writeError(w, http.StatusInternalServerError, "failed to get asset page info")
 		}
 		return
@@ -823,11 +823,11 @@ func (h *Handlers) handleSyncStatus(w http.ResponseWriter, r *http.Request) {
 
 	lastSyncAt, errAt := h.db.getSyncState(ctx, user.ID, "lastSyncAt")
 	if errAt != nil {
-		log.Printf("Failed to read lastSyncAt for user %s: %v", user.ID, errAt)
+		log.Printf("[API] Failed to read lastSyncAt for user %s: %v", user.ID, errAt)
 	}
 	lastSyncError, errErr := h.db.getSyncState(ctx, user.ID, "lastSyncError")
 	if errErr != nil {
-		log.Printf("Failed to read lastSyncError for user %s: %v", user.ID, errErr)
+		log.Printf("[API] Failed to read lastSyncError for user %s: %v", user.ID, errErr)
 	}
 
 	writeJSON(w, http.StatusOK, SyncStatusResponse{
@@ -853,7 +853,7 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Failed to encode JSON response: %v", err)
+		log.Printf("[API] Failed to encode JSON response: %v", err)
 	}
 }
 

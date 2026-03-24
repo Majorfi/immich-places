@@ -12,14 +12,15 @@ import (
 type DawarichHandlers struct {
 	db              *Database
 	dawarichURL     string
+	dawarichSync    *DawarichSyncService
 	defaultTimezone *time.Location
 }
 
-func newDawarichHandlers(db *Database, dawarichURL string, defaultTimezone *time.Location) *DawarichHandlers {
-	return &DawarichHandlers{db: db, dawarichURL: dawarichURL, defaultTimezone: defaultTimezone}
+func newDawarichHandlers(db *Database, dawarichURL string, dawarichSync *DawarichSyncService, defaultTimezone *time.Location) *DawarichHandlers {
+	return &DawarichHandlers{db: db, dawarichURL: dawarichURL, dawarichSync: dawarichSync, defaultTimezone: defaultTimezone}
 }
 
-func decodeRequestBody(w http.ResponseWriter, r *http.Request, dst any, validationMessage string) bool {
+func decodeRequestBody(w http.ResponseWriter, r *http.Request, dst interface{}, validationMessage string) bool {
 	decoder := json.NewDecoder(io.LimitReader(r.Body, 4096))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(dst); err != nil {
@@ -33,24 +34,23 @@ func decodeRequestBody(w http.ResponseWriter, r *http.Request, dst any, validati
 	return true
 }
 
-func (h *DawarichHandlers) requireDawarichUser(w http.ResponseWriter, r *http.Request) (*UserRow, *DawarichClient, bool) {
+func (h *DawarichHandlers) requireDawarichUser(w http.ResponseWriter, r *http.Request) (*UserRow, bool) {
 	user := getUserFromContext(r)
 	if user == nil {
 		writeError(w, http.StatusUnauthorized, "not authenticated")
-		return nil, nil, false
+		return nil, false
 	}
 	if h.dawarichURL == "" || user.DawarichAPIKey == nil {
 		writeError(w, http.StatusBadRequest, "Dawarich credentials not configured")
-		return nil, nil, false
+		return nil, false
 	}
-	client := newDawarichClient(h.dawarichURL, *user.DawarichAPIKey)
-	return user, client, true
+	return user, true
 }
 
 func (h *DawarichHandlers) respondWithRefreshedUser(w http.ResponseWriter, r *http.Request, userID string, label string) {
 	updated, err := h.db.getUserByID(r.Context(), userID)
 	if err != nil || updated == nil {
-		log.Printf("%s: failed to refetch user: %v", label, err)
+		log.Printf("[Dawarich] %s: failed to refetch user: %v", label, err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -76,16 +76,18 @@ func (h *DawarichHandlers) handleDawarichSettings(w http.ResponseWriter, r *http
 
 	client := newDawarichClient(h.dawarichURL, req.APIKey)
 	if err := client.validateConnection(r.Context()); err != nil {
-		log.Printf("DawarichSettings: validation failed for user %s: %v", user.ID, err)
+		log.Printf("[Dawarich] Settings validation failed for user %s: %v", user.ID, err)
 		writeError(w, http.StatusBadRequest, "failed to connect to Dawarich, check your API key")
 		return
 	}
 
 	if err := h.db.updateDawarichAPIKey(r.Context(), user.ID, &req.APIKey); err != nil {
-		log.Printf("DawarichSettings: failed to save settings: %v", err)
+		log.Printf("[Dawarich] Failed to save settings: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to save settings")
 		return
 	}
+
+	h.dawarichSync.triggerUserSync(user.ID, req.APIKey)
 
 	h.respondWithRefreshedUser(w, r, user.ID, "DawarichSettings")
 }
@@ -97,33 +99,44 @@ func (h *DawarichHandlers) handleDeleteDawarichSettings(w http.ResponseWriter, r
 		return
 	}
 
+	h.dawarichSync.cancelUserSync(user.ID)
+
 	if err := h.db.updateDawarichAPIKey(r.Context(), user.ID, nil); err != nil {
-		log.Printf("DeleteDawarichSettings: failed to clear settings: %v", err)
+		log.Printf("[Dawarich] Failed to clear settings: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to clear settings")
 		return
+	}
+
+	if err := h.db.deleteDawarichData(r.Context(), user.ID); err != nil {
+		log.Printf("[Dawarich] Failed to delete data: %v", err)
 	}
 
 	h.respondWithRefreshedUser(w, r, user.ID, "DeleteDawarichSettings")
 }
 
 func (h *DawarichHandlers) handleDawarichTracks(w http.ResponseWriter, r *http.Request) {
-	user, client, ok := h.requireDawarichUser(w, r)
+	user, ok := h.requireDawarichUser(w, r)
 	if !ok {
 		return
 	}
 
-	tracks, err := client.listTracks(r.Context())
+	dbTracks, err := h.db.getDawarichTracks(r.Context(), user.ID)
 	if err != nil {
-		log.Printf("DawarichTracks: failed to list tracks for user %s: %v", user.ID, err)
-		writeError(w, http.StatusBadGateway, "failed to fetch tracks from Dawarich")
+		log.Printf("[Dawarich] Failed to query tracks for user %s: %v", user.ID, err)
+		writeError(w, http.StatusInternalServerError, "failed to load tracks")
 		return
+	}
+
+	tracks := make([]DawarichTrackListItem, 0, len(dbTracks))
+	for _, t := range dbTracks {
+		tracks = append(tracks, t.toListItem())
 	}
 
 	writeJSON(w, http.StatusOK, tracks)
 }
 
 func (h *DawarichHandlers) handleDawarichPreview(w http.ResponseWriter, r *http.Request) {
-	user, client, ok := h.requireDawarichUser(w, r)
+	user, ok := h.requireDawarichUser(w, r)
 	if !ok {
 		return
 	}
@@ -140,41 +153,38 @@ func (h *DawarichHandlers) handleDawarichPreview(w http.ResponseWriter, r *http.
 
 	finder, err := getTimezoneFinder()
 	if err != nil {
-		log.Printf("DawarichPreview: failed to init timezone finder: %v", err)
+		log.Printf("[Dawarich] Failed to init timezone finder: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to initialize timezone lookup")
 		return
 	}
 
-	var results []GPXPreviewResponse
+	pointsByTrack, err := h.db.getDawarichTrackPoints(r.Context(), user.ID, req.TrackIDs)
+	if err != nil {
+		log.Printf("[Dawarich] Failed to load track points for user %s: %v", user.ID, err)
+		writeError(w, http.StatusInternalServerError, "failed to load track points")
+		return
+	}
+
+	results := make([]GPXPreviewResponse, 0)
 
 	for _, trackID := range req.TrackIDs {
-		rawPoints, err := client.getTrackPoints(r.Context(), trackID)
-		if err != nil {
-			log.Printf("DawarichPreview: failed to fetch points for track %d: %v", trackID, err)
-			writeError(w, http.StatusBadGateway, fmt.Sprintf("failed to fetch points for track %d", trackID))
-			return
-		}
-
-		if len(rawPoints) < 2 {
+		dbPoints := pointsByTrack[trackID]
+		if len(dbPoints) < 2 {
 			continue
 		}
 
-		points, err := convertDawarichPointsToTrackPoints(rawPoints)
-		if err != nil {
-			log.Printf("DawarichPreview: failed to convert points for track %d: %v", trackID, err)
-			continue
+		points := make([]trackPoint, 0, len(dbPoints))
+		for _, p := range dbPoints {
+			points = append(points, trackPoint{
+				latitude:  p.Latitude,
+				longitude: p.Longitude,
+				elevation: float64(p.Altitude),
+				time:      time.Unix(int64(p.Timestamp), 0).UTC(),
+			})
 		}
 
 		midIdx := len(points) / 2
-		timezoneName := finder.GetTimezoneName(points[midIdx].longitude, points[midIdx].latitude)
-		trackTimezone, err := time.LoadLocation(timezoneName)
-		if err != nil {
-			if h.defaultTimezone != nil {
-				trackTimezone = h.defaultTimezone
-			} else {
-				trackTimezone = time.UTC
-			}
-		}
+		trackTimezone := resolveTimezone(finder, points[midIdx].longitude, points[midIdx].latitude, h.defaultTimezone)
 
 		trackStart := points[0].time
 		trackEnd := points[len(points)-1].time
@@ -184,7 +194,7 @@ func (h *DawarichHandlers) handleDawarichPreview(w http.ResponseWriter, r *http.
 
 		assets, err := h.db.getAssetsWithTimestamps(r.Context(), user.ID, true, timeStart, timeEnd)
 		if err != nil {
-			log.Printf("DawarichPreview: failed to query assets for track %d: %v", trackID, err)
+			log.Printf("[Dawarich] Failed to query assets for track %d: %v", trackID, err)
 			writeError(w, http.StatusInternalServerError, "failed to query assets")
 			return
 		}
@@ -200,9 +210,40 @@ func (h *DawarichHandlers) handleDawarichPreview(w http.ResponseWriter, r *http.
 		})
 	}
 
-	if results == nil {
-		results = []GPXPreviewResponse{}
+	writeJSON(w, http.StatusOK, results)
+}
+
+func (h *DawarichHandlers) handleDawarichSyncStatus(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.requireDawarichUser(w, r)
+	if !ok {
+		return
 	}
 
-	writeJSON(w, http.StatusOK, results)
+	syncing := h.dawarichSync.isUserSyncing(user.ID)
+
+	lastSyncAt, _ := h.db.getSyncState(r.Context(), user.ID, "lastDawarichSyncAt")
+	lastSyncError, _ := h.db.getSyncState(r.Context(), user.ID, "lastDawarichSyncError")
+
+	resp := DawarichSyncStatusResponse{
+		Syncing:       syncing,
+		LastSyncAt:    lastSyncAt,
+		LastSyncError: lastSyncError,
+	}
+
+	if progress, ok := h.dawarichSync.getProgress(user.ID); ok {
+		resp.CurrentTrack = &progress.currentTrack
+		resp.TotalTracks = &progress.totalTracks
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *DawarichHandlers) handleDawarichTriggerSync(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.requireDawarichUser(w, r)
+	if !ok {
+		return
+	}
+
+	status, _ := h.dawarichSync.triggerUserSync(user.ID, *user.DawarichAPIKey)
+	writeJSON(w, http.StatusOK, map[string]string{"status": status})
 }

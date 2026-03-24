@@ -27,12 +27,16 @@ func (e *ImmichHTTPError) Error() string {
 	return fmt.Sprintf("immich %s returned HTTP %d", e.Operation, e.StatusCode)
 }
 
-func newImmichClientFactory(baseURL string) *ImmichClientFactory {
+func newImmichClientFactory(baseURL string, debug bool) *ImmichClientFactory {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = 3
 	retryClient.RetryWaitMin = 500 * time.Millisecond
 	retryClient.RetryWaitMax = 5 * time.Second
-	retryClient.Logger = log.Default()
+	if debug {
+		retryClient.Logger = log.Default()
+	} else {
+		retryClient.Logger = nil
+	}
 
 	httpClient := retryClient.StandardClient()
 	httpClient.Timeout = 60 * time.Second

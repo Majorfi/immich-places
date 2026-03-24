@@ -13,7 +13,15 @@ export type TGPXStatusFilter = 'all' | 'alreadySet' | 'new' | 'edited';
 export type TPendingLocation = {
 	latitude: number;
 	longitude: number;
-	source: 'map-click' | 'search' | 'suggestion' | 'drag-drop' | 'marker-drag' | 'gpx-import' | 'go-to';
+	source:
+		| 'map-click'
+		| 'search'
+		| 'suggestion'
+		| 'drag-drop'
+		| 'marker-drag'
+		| 'gpx-import'
+		| 'go-to'
+		| 'remove-location';
 	sourceLabel?: string;
 	isAlreadyApplied?: boolean;
 	hasExistingLocation?: boolean;

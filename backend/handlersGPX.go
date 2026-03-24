@@ -60,22 +60,12 @@ func (h *Handlers) handleGPXPreview(w http.ResponseWriter, r *http.Request) {
 
 	finder, err := getTimezoneFinder()
 	if err != nil {
-		log.Printf("Failed to init timezone finder: %v", err)
+		log.Printf("[API] Failed to init timezone finder: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to initialize timezone lookup")
 		return
 	}
 	midIdx := len(gpx.points) / 2
-	timezoneName := finder.GetTimezoneName(gpx.points[midIdx].longitude, gpx.points[midIdx].latitude)
-	trackTimezone, err := time.LoadLocation(timezoneName)
-	if err != nil {
-		if h.defaultTimezone != nil {
-			log.Printf("Failed to load timezone %q, using DEFAULT_TIMEZONE %q: %v", timezoneName, h.defaultTimezone, err)
-			trackTimezone = h.defaultTimezone
-		} else {
-			log.Printf("Failed to load timezone %q, falling back to UTC: %v", timezoneName, err)
-			trackTimezone = time.UTC
-		}
-	}
+	trackTimezone := resolveTimezone(finder, gpx.points[midIdx].longitude, gpx.points[midIdx].latitude, h.defaultTimezone)
 
 	trackStart := gpx.points[0].time
 	trackEnd := gpx.points[len(gpx.points)-1].time
@@ -85,7 +75,7 @@ func (h *Handlers) handleGPXPreview(w http.ResponseWriter, r *http.Request) {
 
 	assets, err := h.db.getAssetsWithTimestamps(r.Context(), user.ID, includeGeotagged, timeStart, timeEnd)
 	if err != nil {
-		log.Printf("Failed to query timestamped assets for GPX matching: %v", err)
+		log.Printf("[API] Failed to query timestamped assets for GPX matching: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to query assets")
 		return
 	}

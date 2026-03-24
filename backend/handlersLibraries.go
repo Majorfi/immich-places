@@ -25,7 +25,7 @@ func newLibraryHandlers(db HandlerLibraryStore, immichFactory *ImmichClientFacto
 func (h *LibraryHandlers) hasLibraryAccess(ctx context.Context, userID string) bool {
 	hasAccess, err := h.db.getSyncState(ctx, userID, "hasLibraryAccess")
 	if err != nil {
-		log.Printf("Library access check: failed to get hasLibraryAccess for user %s: %v", userID, err)
+		log.Printf("[API] Library access check failed for user %s: %v", userID, err)
 	}
 	return hasAccess != nil && *hasAccess == "true"
 }

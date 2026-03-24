@@ -59,7 +59,7 @@ func (s *SuggestionService) getSuggestions(ctx context.Context, userID, assetID 
 
 	weeklyAssets, err := s.db.getSameDayAssets(ctx, userID, *dateRef, 168)
 	if err != nil {
-		log.Printf("Failed to get weekly assets: %v", err)
+		log.Printf("[Suggest] Failed to get weekly assets: %v", err)
 		weeklyAssets = nil
 	}
 
@@ -77,7 +77,7 @@ func (s *SuggestionService) getSuggestions(ctx context.Context, userID, assetID 
 
 	freqLocs, err := s.db.getFrequentLocations(ctx, userID, frequentLocationsLimit)
 	if err != nil {
-		log.Printf("Failed to get frequent locations: %v", err)
+		log.Printf("[Suggest] Failed to get frequent locations: %v", err)
 	} else {
 		for _, loc := range freqLocs {
 			response.FrequentLocations = append(response.FrequentLocations, LocationCluster{
@@ -106,7 +106,7 @@ func (s *SuggestionService) clusterAlbumAssets(ctx context.Context, userID, albu
 
 	assets, err := s.db.getGeolocatedAssetsByAlbum(ctx, userID, albumID)
 	if err != nil {
-		log.Printf("Failed to get geolocated album assets: %v", err)
+		log.Printf("[Suggest] Failed to get geolocated album assets: %v", err)
 		return nil
 	}
 

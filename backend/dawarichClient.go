@@ -123,7 +123,7 @@ func (c *DawarichClient) getTrackPoints(ctx context.Context, trackID int) ([]Daw
 		}
 		totalPages, err := strconv.Atoi(totalPagesStr)
 		if err != nil {
-			log.Printf("Dawarich: non-numeric X-Total-Pages header %q for track %d", totalPagesStr, trackID)
+			log.Printf("[Dawarich] Non-numeric X-Total-Pages header %q for track %d", totalPagesStr, trackID)
 			break
 		}
 		if page >= totalPages {

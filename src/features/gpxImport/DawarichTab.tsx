@@ -11,6 +11,9 @@ import type {ReactElement} from 'react';
 const buttonClass =
 	'h-7 w-full cursor-pointer rounded-md border-0 bg-(--color-primary) px-3 text-xs font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50';
 
+const secondaryButtonClass =
+	'h-7 w-full cursor-pointer rounded-md border border-(--color-border) bg-transparent px-3 text-xs font-medium text-(--color-text-secondary) hover:bg-(--color-bg-hover) disabled:cursor-not-allowed disabled:opacity-50';
+
 function LoadingSpinner(): ReactElement {
 	return (
 		<div className={'flex items-center justify-center'}>
@@ -37,17 +40,39 @@ function LoadingSpinner(): ReactElement {
 	);
 }
 
+function DawarichSyncingContent({
+	currentTrack,
+	totalTracks
+}: {
+	currentTrack: number | null;
+	totalTracks: number | null;
+}): ReactElement {
+	let label = 'Syncing tracks from Dawarich...';
+	if (currentTrack !== null && totalTracks !== null && totalTracks > 0) {
+		label = `Syncing track ${currentTrack}/${totalTracks}...`;
+	}
+
+	return (
+		<div className={'flex flex-1 flex-col items-center justify-center gap-3'}>
+			<LoadingSpinner />
+			<p className={'text-center text-xs text-(--color-text-secondary)'}>{label}</p>
+		</div>
+	);
+}
+
 function DawarichSyncContent({
 	trackCount,
 	isLoading,
 	error,
 	onPreview,
+	onRefresh,
 	maxGap
 }: {
 	trackCount: number;
 	isLoading: boolean;
 	error: string | null;
 	onPreview: (maxGapSeconds: number) => void;
+	onRefresh: () => void;
 	maxGap: number;
 }): ReactElement {
 	let trackNoun = 'tracks';
@@ -63,7 +88,16 @@ function DawarichSyncContent({
 			{isLoading && <LoadingSpinner />}
 
 			{!isLoading && trackCount === 0 && (
-				<p className={'text-center text-xs text-(--color-text-secondary)'}>{'No tracks found in Dawarich.'}</p>
+				<div className={'flex flex-col gap-3'}>
+					<p className={'text-center text-xs text-(--color-text-secondary)'}>
+						{'No tracks found in Dawarich.'}
+					</p>
+					<button
+						onClick={onRefresh}
+						className={secondaryButtonClass}>
+						{'Refresh Tracks'}
+					</button>
+				</div>
 			)}
 
 			{!isLoading && trackCount > 0 && (
@@ -73,6 +107,11 @@ function DawarichSyncContent({
 						onClick={() => onPreview(maxGap)}
 						className={buttonClass}>
 						{'Preview Matches'}
+					</button>
+					<button
+						onClick={onRefresh}
+						className={secondaryButtonClass}>
+						{'Refresh Tracks'}
 					</button>
 				</div>
 			)}
@@ -127,6 +166,10 @@ export function DawarichTab({
 		[dawarich.tracks, dawarich.preview, onPreviewReady, onClose] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
+	const handleRefresh = useCallback(() => {
+		void dawarich.refreshSync();
+	}, [dawarich.refreshSync]); // eslint-disable-line react-hooks/exhaustive-deps
+
 	if (dawarich.step === 'setup') {
 		return (
 			<div className={'flex flex-1 flex-col items-center justify-center'}>
@@ -149,12 +192,22 @@ export function DawarichTab({
 		);
 	}
 
+	if (dawarich.step === 'syncing') {
+		return (
+			<DawarichSyncingContent
+				currentTrack={dawarich.syncProgress?.currentTrack ?? null}
+				totalTracks={dawarich.syncProgress?.totalTracks ?? null}
+			/>
+		);
+	}
+
 	return (
 		<DawarichSyncContent
 			trackCount={dawarich.tracks.length}
 			isLoading={dawarich.isLoading}
 			error={dawarich.error}
 			onPreview={handlePreview}
+			onRefresh={handleRefresh}
 			maxGap={maxGap}
 		/>
 	);

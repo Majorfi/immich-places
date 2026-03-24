@@ -108,7 +108,7 @@ func (h *AuthHandlers) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	existing, err := h.db.getUserByEmail(r.Context(), req.Email)
 	if err != nil {
-		log.Printf("Register: DB error checking email: %v", err)
+		log.Printf("[Auth] Register DB error checking email: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -119,31 +119,31 @@ func (h *AuthHandlers) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost)
 	if err != nil {
-		log.Printf("Register: bcrypt error: %v", err)
+		log.Printf("[Auth] Register bcrypt error: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	userID := uuid.New().String()
 	if err := h.db.createUser(r.Context(), userID, req.Email, string(hash)); err != nil {
-		log.Printf("Register: failed to create user: %v", err)
+		log.Printf("[Auth] Register failed to create user: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if err := h.db.claimLegacyData(r.Context(), userID); err != nil {
-		log.Printf("Register: failed to claim legacy data: %v", err)
+		log.Printf("[Auth] Register failed to claim legacy data: %v", err)
 	}
 
 	if err := h.createSessionForUser(w, r, userID); err != nil {
-		log.Printf("Register: failed to create session: %v", err)
+		log.Printf("[Auth] Register failed to create session: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	markerCount, err := h.db.countMapMarkers(r.Context(), userID, "", nil)
 	if err != nil {
-		log.Printf("Register: failed to count map markers for user %s: %v", userID, err)
+		log.Printf("[Auth] Register failed to count map markers for user %s: %v", userID, err)
 	}
 	writeJSON(w, http.StatusCreated, TMeResponse{
 		User: UserRow{
@@ -172,7 +172,7 @@ func (h *AuthHandlers) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.db.getUserByEmail(r.Context(), req.Email)
 	if err != nil {
-		log.Printf("Login: DB error: %v", err)
+		log.Printf("[Auth] Login DB error: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -187,7 +187,7 @@ func (h *AuthHandlers) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.createSessionForUser(w, r, user.ID); err != nil {
-		log.Printf("Login: failed to create session: %v", err)
+		log.Printf("[Auth] Login failed to create session: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -198,7 +198,7 @@ func (h *AuthHandlers) handleLogin(w http.ResponseWriter, r *http.Request) {
 func writeMeResponse(w http.ResponseWriter, r *http.Request, db *Database, user *UserRow) {
 	resp, err := buildMeResponse(r.Context(), db, user)
 	if err != nil {
-		log.Printf("buildMeResponse: %v", err)
+		log.Printf("[Auth] buildMeResponse: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -290,7 +290,7 @@ func (h *AuthHandlers) handleUpdateSettings(w http.ResponseWriter, r *http.Reque
 		lockCtx, lockCancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer lockCancel()
 		if err := h.syncService.pauseUserSync(lockCtx, user.ID); err != nil {
-			log.Printf("UpdateSettings: failed to pause sync: %v", err)
+			log.Printf("[Auth] UpdateSettingsfailed to pause sync: %v", err)
 			writeError(w, http.StatusServiceUnavailable, "failed to pause active sync")
 			return
 		}
@@ -298,14 +298,14 @@ func (h *AuthHandlers) handleUpdateSettings(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.db.updateImmichAPIKey(r.Context(), user.ID, keyToStore); err != nil {
-		log.Printf("UpdateSettings: failed to update API key: %v", err)
+		log.Printf("[Auth] UpdateSettingsfailed to update API key: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if keyToStore != nil {
 		if err := h.db.deleteUserSyncData(r.Context(), user.ID); err != nil {
-			log.Printf("UpdateSettings: failed to clear sync data: %v", err)
+			log.Printf("[Auth] UpdateSettingsfailed to clear sync data: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to clear previous sync data")
 			return
 		}
@@ -313,7 +313,7 @@ func (h *AuthHandlers) handleUpdateSettings(w http.ResponseWriter, r *http.Reque
 
 	updated, err := h.db.getUserByID(r.Context(), user.ID)
 	if err != nil || updated == nil {
-		log.Printf("UpdateSettings: failed to refetch user: %v", err)
+		log.Printf("[Auth] UpdateSettingsfailed to refetch user: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -324,14 +324,14 @@ func (h *AuthHandlers) handleUpdateSettings(w http.ResponseWriter, r *http.Reque
 			syncCtx, syncCancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer syncCancel()
 			if err := h.syncService.syncLibraries(syncCtx, user.ID, immich); err != nil {
-				log.Printf("UpdateSettings: initial library sync failed: %v", err)
+				log.Printf("[Auth] UpdateSettingsinitial library sync failed: %v", err)
 			}
 			releaseSyncLock()
 			h.syncService.triggerUserSync(user.ID, *keyToStore)
 		}
 	} else if req.ImmichAPIKey != nil {
 		if err := h.db.setSyncState(r.Context(), user.ID, "hasLibraryAccess", "false"); err != nil {
-			log.Printf("UpdateSettings: failed to reset hasLibraryAccess for user %s: %v", user.ID, err)
+			log.Printf("[Auth] UpdateSettingsfailed to reset hasLibraryAccess for user %s: %v", user.ID, err)
 		}
 	}
 

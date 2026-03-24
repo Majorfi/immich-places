@@ -169,7 +169,7 @@ func (s *SyncService) triggerUserFullSync(userID, apiKey string) (string, bool) 
 
 func (s *SyncService) recordSyncError(ctx context.Context, userID, reason string) {
 	if err := s.db.setSyncState(ctx, userID, "lastSyncError", reason); err != nil {
-		log.Printf("Failed to record sync error for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to record sync error for user %s: %v", userID, err)
 	}
 }
 
@@ -182,7 +182,7 @@ func (s *SyncService) startUserFullSync(ctx context.Context, userID string, immi
 	reason, ok := s.tryStartUserSync(userID, cancel)
 	if !ok {
 		cancel()
-		log.Printf("Sync not started for user %s: %s", userID, reason)
+		log.Printf("[Sync] Not started for user %s: %s", userID, reason)
 		return
 	}
 	defer s.releaseUserSyncLock(userID)
@@ -192,35 +192,35 @@ func (s *SyncService) startUserFullSync(ctx context.Context, userID string, immi
 }
 
 func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich SyncImmichAPI) {
-	log.Printf("Starting full sync for user %s...", userID)
+	log.Printf("[Sync] Starting full sync for user %s...", userID)
 	start := time.Now()
 
 	allAssetIDs, totalUpserted, err := s.syncAssets(ctx, userID, immich, nil, "full")
 	if err != nil {
-		log.Printf("Full sync asset error for user %s: %v", userID, err)
+		log.Printf("[Sync] Full sync asset error for user %s: %v", userID, err)
 		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", err))
 		return
 	}
 
 	if err := s.db.deleteAssetsNotIn(ctx, userID, allAssetIDs); err != nil {
-		log.Printf("Failed to clean up stale assets for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to clean up stale assets for user %s: %v", userID, err)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	if err := s.db.setSyncState(ctx, userID, "lastFullSyncAt", now); err != nil {
-		log.Printf("Failed to set lastFullSyncAt for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to set lastFullSyncAt for user %s: %v", userID, err)
 	}
 	if err := s.db.setSyncState(ctx, userID, "lastSyncAt", now); err != nil {
-		log.Printf("Failed to set lastSyncAt for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to set lastSyncAt for user %s: %v", userID, err)
 	}
 
 	s.syncStacks(ctx, userID, immich)
 	if err := s.syncLibraries(ctx, userID, immich); err != nil {
-		log.Printf("Library sync failed during full sync for user %s: %v", userID, err)
+		log.Printf("[Sync] Library sync failed during full sync for user %s: %v", userID, err)
 		s.db.deleteSyncState(ctx, userID, "libraryIDBackfillDone")
 	} else {
 		if err := s.db.setSyncState(ctx, userID, "libraryIDBackfillDone", "true"); err != nil {
-			log.Printf("Failed to set libraryIDBackfillDone for user %s: %v", userID, err)
+			log.Printf("[Sync] Failed to set libraryIDBackfillDone for user %s: %v", userID, err)
 		}
 	}
 	s.recomputeFrequentLocations(ctx, userID)
@@ -232,7 +232,7 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 		s.clearSyncError(ctx, userID)
 	}
 
-	log.Printf("Full sync completed for user %s: %d assets in %v", userID, totalUpserted, time.Since(start))
+	log.Printf("[Sync] Full sync completed for user %s: %d assets in %v", userID, totalUpserted, time.Since(start))
 }
 
 func (s *SyncService) startUserIncrementalSync(ctx context.Context, userID string, immich SyncImmichAPI) {
@@ -251,38 +251,38 @@ func (s *SyncService) startUserIncrementalSync(ctx context.Context, userID strin
 func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, immich SyncImmichAPI) {
 	lastSyncAt, err := s.db.getSyncState(ctx, userID, "lastSyncAt")
 	if err != nil {
-		log.Printf("Failed to get lastSyncAt for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to get lastSyncAt for user %s: %v", userID, err)
 		return
 	}
 	if lastSyncAt == nil {
-		log.Printf("No previous sync found for user %s, running full sync instead", userID)
+		log.Printf("[Sync] No previous sync found for user %s, running full sync instead", userID)
 		s.doUserFullSync(ctx, userID, immich)
 		return
 	}
 
 	needsBackfill, err := s.db.needsLibraryIDBackfill(ctx, userID)
 	if err != nil {
-		log.Printf("Failed to check libraryID backfill for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to check libraryID backfill for user %s: %v", userID, err)
 	}
 	if needsBackfill {
-		log.Printf("Assets need libraryID backfill for user %s, running full sync", userID)
+		log.Printf("[Sync] Assets need libraryID backfill for user %s, running full sync", userID)
 		s.doUserFullSync(ctx, userID, immich)
 		return
 	}
 
-	log.Printf("Starting incremental sync for user %s (since %s)...", userID, *lastSyncAt)
+	log.Printf("[Sync] Starting incremental sync for user %s (since %s)...", userID, *lastSyncAt)
 	start := time.Now()
 
 	_, totalUpserted, err := s.syncAssets(ctx, userID, immich, lastSyncAt, "incremental")
 	if err != nil {
-		log.Printf("Incremental sync asset error for user %s: %v", userID, err)
+		log.Printf("[Sync] Incremental sync asset error for user %s: %v", userID, err)
 		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", err))
 		return
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	if err := s.db.setSyncState(ctx, userID, "lastSyncAt", now); err != nil {
-		log.Printf("Failed to set lastSyncAt for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to set lastSyncAt for user %s: %v", userID, err)
 	}
 
 	s.syncStacks(ctx, userID, immich)
@@ -300,7 +300,7 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 		s.clearSyncError(ctx, userID)
 	}
 
-	log.Printf("Incremental sync completed for user %s: %d assets updated in %v", userID, totalUpserted, time.Since(start))
+	log.Printf("[Sync] Incremental sync completed for user %s: %d assets updated in %v", userID, totalUpserted, time.Since(start))
 }
 
 func (s *SyncService) syncAssets(ctx context.Context, userID string, immich SyncImmichAPI, updatedAfter *string, label string) ([]string, int, error) {
@@ -346,13 +346,13 @@ func (s *SyncService) syncAssets(ctx context.Context, userID string, immich Sync
 }
 
 func (s *SyncService) syncStacks(ctx context.Context, userID string, immich SyncImmichAPI) {
-	log.Printf("Syncing stacks for user %s...", userID)
+	log.Printf("[Sync] Syncing stacks for user %s...", userID)
 
 	apiCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	stacks, err := immich.getStacks(apiCtx)
 	if err != nil {
-		log.Printf("Failed to fetch stacks for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to fetch stacks for user %s: %v", userID, err)
 		return
 	}
 
@@ -375,17 +375,17 @@ func (s *SyncService) syncStacks(ctx context.Context, userID string, immich Sync
 
 	updated, err := s.db.batchUpdateStackInfo(ctx, userID, updates)
 	if err != nil {
-		log.Printf("Failed to batch update stack info for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to batch update stack info for user %s: %v", userID, err)
 		return
 	}
 
-	log.Printf("Stack sync completed for user %s: %d stacks, %d assets updated", userID, len(stacks), updated)
+	log.Printf("[Sync] Stack sync completed for user %s: %d stacks, %d assets updated", userID, len(stacks), updated)
 }
 
 func (s *SyncService) recomputeFrequentLocations(ctx context.Context, userID string) {
 	clusters, err := s.db.computeFrequentLocationClusters(ctx, userID)
 	if err != nil {
-		log.Printf("Failed to compute frequent location clusters for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to compute frequent location clusters for user %s: %v", userID, err)
 		return
 	}
 
@@ -394,7 +394,7 @@ func (s *SyncService) recomputeFrequentLocations(ctx context.Context, userID str
 	}
 
 	if err := s.db.replaceFrequentLocations(ctx, userID, clusters); err != nil {
-		log.Printf("Failed to replace frequent locations for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to replace frequent locations for user %s: %v", userID, err)
 		return
 	}
 
@@ -418,7 +418,7 @@ func (s *SyncService) enrichFrequentLocationLabels(ctx context.Context, userID s
 			defer geocodeCancel()
 			label, err := s.geocoder.ReverseGeocode(geocodeCtx, clusters[i].Latitude, clusters[i].Longitude, "en")
 			if err != nil {
-				log.Printf("Failed to geocode cluster: %v", err)
+				log.Printf("[Sync] Failed to geocode cluster: %v", err)
 				return nil
 			}
 			clusters[i].Label = label
@@ -428,12 +428,12 @@ func (s *SyncService) enrichFrequentLocationLabels(ctx context.Context, userID s
 	g.Wait()
 
 	if s.freqLocGeneration.Load() != generation {
-		log.Println("Skipping stale frequent location label write (newer sync in progress)")
+		log.Println("[Sync] Skipping stale frequent location label write (newer sync in progress)")
 		return
 	}
 
 	if err := s.db.replaceFrequentLocations(ctx, userID, clusters); err != nil {
-		log.Printf("Failed to update frequent location labels for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to update frequent location labels for user %s: %v", userID, err)
 	}
 }
 
@@ -448,7 +448,7 @@ type albumFetchResult struct {
 }
 
 func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich SyncImmichAPI, forceRefresh bool) error {
-	log.Printf("Syncing albums for user %s...", userID)
+	log.Printf("[Sync] Syncing albums for user %s...", userID)
 
 	listCtx, listCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer listCancel()
@@ -469,10 +469,10 @@ func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich Sync
 	}
 
 	if err := s.db.deleteAlbumsNotIn(ctx, userID, albumIDs); err != nil {
-		log.Printf("Failed to clean up stale albums for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to clean up stale albums for user %s: %v", userID, err)
 	}
 
-	log.Printf("Album sync completed for user %s: %d albums", userID, len(albums))
+	log.Printf("[Sync] Album sync completed for user %s: %d albums", userID, len(albums))
 	return nil
 }
 
@@ -484,7 +484,7 @@ func (s *SyncService) upsertAlbumMetadata(ctx context.Context, userID string, al
 		albumIDs = append(albumIDs, album.ID)
 
 		if err := s.db.upsertAlbum(ctx, userID, album.ID, album.AlbumName, album.AlbumThumbnailAssetID, album.AssetCount, album.UpdatedAt, album.StartDate); err != nil {
-			log.Printf("Failed to upsert album %s for user %s: %v", album.ID, userID, err)
+			log.Printf("[Sync] Failed to upsert album %s for user %s: %v", album.ID, userID, err)
 			continue
 		}
 
@@ -533,39 +533,39 @@ func (s *SyncService) fetchAndReplaceAlbumAssets(ctx context.Context, userID str
 }
 
 func (s *SyncService) syncLibraries(ctx context.Context, userID string, immich SyncImmichAPI) error {
-	log.Printf("Syncing libraries for user %s...", userID)
+	log.Printf("[Sync] Syncing libraries for user %s...", userID)
 
 	apiCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	libraries, err := immich.getLibraries(apiCtx)
 	if err != nil {
-		log.Printf("Failed to fetch libraries for user %s (may require admin key): %v", userID, err)
+		log.Printf("[Sync] Failed to fetch libraries for user %s (may require admin key): %v", userID, err)
 		var httpErr *ImmichHTTPError
 		if errors.As(err, &httpErr) && (httpErr.StatusCode == http.StatusUnauthorized || httpErr.StatusCode == http.StatusForbidden) {
 			if err := s.db.setSyncState(ctx, userID, "hasLibraryAccess", "false"); err != nil {
-				log.Printf("Failed to set hasLibraryAccess=false for user %s: %v", userID, err)
+				log.Printf("[Sync] Failed to set hasLibraryAccess=false for user %s: %v", userID, err)
 			}
 		}
 		return fmt.Errorf("failed to fetch libraries: %w", err)
 	}
 
 	if err := s.db.setSyncState(ctx, userID, "hasLibraryAccess", "true"); err != nil {
-		log.Printf("Failed to set hasLibraryAccess=true for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to set hasLibraryAccess=true for user %s: %v", userID, err)
 	}
 
 	libraryIDs := make([]string, 0, len(libraries))
 	for _, lib := range libraries {
 		libraryIDs = append(libraryIDs, lib.ID)
 		if err := s.db.upsertLibrary(ctx, lib.ID, lib.Name, lib.AssetCount); err != nil {
-			log.Printf("Failed to upsert library %s for user %s: %v", lib.ID, userID, err)
+			log.Printf("[Sync] Failed to upsert library %s for user %s: %v", lib.ID, userID, err)
 		}
 	}
 
 	if err := s.db.deleteLibrariesNotIn(ctx, libraryIDs); err != nil {
-		log.Printf("Failed to clean up stale libraries for user %s: %v", userID, err)
+		log.Printf("[Sync] Failed to clean up stale libraries for user %s: %v", userID, err)
 	}
 
-	log.Printf("Library sync completed for user %s: %d libraries", userID, len(libraries))
+	log.Printf("[Sync] Library sync completed for user %s: %d libraries", userID, len(libraries))
 	return nil
 }
 
@@ -595,7 +595,7 @@ func (s *SyncService) startPeriodicSync(ctx context.Context, intervalMS int) {
 			case <-ticker.C:
 				s.syncAllUsers(ctx)
 			case <-ctx.Done():
-				log.Println("Periodic sync stopped")
+				log.Println("[Sync] Periodic sync stopped")
 				return
 			}
 		}
@@ -605,12 +605,12 @@ func (s *SyncService) startPeriodicSync(ctx context.Context, intervalMS int) {
 func (s *SyncService) syncAllUsers(ctx context.Context) {
 	db, ok := s.db.(*Database)
 	if !ok {
-		log.Printf("Periodic sync skipped: db is %T, not *Database", s.db)
+		log.Printf("[Sync] Periodic sync skipped: db is %T, not *Database", s.db)
 		return
 	}
 	users, err := db.getUsersWithAPIKeys(ctx)
 	if err != nil {
-		log.Printf("Periodic sync: failed to load users: %v", err)
+		log.Printf("[Sync] Periodic sync failed to load users: %v", err)
 		return
 	}
 	for _, u := range users {
@@ -631,12 +631,21 @@ func mapImmichToAssetRow(item ImmichAssetResponse) AssetRow {
 		LibraryID:        item.LibraryID,
 	}
 	if item.ExifInfo != nil {
-		asset.Latitude = item.ExifInfo.Latitude
-		asset.Longitude = item.ExifInfo.Longitude
+		if isNullIslandCoord(item.ExifInfo.Latitude, item.ExifInfo.Longitude) {
+			asset.Latitude = nil
+			asset.Longitude = nil
+		} else {
+			asset.Latitude = item.ExifInfo.Latitude
+			asset.Longitude = item.ExifInfo.Longitude
+		}
 		asset.City = item.ExifInfo.City
 		asset.State = item.ExifInfo.State
 		asset.Country = item.ExifInfo.Country
 		asset.DateTimeOriginal = item.ExifInfo.DateTimeOriginal
 	}
 	return asset
+}
+
+func isNullIslandCoord(lat, lon *float64) bool {
+	return lat != nil && lon != nil && *lat == 0 && *lon == 0
 }

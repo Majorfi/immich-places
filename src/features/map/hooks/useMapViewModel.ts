@@ -3,8 +3,9 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {useMapMarkers} from '@/features/map/hooks/useMapMarkers';
-import {hasGPXPendingEntries, matchesGPXStatusFilter} from '@/features/selection/selectionStateHelpers';
+import {hasGPXPendingEntries} from '@/features/selection/selectionStateHelpers';
 import {useMapScene, useSelection, useView} from '@/shared/context/AppContext';
+import {MAP_LOCATION_SOURCE_REMOVE_LOCATION} from '@/utils/map';
 
 import type {TViewportBounds} from '@/shared/types/api';
 import type {TAssetRow} from '@/shared/types/asset';
@@ -62,7 +63,6 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		mapBounds,
 		visibleMarkerLimit
 	);
-	const {gpxStatusFilter} = useSelection();
 	const gpxMarkers = useMemo<TMapMarker[]>(() => {
 		const entries = Object.entries(pendingLocationsByAssetID);
 		const hasGPXSource = hasGPXPendingEntries(pendingLocationsByAssetID);
@@ -70,24 +70,23 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 			return [];
 		}
 		return entries
-			.filter(([, loc]) => {
-				if (loc.source !== 'gpx-import') {
-					return false;
-				}
-				return matchesGPXStatusFilter(gpxStatusFilter, loc.isAlreadyApplied ?? false, loc.hasExistingLocation ?? false);
-			})
+			.filter(([, loc]) => loc.source === 'gpx-import')
 			.map(([assetID, location]) => ({
 				immichID: assetID,
 				latitude: location.latitude,
 				longitude: location.longitude
 			}));
-	}, [pendingLocationsByAssetID, gpxStatusFilter]);
+	}, [pendingLocationsByAssetID]);
 
 	const pendingLocationMarkers = useMemo<TMapMarker[]>(() => {
 		const existingIDs = new Set(mapMarkers.map(m => m.immichID));
 		const markers: TMapMarker[] = [];
 		for (const [assetID, location] of Object.entries(pendingLocationsByAssetID)) {
-			if (location.source === 'gpx-import' || existingIDs.has(assetID)) {
+			if (
+				location.source === 'gpx-import' ||
+				location.source === MAP_LOCATION_SOURCE_REMOVE_LOCATION ||
+				existingIDs.has(assetID)
+			) {
 				continue;
 			}
 			markers.push({immichID: assetID, latitude: location.latitude, longitude: location.longitude});

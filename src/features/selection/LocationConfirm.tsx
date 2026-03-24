@@ -6,6 +6,7 @@ import {SAVE_LOCATION_ERROR_MESSAGE} from '@/features/selection/constant';
 import {hasGPXPendingEntries, matchesGPXStatusFilter} from '@/features/selection/selectionStateHelpers';
 import {useSelection} from '@/shared/context/AppContext';
 import {LOCATION_CONFIRM_COORDINATES_DECIMALS} from '@/utils/locationAssignment';
+import {MAP_LOCATION_SOURCE_REMOVE_LOCATION} from '@/utils/map';
 
 import type {TPendingLocation} from '@/shared/types/map';
 import type {ReactElement} from 'react';
@@ -76,7 +77,19 @@ export function LocationConfirm(): ReactElement | null {
 		}
 		return pendingLocationsByAssetID[pendingAssetIDs[0]] ?? null;
 	}, [pendingAssetIDs, pendingLocation, pendingLocationsByAssetID]);
+	const isRemoveLocationOnly = useMemo(() => {
+		if (pendingAssetIDs.length === 0) {
+			return false;
+		}
+		return pendingAssetIDs.every(
+			assetID => pendingLocationsByAssetID[assetID]?.source === MAP_LOCATION_SOURCE_REMOVE_LOCATION
+		);
+	}, [pendingAssetIDs, pendingLocationsByAssetID]);
+
 	const referenceCoordinateLabel = useMemo<string | null>(() => {
+		if (isRemoveLocationOnly) {
+			return 'Location removed';
+		}
 		const hasGPXEntries = pendingAssetIDs.some(
 			assetID => pendingLocationsByAssetID[assetID]?.source === 'gpx-import'
 		);
@@ -112,7 +125,7 @@ export function LocationConfirm(): ReactElement | null {
 			return `${firstLocation.latitude.toFixed(LOCATION_CONFIRM_COORDINATES_DECIMALS)}, ${firstLocation.longitude.toFixed(LOCATION_CONFIRM_COORDINATES_DECIMALS)}`;
 		}
 		return null;
-	}, [pendingAssetIDs, pendingLocation, pendingLocationsByAssetID]);
+	}, [isRemoveLocationOnly, pendingAssetIDs, pendingLocation, pendingLocationsByAssetID]);
 
 	const handleSave = useCallback(async () => {
 		setLocalSaveError(null);

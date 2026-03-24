@@ -329,6 +329,34 @@ func TestBulkUpdateAssetLocation(t *testing.T) {
 	}
 }
 
+func TestBulkUpdateAssetLocationNullIsland(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
+	if err != nil {
+		t.Fatalf("countFilteredAssets before: %v", err)
+	}
+	if withGPS != 1 {
+		t.Fatalf("expected 1 with GPS before null island update, got %d", withGPS)
+	}
+
+	err = db.bulkUpdateAssetLocation(ctx, testUserID, []string{"a1"}, 0, 0)
+	if err != nil {
+		t.Fatalf("bulkUpdateAssetLocation: %v", err)
+	}
+
+	withGPS, err = db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
+	if err != nil {
+		t.Fatalf("countFilteredAssets after: %v", err)
+	}
+	if withGPS != 0 {
+		t.Errorf("expected 0 with GPS after null island update, got %d", withGPS)
+	}
+}
+
 func TestBulkUpdateAssetHidden(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()

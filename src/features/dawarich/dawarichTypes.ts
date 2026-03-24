@@ -7,6 +7,7 @@ export type TDawarichTrack = {
 	finishedAt: string;
 	distance: number;
 	duration: number;
+	syncedAt?: string;
 };
 
 export function isDawarichTrack(value: unknown): value is TDawarichTrack {
@@ -25,4 +26,25 @@ export function isDawarichTrack(value: unknown): value is TDawarichTrack {
 
 export function isDawarichTrackArray(value: unknown): value is TDawarichTrack[] {
 	return Array.isArray(value) && value.every(isDawarichTrack);
+}
+
+export type TDawarichSyncStatus = {
+	syncing: boolean;
+	lastSyncAt: string | null;
+	lastSyncError: string | null;
+	currentTrack: number | null;
+	totalTracks: number | null;
+};
+
+export function isDawarichSyncStatus(value: unknown): value is TDawarichSyncStatus {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		typeof value.syncing === 'boolean' &&
+		(value.lastSyncAt === null || isString(value.lastSyncAt)) &&
+		(value.lastSyncError === null || isString(value.lastSyncError)) &&
+		(value.currentTrack === null || isFiniteNumber(value.currentTrack)) &&
+		(value.totalTracks === null || isFiniteNumber(value.totalTracks))
+	);
 }

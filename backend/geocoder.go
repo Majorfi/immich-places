@@ -28,7 +28,7 @@ func (c *chainGeocoder) ReverseGeocode(ctx context.Context, lat, lon float64, la
 	for _, np := range c.chain {
 		label, err := np.provider.ReverseGeocode(ctx, lat, lon, lang)
 		if err != nil {
-			log.Printf("[geocode] Reverse geocode: %s failed: %v", np.name, err)
+			log.Printf("[Geocode] Reverse geocode: %s failed: %v", np.name, err)
 			continue
 		}
 		if bestLabel == "" {
@@ -37,7 +37,7 @@ func (c *chainGeocoder) ReverseGeocode(ctx context.Context, lat, lon float64, la
 		if !isWeakResult(label, lat, lon) {
 			return label, nil
 		}
-		log.Printf("[geocode] Reverse geocode: %s returned weak result, trying next", np.name)
+		log.Printf("[Geocode] Reverse geocode: %s returned weak result, trying next", np.name)
 	}
 	if bestLabel != "" {
 		return bestLabel, nil
@@ -50,15 +50,15 @@ func (c *chainGeocoder) ForwardSearch(ctx context.Context, query string, limit i
 	for _, np := range c.chain {
 		results, err := np.provider.ForwardSearch(ctx, query, limit, lang)
 		if err != nil {
-			log.Printf("[geocode] Forward search: %s failed: %v", np.name, err)
+			log.Printf("[Geocode] Forward search: %s failed: %v", np.name, err)
 			lastErr = err
 			continue
 		}
 		if len(results) == 0 {
-			log.Printf("[geocode] Forward search: %s returned 0 results for %q, trying next", np.name, query)
+			log.Printf("[Geocode] Forward search: %s returned 0 results for %q, trying next", np.name, query)
 			continue
 		}
-		log.Printf("[geocode] Forward search: %s returned %d results", np.name, len(results))
+		log.Printf("[Geocode] Forward search: %s returned %d results", np.name, len(results))
 		return results, nil
 	}
 	if lastErr != nil {

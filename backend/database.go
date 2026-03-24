@@ -60,7 +60,7 @@ func newDatabase(dataDir string, encryptionKey string) (*Database, error) {
 
 	d := &Database{db: db, encryptionKey: deriveKey(encryptionKey)}
 
-	log.Printf("Database initialized at %s", dbPath)
+	log.Printf("[DB] Initialized at %s", dbPath)
 	return d, nil
 }
 
@@ -87,7 +87,7 @@ func (d *Database) setSyncState(ctx context.Context, userID, key, value string) 
 
 func (d *Database) deleteSyncState(ctx context.Context, userID, key string) {
 	if _, err := d.db.ExecContext(ctx, "DELETE FROM syncState WHERE userID = ? AND key = ?", userID, key); err != nil {
-		log.Printf("Failed to delete sync state %s for user %s: %v", key, userID, err)
+		log.Printf("[DB] Failed to delete sync state %s for user %s: %v", key, userID, err)
 	}
 }
 
@@ -663,8 +663,17 @@ func (d *Database) bulkUpdateAssetLocation(ctx context.Context, userID string, i
 		return nil
 	}
 
+	var latVal, lonVal interface{}
+	if lat == 0 && lon == 0 {
+		latVal = nil
+		lonVal = nil
+	} else {
+		latVal = lat
+		lonVal = lon
+	}
+
 	placeholders := make([]string, len(immichIDs))
-	args := []interface{}{lat, lon, userID}
+	args := []interface{}{latVal, lonVal, userID}
 	for i, id := range immichIDs {
 		placeholders[i] = "?"
 		args = append(args, id)
@@ -768,7 +777,7 @@ func (d *Database) deleteAssetsNotIn(ctx context.Context, userID string, assetID
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
-		log.Printf("Warning: failed to drop pre-existing temp table: %v", err)
+		log.Printf("[DB] Failed to drop pre-existing temp table: %v", err)
 	}
 
 	if err := bulkInsertTemp(ctx, tx, "tmpKeepAssets", assetIDs); err != nil {
@@ -776,7 +785,7 @@ func (d *Database) deleteAssetsNotIn(ctx context.Context, userID string, assetID
 	}
 	defer func() {
 		if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
-			log.Printf("Warning: failed to drop temp table: %v", err)
+			log.Printf("[DB] Failed to drop temp table: %v", err)
 		}
 	}()
 
@@ -807,6 +816,8 @@ func (d *Database) deleteUserSyncData(ctx context.Context, userID string) error 
 	defer tx.Rollback()
 
 	tables := []string{
+		"dawarichTrackPoints",
+		"dawarichTracks",
 		"albumAssets",
 		"albums",
 		"frequentLocations",

@@ -10,7 +10,7 @@ import {MapMarkerContextMenu} from '@/features/map/components/MapMarkerContextMe
 import {MapOverlays} from '@/features/map/components/MapOverlays';
 import {useMapViewController} from '@/features/map/hooks/useMapViewController';
 import {useMapViewModel} from '@/features/map/hooks/useMapViewModel';
-import {MAP_CONTROL_Z_INDEX} from '@/utils/map';
+import {MAP_CONTROL_Z_INDEX, MAP_LOCATION_SOURCE_REMOVE_LOCATION} from '@/utils/map';
 
 import type {ReactElement} from 'react';
 
@@ -34,7 +34,21 @@ export function MapView(): ReactElement {
 				source: 'gpx-import',
 				targetAssetIDs: [assetID],
 				shouldSkipPendingLocation: true,
-				hasExistingLocation: true
+				hasExistingLocation: true,
+				isAlreadyApplied: true
+			});
+		},
+		[setLocationAction]
+	);
+
+	const handleRemoveLocation = useCallback(
+		(assetID: string) => {
+			setLocationAction({
+				latitude: 0,
+				longitude: 0,
+				source: MAP_LOCATION_SOURCE_REMOVE_LOCATION,
+				targetAssetIDs: [assetID],
+				shouldSkipPendingLocation: true
 			});
 		},
 		[setLocationAction]
@@ -101,6 +115,7 @@ export function MapView(): ReactElement {
 				onCloseAction={clearContextMenuAction}
 				onPreviewAction={mapModel.openLightboxAction}
 				onResetPositionAction={handleResetPosition}
+				onRemoveLocationAction={handleRemoveLocation}
 			/>
 		</div>
 	);

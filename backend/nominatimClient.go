@@ -105,21 +105,21 @@ func (n *NominatimClient) adaptRateLimiter(resp *http.Response) {
 	}
 	if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds > 0 {
 		n.limiter.SetLimit(rate.Every(time.Duration(seconds) * time.Second))
-		log.Printf("Nominatim rate limited, adjusting to 1 request per %ds", seconds)
+		log.Printf("[Geocode] Nominatim rate limited, adjusting to 1 request per %ds", seconds)
 		go func() {
 			time.Sleep(time.Duration(seconds) * time.Second)
 			n.limiter.SetLimit(rate.Every(time.Second))
-			log.Println("Nominatim rate limiter reset to 1 req/s")
+			log.Println("[Geocode] Nominatim rate limiter reset to 1 req/s")
 		}()
 	} else if t, err := http.ParseTime(retryAfter); err == nil {
 		delay := time.Until(t)
 		if delay > 0 {
 			n.limiter.SetLimit(rate.Every(delay))
-			log.Printf("Nominatim rate limited, adjusting to 1 request per %v", delay.Round(time.Second))
+			log.Printf("[Geocode] Nominatim rate limited, adjusting to 1 request per %v", delay.Round(time.Second))
 			go func() {
 				time.Sleep(delay)
 				n.limiter.SetLimit(rate.Every(time.Second))
-				log.Println("Nominatim rate limiter reset to 1 req/s")
+				log.Println("[Geocode] Nominatim rate limiter reset to 1 req/s")
 			}()
 		}
 	}

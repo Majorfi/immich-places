@@ -14,6 +14,7 @@ type TMapMarkerContextMenuProps = {
 	onCloseAction: () => void;
 	onPreviewAction: (assetID: string) => void;
 	onResetPositionAction?: (assetID: string, originalLatitude: number, originalLongitude: number) => void;
+	onRemoveLocationAction?: (assetID: string) => void;
 };
 
 const MENU_ITEM_CLASS =
@@ -26,7 +27,8 @@ export function MapMarkerContextMenu({
 	menu,
 	onCloseAction,
 	onPreviewAction,
-	onResetPositionAction
+	onResetPositionAction,
+	onRemoveLocationAction
 }: TMapMarkerContextMenuProps): ReactElement | null {
 	const {health} = useBackend();
 	const immichURL = health?.immichURL ?? '';
@@ -111,6 +113,7 @@ export function MapMarkerContextMenu({
 	}
 
 	const safeImmichPhotoURL = immichPhotoURL(immichURL, menu.assetID);
+	const hasLocationActions = resetHandler || onRemoveLocationAction;
 
 	return (
 		<DropdownMenu.Root
@@ -142,15 +145,23 @@ export function MapMarkerContextMenu({
 							{'Open in Immich'}
 						</DropdownMenu.Item>
 					)}
+					{hasLocationActions && <DropdownMenu.Separator className={'mx-1 my-1 h-px bg-(--color-border)'} />}
 					{resetHandler && (
-						<>
-							<DropdownMenu.Separator className={'mx-1 my-1 h-px bg-(--color-border)'} />
-							<DropdownMenu.Item
-								className={MENU_ITEM_CLASS}
-								onSelect={resetHandler}>
-								{'Reset position'}
-							</DropdownMenu.Item>
-						</>
+						<DropdownMenu.Item
+							className={MENU_ITEM_CLASS}
+							onSelect={resetHandler}>
+							{'Reset position'}
+						</DropdownMenu.Item>
+					)}
+					{onRemoveLocationAction && (
+						<DropdownMenu.Item
+							className={MENU_ITEM_CLASS}
+							onSelect={() => {
+								onRemoveLocationAction(menu.assetID);
+								onCloseAction();
+							}}>
+							{'Remove location'}
+						</DropdownMenu.Item>
 					)}
 				</DropdownMenu.Content>
 			</DropdownMenu.Portal>

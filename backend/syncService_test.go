@@ -1096,6 +1096,35 @@ func TestImmichGetPreview(t *testing.T) {
 	}
 }
 
+func TestMapImmichToAssetRowNullIslandCoords(t *testing.T) {
+	item := ImmichAssetResponse{
+		ID:               "a1",
+		Type:             "IMAGE",
+		OriginalFileName: "photo.jpg",
+		FileCreatedAt:    "2024-01-01T00:00:00Z",
+		ExifInfo: &ImmichExifInfo{
+			Latitude:  ptr(0.0),
+			Longitude: ptr(0.0),
+			City:      ptr("Null Island"),
+			Country:   ptr("Atlantic Ocean"),
+		},
+	}
+
+	row := mapImmichToAssetRow(item)
+	if row.Latitude != nil {
+		t.Errorf("expected nil latitude for null island, got %v", row.Latitude)
+	}
+	if row.Longitude != nil {
+		t.Errorf("expected nil longitude for null island, got %v", row.Longitude)
+	}
+	if row.City == nil || *row.City != "Null Island" {
+		t.Errorf("expected city to be mapped even for null island coords, got %v", row.City)
+	}
+	if row.Country == nil || *row.Country != "Atlantic Ocean" {
+		t.Errorf("expected country to be mapped even for null island coords, got %v", row.Country)
+	}
+}
+
 func TestMapImmichToAssetRowWithoutExif(t *testing.T) {
 	item := ImmichAssetResponse{
 		ID:               "a1",

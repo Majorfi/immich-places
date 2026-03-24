@@ -1,13 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"strconv"
-	"time"
-)
-
 type DawarichTrackFeature struct {
-	Type       string                       `json:"type"`
+	Type       string                         `json:"type"`
 	Properties DawarichTrackFeatureProperties `json:"properties"`
 }
 
@@ -32,6 +26,7 @@ type DawarichTrackListItem struct {
 	FinishedAt string  `json:"finishedAt"`
 	Distance   float64 `json:"distance"`
 	Duration   int     `json:"duration"`
+	SyncedAt   *string `json:"syncedAt,omitempty"`
 }
 
 type DawarichPoint struct {
@@ -50,23 +45,51 @@ type DawarichSettingsRequest struct {
 	APIKey string `json:"apiKey" validate:"required"`
 }
 
-func convertDawarichPointsToTrackPoints(points []DawarichPoint) ([]trackPoint, error) {
-	result := make([]trackPoint, 0, len(points))
-	for _, p := range points {
-		lat, err := strconv.ParseFloat(p.Latitude, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parse latitude %q: %w", p.Latitude, err)
-		}
-		lon, err := strconv.ParseFloat(p.Longitude, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parse longitude %q: %w", p.Longitude, err)
-		}
-		result = append(result, trackPoint{
-			latitude:  lat,
-			longitude: lon,
-			elevation: float64(p.Altitude),
-			time:      time.Unix(int64(p.Timestamp), 0).UTC(),
-		})
+type DawarichTrackRow struct {
+	ID         int
+	Name       string
+	StartedAt  string
+	FinishedAt string
+	Distance   float64
+	Duration   int
+	SyncedAt   string
+}
+
+func (r DawarichTrackRow) toListItem() DawarichTrackListItem {
+	return DawarichTrackListItem{
+		ID:         r.ID,
+		Name:       r.Name,
+		StartedAt:  r.StartedAt,
+		FinishedAt: r.FinishedAt,
+		Distance:   r.Distance,
+		Duration:   r.Duration,
+		SyncedAt:   &r.SyncedAt,
 	}
-	return result, nil
+}
+
+func (item DawarichTrackListItem) toRow() DawarichTrackRow {
+	return DawarichTrackRow{
+		ID:         item.ID,
+		Name:       item.Name,
+		StartedAt:  item.StartedAt,
+		FinishedAt: item.FinishedAt,
+		Distance:   item.Distance,
+		Duration:   item.Duration,
+	}
+}
+
+type DawarichTrackPointRow struct {
+	TrackID   int
+	Timestamp int
+	Latitude  float64
+	Longitude float64
+	Altitude  int
+}
+
+type DawarichSyncStatusResponse struct {
+	Syncing       bool    `json:"syncing"`
+	LastSyncAt    *string `json:"lastSyncAt"`
+	LastSyncError *string `json:"lastSyncError"`
+	CurrentTrack  *int    `json:"currentTrack"`
+	TotalTracks   *int    `json:"totalTracks"`
 }

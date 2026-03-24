@@ -76,6 +76,8 @@ export const MAP_LOCATION_SOURCE_DRAG_DROP = 'drag-drop';
 export const MAP_LOCATION_SOURCE_MARKER_DRAG = 'marker-drag';
 /** Source value for navigating to an asset's existing location. */
 export const MAP_LOCATION_SOURCE_GO_TO = 'go-to';
+/** Source value for removing an asset's location. */
+export const MAP_LOCATION_SOURCE_REMOVE_LOCATION = 'remove-location';
 
 /** Map control z-index baseline. */
 export const MAP_CONTROL_Z_INDEX = 1001;

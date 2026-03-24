@@ -1,10 +1,10 @@
 import {isMeResponse} from '@/features/auth/authApi';
-import {isDawarichTrackArray} from '@/features/dawarich/dawarichTypes';
+import {isDawarichSyncStatus, isDawarichTrackArray} from '@/features/dawarich/dawarichTypes';
 import {backendFetch, parseJSON, throwIfErrorResponse} from '@/shared/services/backendApi.fetch';
 import {isGPXPreviewResponse} from '@/shared/services/backendApi.guards';
 import {getBackendBaseURL} from '@/utils/backendUrls';
 
-import type {TDawarichTrack} from '@/features/dawarich/dawarichTypes';
+import type {TDawarichSyncStatus, TDawarichTrack} from '@/features/dawarich/dawarichTypes';
 import type {TGPXPreviewResponse} from '@/features/gpxImport/gpxImportTypes';
 import type {TRequestOptions} from '@/shared/types/api';
 import type {TMeResponse} from '@/shared/types/auth';
@@ -49,7 +49,7 @@ export async function dawarichPreview(
 			headers: {'Content-Type': 'application/json'}, // eslint-disable-line @typescript-eslint/naming-convention
 			body: JSON.stringify({trackIDs, maxGapSeconds})
 		},
-		{...opts, timeoutMs: 120_000}
+		opts
 	);
 	await throwIfErrorResponse(response, 'Dawarich preview failed');
 	return parseJSON(
@@ -57,4 +57,15 @@ export async function dawarichPreview(
 		(value): value is TGPXPreviewResponse[] => Array.isArray(value) && value.every(isGPXPreviewResponse),
 		'Invalid Dawarich preview response payload'
 	);
+}
+
+export async function fetchDawarichSyncStatus(opts: TRequestOptions = {}): Promise<TDawarichSyncStatus> {
+	const response = await backendFetch(`${BASE}/dawarich/sync/status`, {}, opts);
+	await throwIfErrorResponse(response, 'Failed to fetch Dawarich sync status');
+	return parseJSON(response, isDawarichSyncStatus, 'Invalid Dawarich sync status response');
+}
+
+export async function triggerDawarichSync(opts: TRequestOptions = {}): Promise<void> {
+	const response = await backendFetch(`${BASE}/dawarich/sync`, {method: 'POST'}, opts);
+	await throwIfErrorResponse(response, 'Failed to trigger Dawarich sync');
 }
