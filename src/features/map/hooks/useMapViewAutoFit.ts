@@ -108,9 +108,7 @@ export function useMapAutoFit({
 		if (!hasAlbumChanged && fittedBoundsKeyRef.current === boundsKey) {
 			return;
 		}
-		if (!hasAlbumChanged) {
-			fittedBoundsKeyRef.current = boundsKey;
-		}
+		fittedBoundsKeyRef.current = boundsKey;
 
 		const bounds = L.latLngBounds(mapMarkers.map(m => L.latLng(m.latitude, m.longitude)));
 		if (!bounds.isValid()) {

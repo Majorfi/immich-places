@@ -3,7 +3,7 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {useMapMarkers} from '@/features/map/hooks/useMapMarkers';
-import {hasGPXPendingEntries, matchesGPXStatusFilter} from '@/features/selection/selectionStateHelpers';
+import {hasGPXPendingEntries} from '@/features/selection/selectionStateHelpers';
 import {useMapScene, useSelection, useView} from '@/shared/context/AppContext';
 
 import type {TViewportBounds} from '@/shared/types/api';
@@ -62,7 +62,6 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		mapBounds,
 		visibleMarkerLimit
 	);
-	const {gpxStatusFilter} = useSelection();
 	const gpxMarkers = useMemo<TMapMarker[]>(() => {
 		const entries = Object.entries(pendingLocationsByAssetID);
 		const hasGPXSource = hasGPXPendingEntries(pendingLocationsByAssetID);
@@ -70,18 +69,13 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 			return [];
 		}
 		return entries
-			.filter(([, loc]) => {
-				if (loc.source !== 'gpx-import') {
-					return false;
-				}
-				return matchesGPXStatusFilter(gpxStatusFilter, loc.isAlreadyApplied ?? false, loc.hasExistingLocation ?? false);
-			})
+			.filter(([, loc]) => loc.source === 'gpx-import')
 			.map(([assetID, location]) => ({
 				immichID: assetID,
 				latitude: location.latitude,
 				longitude: location.longitude
 			}));
-	}, [pendingLocationsByAssetID, gpxStatusFilter]);
+	}, [pendingLocationsByAssetID]);
 
 	const pendingLocationMarkers = useMemo<TMapMarker[]>(() => {
 		const existingIDs = new Set(mapMarkers.map(m => m.immichID));
