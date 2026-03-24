@@ -21,7 +21,7 @@ The app has two parts:
 
 - Interactive map with clustered markers (Leaflet)
 - Drag-and-drop a photo onto the map to assign coordinates
-- Geocoding search (Nominatim/OpenStreetMap) with autocomplete and history
+- Geocoding search with autocomplete and history (Nominatim by default, optional HERE and Google Maps providers)
 - Favorite places: star locations from search results for quick access
 - Smart suggestions: locations from same-day, nearby-day, weekly patterns, frequent spots, and album context
 - GPX import: upload one or multiple GPX tracks to batch-assign coordinates to photos by timestamp
@@ -82,14 +82,14 @@ From the repo root:
 docker compose up -d --build
 ```
 
-### Option B: Docker Hub images
+### Option B: Pre-built images
 
 ```bash
 docker network create immich-places-net
 
-docker run -d --name immich-places-backend --network immich-places-net --env-file .env -v immich-places-data:/data majorfi/immich-places-backend
+docker run -d --name immich-places-backend --network immich-places-net --env-file .env -v immich-places-data:/data ghcr.io/majorfi/immich-places-backend
 
-docker run -d --name immich-places --network immich-places-net -p 3032:3032 -e PORT=3032 -e BACKEND_URL=http://immich-places-backend:8082 majorfi/immich-places
+docker run -d --name immich-places --network immich-places-net -p 3032:3032 -e PORT=3032 -e BACKEND_URL=http://immich-places-backend:8082 ghcr.io/majorfi/immich-places
 ```
 
 Then open:
@@ -137,11 +137,45 @@ The following Immich permissions are required:
 - `IMMICH_EXTERNAL_URL` (optional): Public Immich URL for link generation/fallback behavior.
 - `FRONTEND_PORT` (default `3032`): Frontend port exposed to the host.
 - `REGISTRATION_ENABLED` (default `true`): Set to `false` to disable new users.
-- `SYNC_INTERVAL_MS` (default `300000`): Background sync frequency.
+- `SYNC_INTERVAL_MS` (default `300000`): Background sync frequency in milliseconds.
 - `DATA_DIR` (default `/data`): Backend DB path inside container.
 - `PORT` (default `8082`): Backend listen port inside container.
 - `BACKEND_URL` (frontend): Backend service URL used by the Next.js rewrite, default is `http://backend:8082`.
 - `NEXT_PUBLIC_BACKEND_BASE` (frontend): Client API base path, default `/api/backend`.
+- `DEFAULT_TIMEZONE`: IANA timezone fallback for GPX import when auto-detection fails (e.g. `Europe/Vienna`).
+- `DAWARICH_URL`: URL for Dawarich location history import integration.
+- `DAWARICH_SYNC_INTERVAL_MS` (default `86400000`): Dawarich sync frequency in milliseconds (default: 24 hours).
+- `DEBUG` (default `false`): Set to `true` to enable verbose HTTP request logging.
+
+## Geocoding providers
+
+Nominatim (OpenStreetMap) is used by default and requires no API key. You can optionally add HERE Maps and/or Google Maps as additional providers to improve geocoding quality.
+
+The provider chain always starts with Nominatim, then tries each configured provider in order. The first provider that returns a strong result wins. If a provider returns a weak result (just coordinates or "Unknown"), the next provider in the chain is tried.
+
+Configure with `GEOCODE_PROVIDER` as a comma-separated list:
+
+| Value                 | Chain                       |
+| --------------------- | --------------------------- |
+| `nominatim` (default) | Nominatim only              |
+| `here`                | Nominatim -> HERE           |
+| `google`              | Nominatim -> Google         |
+| `here,google`         | Nominatim -> HERE -> Google |
+
+**Provider env vars:**
+
+| Variable           | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `GEOCODE_PROVIDER` | Comma-separated provider chain (default: `nominatim`)          |
+| `HERE_API_KEY`     | API key for HERE Maps geocoding                                |
+| `GOOGLE_API_KEY`   | API key for Google Maps geocoding                              |
+| `GEOCODE_API_KEY`  | Legacy fallback key (used if provider-specific key is not set) |
+| `GEOCODE_TIMEOUT`  | Upstream geocode request timeout in seconds (default: `10`)    |
+
+**Getting API keys:**
+
+- **HERE Maps**: Sign up at [developer.here.com](https://developer.here.com). Free tier includes 250,000 requests/month.
+- **Google Maps**: Enable the [Geocoding API](https://console.cloud.google.com/apis/library/geocoding-backend.googleapis.com) in Google Cloud Console. Free tier includes roughly 10,000 requests/month.
 
 ## Existing Immich user tips
 
