@@ -45,6 +45,18 @@ func getTimezoneFinder() (tzf.F, error) {
 	return tzFinder, tzFinderErr
 }
 
+func resolveTimezone(finder tzf.F, lon, lat float64, fallback *time.Location) *time.Location {
+	name := finder.GetTimezoneName(lon, lat)
+	loc, err := time.LoadLocation(name)
+	if err == nil {
+		return loc
+	}
+	if fallback != nil {
+		return fallback
+	}
+	return time.UTC
+}
+
 func coordsMatch(current *float64, target float64) bool {
 	if current == nil {
 		return false
