@@ -30,6 +30,8 @@ services:
             - GEOCODE_API_KEY=${GEOCODE_API_KEY:-}
             - GEOCODE_TIMEOUT=${GEOCODE_TIMEOUT:-10}
             - DAWARICH_URL=${DAWARICH_URL:-}
+            - DAWARICH_SYNC_INTERVAL_MS=${DAWARICH_SYNC_INTERVAL_MS:-86400000}
+            - DEBUG=${DEBUG:-false}
         volumes:
             - ${BACKEND_DATA_VOLUME:-backend-data}:/data
         restart: unless-stopped

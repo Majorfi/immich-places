@@ -9,22 +9,24 @@ import (
 )
 
 type Config struct {
-	ImmichURL           string `env:"IMMICH_URL,notEmpty"`
-	ImmichExternalURL   string `env:"IMMICH_EXTERNAL_URL"`
-	Port                int    `env:"PORT" envDefault:"8082"`
-	DataDir             string `env:"DATA_DIR" envDefault:"/data"`
-	SyncIntervalMS      int    `env:"SYNC_INTERVAL_MS" envDefault:"300000"`
-	TrustProxyTLS       bool   `env:"TRUST_PROXY_TLS" envDefault:"true"`
-	AllowInsecure       bool   `env:"ALLOW_INSECURE" envDefault:"false"`
-	RegistrationEnabled bool   `env:"REGISTRATION_ENABLED" envDefault:"true"`
-	EncryptionKey       string `env:"ENCRYPTION_KEY,notEmpty"`
-	DawarichURL         string `env:"DAWARICH_URL"`
-	DefaultTimezone     string `env:"DEFAULT_TIMEZONE"`
-	GeocodeProvider     string `env:"GEOCODE_PROVIDER" envDefault:"nominatim"`
-	GeocodeAPIKey       string `env:"GEOCODE_API_KEY"`
-	HereAPIKey          string `env:"HERE_API_KEY"`
-	GoogleAPIKey        string `env:"GOOGLE_API_KEY"`
-	GeocodeTimeoutSecs  int    `env:"GEOCODE_TIMEOUT" envDefault:"10"`
+	ImmichURL              string `env:"IMMICH_URL,notEmpty"`
+	ImmichExternalURL      string `env:"IMMICH_EXTERNAL_URL"`
+	Port                   int    `env:"PORT" envDefault:"8082"`
+	DataDir                string `env:"DATA_DIR" envDefault:"/data"`
+	SyncIntervalMS         int    `env:"SYNC_INTERVAL_MS" envDefault:"300000"`
+	TrustProxyTLS          bool   `env:"TRUST_PROXY_TLS" envDefault:"true"`
+	AllowInsecure          bool   `env:"ALLOW_INSECURE" envDefault:"false"`
+	RegistrationEnabled    bool   `env:"REGISTRATION_ENABLED" envDefault:"true"`
+	EncryptionKey          string `env:"ENCRYPTION_KEY,notEmpty"`
+	DawarichURL            string `env:"DAWARICH_URL"`
+	DawarichSyncIntervalMS int    `env:"DAWARICH_SYNC_INTERVAL_MS" envDefault:"86400000"`
+	DefaultTimezone        string `env:"DEFAULT_TIMEZONE"`
+	GeocodeProvider        string `env:"GEOCODE_PROVIDER" envDefault:"nominatim"`
+	GeocodeAPIKey          string `env:"GEOCODE_API_KEY"`
+	HereAPIKey             string `env:"HERE_API_KEY"`
+	GoogleAPIKey           string `env:"GOOGLE_API_KEY"`
+	GeocodeTimeoutSecs     int    `env:"GEOCODE_TIMEOUT" envDefault:"10"`
+	Debug                  bool   `env:"DEBUG" envDefault:"false"`
 
 	defaultTimezoneLocation *time.Location
 }

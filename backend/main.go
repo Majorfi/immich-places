@@ -28,29 +28,30 @@ func getUserFromContext(r *http.Request) *UserRow {
 func main() {
 	cfg, err := loadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatalf("[Server] Failed to load config: %v", err)
 	}
 
 	db, err := newDatabase(cfg.DataDir, cfg.EncryptionKey)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Fatalf("[Server] Failed to initialize database: %v", err)
 	}
 	defer db.close()
 
-	immichFactory := newImmichClientFactory(cfg.ImmichURL)
+	immichFactory := newImmichClientFactory(cfg.ImmichURL, cfg.Debug)
 	geocodeTimeout := time.Duration(cfg.GeocodeTimeoutSecs) * time.Second
 	geocoder := newGeocodeProvider(cfg.GeocodeProvider, geocodeKeys{
 		here:   cfg.HereAPIKey,
 		google: cfg.GoogleAPIKey,
 		legacy: cfg.GeocodeAPIKey,
 	}, geocodeTimeout)
-	log.Printf("Geocode provider: %s (timeout: %v)", describeProvider(geocoder), geocodeTimeout)
+	log.Printf("[Geocode] Provider: %s (timeout: %v)", describeProvider(geocoder), geocodeTimeout)
 	syncService := newSyncService(db, immichFactory, geocoder)
 	suggestions := newSuggestionService(db)
 	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation, geocoder)
 	libraryHandlers := newLibraryHandlers(db, immichFactory, syncService)
 	authHandlers := newAuthHandlers(db, immichFactory, syncService, cfg.RegistrationEnabled, !cfg.AllowInsecure)
-	dawarichHandlers := newDawarichHandlers(db, cfg.DawarichURL, cfg.defaultTimezoneLocation)
+	dawarichSync := newDawarichSyncService(db, cfg.DawarichURL)
+	dawarichHandlers := newDawarichHandlers(db, cfg.DawarichURL, dawarichSync, cfg.defaultTimezoneLocation)
 
 	authMux := http.NewServeMux()
 	authMux.HandleFunc("POST /auth/register", authHandlers.handleRegister)
@@ -87,6 +88,8 @@ func main() {
 	protectedMux.HandleFunc("DELETE /dawarich/settings", dawarichHandlers.handleDeleteDawarichSettings)
 	protectedMux.HandleFunc("GET /dawarich/tracks", dawarichHandlers.handleDawarichTracks)
 	protectedMux.HandleFunc("POST /dawarich/preview", dawarichHandlers.handleDawarichPreview)
+	protectedMux.HandleFunc("GET /dawarich/sync/status", dawarichHandlers.handleDawarichSyncStatus)
+	protectedMux.HandleFunc("POST /dawarich/sync", dawarichHandlers.handleDawarichTriggerSync)
 	protectedMux.HandleFunc("GET /geocode/search", handlers.handleGeocodeSearch)
 
 	mainMux := http.NewServeMux()
@@ -100,15 +103,18 @@ func main() {
 	defer stop()
 
 	syncService.shutdownCtx = ctx
+	dawarichSync.shutdownCtx = ctx
 
 	users, err := db.getUsersWithAPIKeys(ctx)
 	if err != nil {
-		log.Printf("Failed to load users for startup sync: %v", err)
+		log.Printf("[Server] Failed to load users for startup sync: %v", err)
 	} else {
 		syncService.runStartupSyncs(ctx, users)
+		dawarichSync.runStartupSyncs(ctx, users)
 	}
 
 	syncService.startPeriodicSync(ctx, cfg.SyncIntervalMS)
+	dawarichSync.startPeriodicSync(ctx, cfg.DawarichSyncIntervalMS)
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
 
@@ -123,26 +129,27 @@ func main() {
 
 	go func() {
 		if cfg.TrustProxyTLS {
-			log.Printf("Backend listening on %s (TLS terminated by reverse proxy)", addr)
+			log.Printf("[Server] Listening on %s (TLS terminated by reverse proxy)", addr)
 		} else {
-			log.Printf("Backend listening on %s (no TLS — ensure network is secure)", addr)
+			log.Printf("[Server] Listening on %s (no TLS — ensure network is secure)", addr)
 		}
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			log.Fatalf("[Server] Error: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("Shutting down...")
+	log.Println("[Server] Shutting down...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("HTTP shutdown error: %v", err)
+		log.Printf("[Server] HTTP shutdown error: %v", err)
 	}
 
 	syncService.wg.Wait()
-	log.Println("All sync goroutines completed")
+	dawarichSync.wg.Wait()
+	log.Println("[Server] All sync goroutines completed")
 }
 
 const maxRequestBodyBytes = 10_000_000
@@ -174,7 +181,7 @@ func sessionMiddleware(db *Database, next http.Handler) http.Handler {
 
 		user, err := db.getSessionUser(r.Context(), tokenHash)
 		if err != nil {
-			log.Printf("Session middleware: DB error: %v", err)
+			log.Printf("[Auth] Session DB error: %v", err)
 			writeError(w, http.StatusInternalServerError, "internal error")
 			return
 		}
