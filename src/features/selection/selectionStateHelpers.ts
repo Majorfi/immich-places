@@ -1,3 +1,5 @@
+import {MAP_LOCATION_SOURCE_REMOVE_LOCATION} from '@/utils/map';
+
 import type {TAssetRow} from '@/shared/types/asset';
 import type {
 	TGPXStatusFilter,
@@ -94,16 +96,20 @@ export function buildNextPendingLocations(
 	const next = {...prev};
 	for (const assetID of nextAssetIDs) {
 		const existing = prev[assetID];
-		if (existing?.source === 'gpx-import') {
+		if (existing?.source === 'gpx-import' && nextPendingLocation.source !== MAP_LOCATION_SOURCE_REMOVE_LOCATION) {
 			const coordinatesChanged =
 				existing.isAlreadyApplied &&
 				(options.latitude !== existing.latitude || options.longitude !== existing.longitude);
+			let isAlreadyApplied = options.isAlreadyApplied ?? existing.isAlreadyApplied;
+			if (coordinatesChanged) {
+				isAlreadyApplied = false;
+			}
 			next[assetID] = createPendingLocation({
 				latitude: options.latitude,
 				longitude: options.longitude,
 				source: 'gpx-import',
 				sourceLabel: existing.sourceLabel,
-				isAlreadyApplied: coordinatesChanged ? false : (options.isAlreadyApplied ?? existing.isAlreadyApplied),
+				isAlreadyApplied,
 				hasExistingLocation: options.hasExistingLocation ?? existing.hasExistingLocation,
 				originalLatitude: options.originalLatitude ?? existing.originalLatitude,
 				originalLongitude: options.originalLongitude ?? existing.originalLongitude

@@ -5,7 +5,7 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import {useBackend, useCatalog, useSelection, useUIMap} from '@/shared/context/AppContext';
 import {bulkToggleAssetHidden, toggleAssetHidden} from '@/shared/services/backendApi';
 import {immichPhotoURL} from '@/utils/backendUrls';
-import {MAP_LOCATION_SOURCE_GO_TO} from '@/utils/map';
+import {MAP_LOCATION_SOURCE_GO_TO, MAP_LOCATION_SOURCE_REMOVE_LOCATION} from '@/utils/map';
 
 import type {TAssetRow} from '@/shared/types/asset';
 import type {ReactElement, ReactNode} from 'react';
@@ -110,6 +110,39 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 		selectAllAction([]);
 	}
 
+	function getRemovableAssets(): TAssetRow[] {
+		if (isBulk) {
+			return selectedAssets.filter(a => a.latitude !== null && a.longitude !== null);
+		}
+		if (hasLocation) {
+			return [asset];
+		}
+		return [];
+	}
+
+	const removableAssets = getRemovableAssets();
+	const canRemoveLocation = removableAssets.length > 0;
+
+	function handleRemoveLocation(): void {
+		if (removableAssets.length === 0) {
+			return;
+		}
+		beginLocationBatch();
+		try {
+			for (const a of removableAssets) {
+				setLocationAction({
+					latitude: 0,
+					longitude: 0,
+					source: MAP_LOCATION_SOURCE_REMOVE_LOCATION,
+					targetAssetIDs: [a.immichID],
+					shouldSkipPendingLocation: true
+				});
+			}
+		} finally {
+			endLocationBatch();
+		}
+	}
+
 	async function handleToggleHidden(): Promise<void> {
 		try {
 			if (isBulk) {
@@ -200,6 +233,16 @@ export function PhotoCardMenu({asset, isSelected, children}: TPhotoCardMenuProps
 								});
 							}}>
 							{'Go to location'}
+						</ContextMenu.Item>
+					)}
+					{canRemoveLocation && (
+						<ContextMenu.Item
+							className={
+								'flex cursor-pointer select-none items-center rounded-sm px-2.5 py-1.5 text-[0.8125rem] text-(--color-text) outline-none data-highlighted:bg-(--color-hover)'
+							}
+							onSelect={handleRemoveLocation}>
+							{!isBulk && 'Remove location'}
+							{isBulk && `Remove location (${removableAssets.length})`}
 						</ContextMenu.Item>
 					)}
 					{canResetPosition && (
