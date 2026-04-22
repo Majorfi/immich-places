@@ -1,7 +1,7 @@
 {
   "name": "Immich Places",
   "short_name": "Immich Places",
-  "description": "Geolocate your Immich photos missing GPS coordinates",
+  "description": "Geolocate your Immich photos missing GPS coordinates.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
