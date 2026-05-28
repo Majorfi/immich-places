@@ -957,6 +957,70 @@ func TestSyncLibrariesDeletesStale(t *testing.T) {
 	}
 }
 
+func TestSyncLibrariesSkipsWhenOtherUserHasAccess(t *testing.T) {
+	ctx := context.Background()
+
+	factory, immich := newMockImmichFactoryNoRetry(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/libraries" {
+			t.Errorf("unexpected call to /api/libraries: should have been skipped")
+		}
+		http.NotFound(w, r)
+	})
+
+	db := newTestDB(t)
+	if err := db.setSyncState(ctx, testUserID, "hasLibraryAccess", "false"); err != nil {
+		t.Fatalf("set hasLibraryAccess for testUserID: %v", err)
+	}
+	if err := db.setSyncState(ctx, "otherUser", "hasLibraryAccess", "true"); err != nil {
+		t.Fatalf("set hasLibraryAccess for otherUser: %v", err)
+	}
+
+	svc := newSyncService(db, factory, newNominatimClient(10*time.Second))
+	if err := svc.syncLibraries(ctx, testUserID, immich); err != nil {
+		t.Fatalf("syncLibraries: %v", err)
+	}
+}
+
+func TestSyncLibrariesRetriesWhenNoOneHasAccess(t *testing.T) {
+	ctx := context.Background()
+
+	factory, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/libraries" {
+			json.NewEncoder(w).Encode([]ImmichLibraryResponse{
+				{ID: "lib1", Name: "Photos", AssetCount: 100},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	db := newTestDB(t)
+	if err := db.setSyncState(ctx, testUserID, "hasLibraryAccess", "false"); err != nil {
+		t.Fatalf("set hasLibraryAccess: %v", err)
+	}
+
+	svc := newSyncService(db, factory, newNominatimClient(10*time.Second))
+	if err := svc.syncLibraries(ctx, testUserID, immich); err != nil {
+		t.Fatalf("syncLibraries: %v", err)
+	}
+
+	libs, err := db.getLibraries(ctx)
+	if err != nil {
+		t.Fatalf("getLibraries: %v", err)
+	}
+	if len(libs) != 1 {
+		t.Fatalf("expected 1 library, got %d", len(libs))
+	}
+
+	hasAccess, err := db.getSyncState(ctx, testUserID, "hasLibraryAccess")
+	if err != nil {
+		t.Fatalf("get hasLibraryAccess: %v", err)
+	}
+	if hasAccess == nil || *hasAccess != "true" {
+		t.Errorf("expected hasLibraryAccess=true after successful retry, got %v", hasAccess)
+	}
+}
+
 func TestSyncAlbumsSuccess(t *testing.T) {
 	ctx := context.Background()
 

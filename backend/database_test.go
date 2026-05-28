@@ -1067,3 +1067,53 @@ func TestDeleteUserSyncData(t *testing.T) {
 		t.Errorf("expected other user syncState preserved, got %v", otherSync)
 	}
 }
+
+func TestHasAnyOtherUserWithLibraryAccess(t *testing.T) {
+	ctx := context.Background()
+	db := newTestDB(t)
+	otherUserID := "other-user-id"
+	if err := db.createUser(ctx, otherUserID, "other@example.com", "hashed"); err != nil {
+		t.Fatalf("create other user: %v", err)
+	}
+
+	has, err := db.hasAnyOtherUserWithLibraryAccess(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("empty state: %v", err)
+	}
+	if has {
+		t.Errorf("empty state: expected false, got true")
+	}
+
+	if err := db.setSyncState(ctx, testUserID, "hasLibraryAccess", "true"); err != nil {
+		t.Fatalf("set excluded user: %v", err)
+	}
+	has, err = db.hasAnyOtherUserWithLibraryAccess(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("only excluded set: %v", err)
+	}
+	if has {
+		t.Errorf("only excluded user has access: expected false, got true")
+	}
+
+	if err := db.setSyncState(ctx, otherUserID, "hasLibraryAccess", "false"); err != nil {
+		t.Fatalf("set other false: %v", err)
+	}
+	has, err = db.hasAnyOtherUserWithLibraryAccess(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("other false: %v", err)
+	}
+	if has {
+		t.Errorf("other user has value=false: expected false, got true")
+	}
+
+	if err := db.setSyncState(ctx, otherUserID, "hasLibraryAccess", "true"); err != nil {
+		t.Fatalf("set other true: %v", err)
+	}
+	has, err = db.hasAnyOtherUserWithLibraryAccess(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("other true: %v", err)
+	}
+	if !has {
+		t.Errorf("other user has value=true: expected true, got false")
+	}
+}

@@ -85,6 +85,15 @@ func (d *Database) setSyncState(ctx context.Context, userID, key, value string) 
 	return err
 }
 
+func (d *Database) hasAnyOtherUserWithLibraryAccess(ctx context.Context, excludeUserID string) (bool, error) {
+	var exists bool
+	err := d.db.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM syncState WHERE key = 'hasLibraryAccess' AND value = 'true' AND userID != ?)`,
+		excludeUserID,
+	).Scan(&exists)
+	return exists, err
+}
+
 func (d *Database) deleteSyncState(ctx context.Context, userID, key string) {
 	if _, err := d.db.ExecContext(ctx, "DELETE FROM syncState WHERE userID = ? AND key = ?", userID, key); err != nil {
 		log.Printf("[DB] Failed to delete sync state %s for user %s: %v", key, userID, err)
