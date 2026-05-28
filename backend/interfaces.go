@@ -9,6 +9,7 @@ type SyncStore interface {
 	getSyncState(ctx context.Context, userID, key string) (*string, error)
 	setSyncState(ctx context.Context, userID, key, value string) error
 	deleteSyncState(ctx context.Context, userID, key string)
+	hasAnyOtherUserWithLibraryAccess(ctx context.Context, excludeUserID string) (bool, error)
 	upsertAssets(ctx context.Context, userID string, assets []AssetRow) error
 	batchUpdateStackInfo(ctx context.Context, userID string, updates []stackUpdateRow) (int, error)
 	computeFrequentLocationClusters(ctx context.Context, userID string) ([]FrequentLocationRow, error)

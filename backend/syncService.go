@@ -533,6 +533,21 @@ func (s *SyncService) fetchAndReplaceAlbumAssets(ctx context.Context, userID str
 }
 
 func (s *SyncService) syncLibraries(ctx context.Context, userID string, immich SyncImmichAPI) error {
+	hasAccess, err := s.db.getSyncState(ctx, userID, "hasLibraryAccess")
+	if err != nil {
+		return fmt.Errorf("failed to check library access: %w", err)
+	}
+	if hasAccess != nil && *hasAccess == "false" {
+		otherHasAccess, err := s.db.hasAnyOtherUserWithLibraryAccess(ctx, userID)
+		if err != nil {
+			return fmt.Errorf("failed to check other users library access: %w", err)
+		}
+		if otherHasAccess {
+			return nil
+		}
+		// no early return: retry the API in case access was granted since the last 403.
+	}
+
 	log.Printf("[Sync] Syncing libraries for user %s...", userID)
 
 	apiCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
