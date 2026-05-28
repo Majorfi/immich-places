@@ -239,7 +239,7 @@ export function DateRangeFilterGroup({
 						selected={isoToDateRange(startDate, endDate)}
 						onSelect={handleCalendarSelect}
 						numberOfMonths={1}
-						startMonth={new Date(2000, 0)}
+						startMonth={new Date(1900, 0)}
 						endMonth={new Date()}
 						components={{
 							DayButton: dayButtonProps => {
