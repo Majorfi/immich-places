@@ -30,6 +30,8 @@ export function PhotoListContainer(): ReactElement {
 		setViewModeAction,
 		selectedAlbumID,
 		selectAlbumAction,
+		selectedTagID,
+		selectTagAction,
 		startDate,
 		endDate,
 		setDateRangeAction
@@ -126,6 +128,9 @@ export function PhotoListContainer(): ReactElement {
 			return;
 		}
 		closeLightboxAction();
+		if (mode === 'album') {
+			selectTagAction(null);
+		}
 		setViewModeAction(mode);
 	};
 
@@ -224,6 +229,8 @@ export function PhotoListContainer(): ReactElement {
 				startDate,
 				endDate,
 				onDateRangeAction: setDateRangeAction,
+				selectedTagID,
+				onTagAction: selectTagAction,
 				onGPXResetAction: handleGPXAutoReset,
 				onGPXCancelAction: handleGPXCancel,
 				trailingAction: <UserMenu gpxImport={gpxImportProp} />,

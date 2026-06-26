@@ -1,7 +1,7 @@
 'use client';
 
 import L from 'leaflet';
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {
 	MAP_DEFAULT_CENTER,
@@ -26,6 +26,9 @@ type TUseMapAutoFitArgs = {
 	gpsFilter: TGPSFilter;
 	viewMode: TViewMode;
 	albumFilter: string | null;
+	tagFilter: string | null;
+	startDate: string | null;
+	endDate: string | null;
 	mapMarkers: TMapMarker[];
 	fittedBoundsKeyRef: RefObject<string | null>;
 	prevFitAlbumRef: RefObject<string | null>;
@@ -79,10 +82,17 @@ export function useMapAutoFit({
 	gpsFilter,
 	viewMode,
 	albumFilter,
+	tagFilter,
+	startDate,
+	endDate,
 	mapMarkers,
 	fittedBoundsKeyRef,
 	prevFitAlbumRef
 }: TUseMapAutoFitArgs): void {
+	const prevFitTagRef = useRef(tagFilter);
+	const prevFitStartRef = useRef(startDate);
+	const prevFitEndRef = useRef(endDate);
+
 	useEffect(() => {
 		if (!mapInstanceRef.current) {
 			return;
@@ -90,22 +100,29 @@ export function useMapAutoFit({
 		const map = mapInstanceRef.current;
 
 		const hasAlbumChanged = prevFitAlbumRef.current !== albumFilter;
+		const hasTagChanged = prevFitTagRef.current !== tagFilter;
+		const hasDateChanged = prevFitStartRef.current !== startDate || prevFitEndRef.current !== endDate;
 		prevFitAlbumRef.current = albumFilter;
+		prevFitTagRef.current = tagFilter;
+		prevFitStartRef.current = startDate;
+		prevFitEndRef.current = endDate;
 
-		if (hasAlbumChanged) {
+		// On any filter change the marker set is reloading; defer the fit to the next
+		// render (when fresh markers have arrived) so we never fit against stale pins.
+		if (hasAlbumChanged || hasTagChanged || hasDateChanged) {
 			fittedBoundsKeyRef.current = null;
-			if (!albumFilter) {
+			if (hasAlbumChanged && !albumFilter) {
 				programmaticMoveRef.current = true;
 				map.flyTo(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, {duration: MAP_FLY_DURATION_SECONDS});
-				return;
 			}
+			return;
 		}
 
 		const boundsKey = resolveAutoFitKey(viewMode, gpsFilter, albumFilter, mapMarkers.length);
 		if (!boundsKey) {
 			return;
 		}
-		if (!hasAlbumChanged && fittedBoundsKeyRef.current === boundsKey) {
+		if (fittedBoundsKeyRef.current === boundsKey) {
 			return;
 		}
 		fittedBoundsKeyRef.current = boundsKey;
@@ -121,6 +138,9 @@ export function useMapAutoFit({
 		map.flyToBounds(bounds, {padding: MAP_FIT_PADDING, maxZoom, duration: MAP_FLY_DURATION_SECONDS});
 	}, [
 		albumFilter,
+		tagFilter,
+		startDate,
+		endDate,
 		fittedBoundsKeyRef,
 		gpsFilter,
 		mapInstanceRef,

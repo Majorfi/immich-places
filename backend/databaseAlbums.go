@@ -45,6 +45,14 @@ func (d *Database) upsertAlbum(ctx context.Context, userID, albumID, albumName s
 	return err
 }
 
+func (d *Database) setAlbumSynced(ctx context.Context, userID, albumID, updatedAt string) error {
+	_, err := d.db.ExecContext(ctx,
+		`UPDATE albums SET updatedAt = ? WHERE userID = ? AND immichID = ?`,
+		updatedAt, userID, albumID,
+	)
+	return err
+}
+
 func (d *Database) replaceAlbumAssets(ctx context.Context, userID, albumID string, assetIDs []string) error {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {

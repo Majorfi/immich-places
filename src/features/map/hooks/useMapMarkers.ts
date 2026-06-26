@@ -39,6 +39,9 @@ function boundsKey(bounds?: TViewportBounds | null): string {
  */
 export function useMapMarkers(
 	albumID?: string | null,
+	tagID?: string | null,
+	startDate?: string | null,
+	endDate?: string | null,
 	version = 0,
 	bounds?: TViewportBounds | null,
 	visibleMarkerLimit: number = DEFAULT_VISIBLE_MARKER_LIMIT
@@ -57,6 +60,9 @@ export function useMapMarkers(
 	const load = useCallback(
 		async (
 			currentAlbumID?: string,
+			currentTagID?: string,
+			currentStartDate?: string,
+			currentEndDate?: string,
 			currentBounds?: TViewportBounds | null,
 			currentVisibleMarkerLimit: number = DEFAULT_VISIBLE_MARKER_LIMIT
 		) => {
@@ -66,9 +72,15 @@ export function useMapMarkers(
 			const controller = new AbortController();
 			abortRef.current = controller;
 			try {
-				const markers = await fetchMapMarkers(currentAlbumID, currentBounds, currentVisibleMarkerLimit, {
-					signal: controller.signal
-				});
+				const markers = await fetchMapMarkers(
+					currentAlbumID,
+					currentTagID,
+					currentStartDate,
+					currentEndDate,
+					currentBounds,
+					currentVisibleMarkerLimit,
+					{signal: controller.signal}
+				);
 				if (requestIDRef.current !== requestID) {
 					return;
 				}
@@ -92,6 +104,9 @@ export function useMapMarkers(
 	);
 
 	const prevAlbumID = useRef(albumID);
+	const prevTagID = useRef(tagID);
+	const prevStartDate = useRef(startDate);
+	const prevEndDate = useRef(endDate);
 	const prevVersion = useRef(version);
 	const prevBoundsKey = useRef(currentBoundsKey);
 	const prevVisibleMarkerLimit = useRef(visibleMarkerLimit);
@@ -99,36 +114,59 @@ export function useMapMarkers(
 
 	useEffect(() => {
 		const isAlbumChanged = prevAlbumID.current !== albumID;
+		const isTagChanged = prevTagID.current !== tagID;
+		const isStartDateChanged = prevStartDate.current !== startDate;
+		const isEndDateChanged = prevEndDate.current !== endDate;
 		const isVersionChanged = prevVersion.current !== version;
 		const isBoundsChanged = prevBoundsKey.current !== currentBoundsKey;
 		const isVisibleMarkerLimitChanged = prevVisibleMarkerLimit.current !== visibleMarkerLimit;
 
 		prevAlbumID.current = albumID;
+		prevTagID.current = tagID;
+		prevStartDate.current = startDate;
+		prevEndDate.current = endDate;
 		prevVersion.current = version;
 		prevBoundsKey.current = currentBoundsKey;
 		prevVisibleMarkerLimit.current = visibleMarkerLimit;
 
-		if (!albumID && !effectiveBounds) {
+		if (!albumID && !tagID && !effectiveBounds) {
 			return;
 		}
 
 		if (
 			isAlbumChanged ||
+			isTagChanged ||
+			isStartDateChanged ||
+			isEndDateChanged ||
 			isVersionChanged ||
 			isBoundsChanged ||
 			isVisibleMarkerLimitChanged ||
 			!hasLoadedRef.current
 		) {
 			hasLoadedRef.current = true;
-			if (isAlbumChanged) {
+			if (isAlbumChanged || isTagChanged || isStartDateChanged || isEndDateChanged) {
 				setMapMarkers([]);
 				setError(null);
-				load(albumID ?? undefined, effectiveBounds, visibleMarkerLimit);
+				load(
+					albumID ?? undefined,
+					tagID ?? undefined,
+					startDate ?? undefined,
+					endDate ?? undefined,
+					effectiveBounds,
+					visibleMarkerLimit
+				);
 				return;
 			}
-			load(albumID ?? undefined, effectiveBounds, visibleMarkerLimit);
+			load(
+				albumID ?? undefined,
+				tagID ?? undefined,
+				startDate ?? undefined,
+				endDate ?? undefined,
+				effectiveBounds,
+				visibleMarkerLimit
+			);
 		}
-	}, [albumID, effectiveBounds, currentBoundsKey, load, version, visibleMarkerLimit]);
+	}, [albumID, tagID, startDate, endDate, effectiveBounds, currentBoundsKey, load, version, visibleMarkerLimit]);
 
 	useEffect(() => {
 		return () => {

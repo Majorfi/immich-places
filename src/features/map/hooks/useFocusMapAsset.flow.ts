@@ -7,6 +7,7 @@ type TResolveFocusTargetArgs = {
 	pageSize: number;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
+	selectedTagID: string | null;
 	signal: AbortSignal;
 };
 
@@ -33,19 +34,21 @@ export async function resolveFocusTarget({
 	pageSize,
 	viewMode,
 	selectedAlbumID,
+	selectedTagID,
 	signal
 }: TResolveFocusTargetArgs): Promise<TFocusTarget> {
 	const isAlbumMode = viewMode === 'album';
 	const hasActiveAlbum = isAlbumMode && selectedAlbumID !== null;
+	const tagParam = selectedTagID ?? undefined;
 
 	if (hasActiveAlbum && selectedAlbumID) {
-		const info = await fetchAssetPageInfo(assetID, pageSize, selectedAlbumID, {signal});
+		const info = await fetchAssetPageInfo(assetID, pageSize, selectedAlbumID, tagParam, {signal});
 		return {page: info.page, albumID: selectedAlbumID, requiresAlbumSwitch: false};
 	}
 
-	const info = await fetchAssetPageInfo(assetID, pageSize, undefined, {signal});
+	const info = await fetchAssetPageInfo(assetID, pageSize, undefined, tagParam, {signal});
 	if (isAlbumMode && info.albumID) {
-		const albumInfo = await fetchAssetPageInfo(assetID, pageSize, info.albumID, {signal});
+		const albumInfo = await fetchAssetPageInfo(assetID, pageSize, info.albumID, tagParam, {signal});
 		return {
 			page: albumInfo.page,
 			albumID: info.albumID,

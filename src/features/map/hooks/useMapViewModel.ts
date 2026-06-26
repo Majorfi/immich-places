@@ -16,6 +16,9 @@ export type TUseMapViewModelReturn = {
 	gpsFilter: TMapSceneValue['gpsFilter'];
 	viewMode: TMapSceneValue['viewMode'];
 	albumFilter: string | null;
+	tagFilter: string | null;
+	startDate: string | null;
+	endDate: string | null;
 	setMapBoundsAction: (bounds: TViewportBounds | null) => void;
 	mapMarkers: ReturnType<typeof useMapMarkers>['mapMarkers'];
 	mapMarkersError: ReturnType<typeof useMapMarkers>['error'];
@@ -40,6 +43,9 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		gpsFilter,
 		viewMode,
 		selectedAlbumID,
+		selectedTagID,
+		startDate,
+		endDate,
 		assets,
 		selectedAssets,
 		pendingLocation,
@@ -59,6 +65,9 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 	const [mapBounds, setMapBounds] = useState<TViewportBounds | null>(null);
 	const {mapMarkers, error: mapMarkersError} = useMapMarkers(
 		albumFilter,
+		selectedTagID,
+		startDate,
+		endDate,
 		mapMarkersVersion,
 		mapBounds,
 		visibleMarkerLimit
@@ -136,6 +145,9 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		gpsFilter,
 		viewMode,
 		albumFilter: effectiveAlbumFilter,
+		tagFilter: selectedTagID,
+		startDate,
+		endDate,
 		setMapBoundsAction: setMapBounds,
 		mapMarkers: effectiveMapMarkers,
 		mapMarkersError,

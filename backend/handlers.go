@@ -186,6 +186,7 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	albumID := r.URL.Query().Get("albumID")
+	tagID := r.URL.Query().Get("tagID")
 	withGPS := r.URL.Query().Get("gpsFilter") == "with-gps"
 	hiddenFilter := r.URL.Query().Get("hiddenFilter")
 	if hiddenFilter == "" {
@@ -220,13 +221,13 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assets, err := h.db.getFilteredAssets(ctx, user.ID, albumID, withGPS, hiddenFilter, startDate, endDate, page, pageSize)
+	assets, err := h.db.getFilteredAssets(ctx, user.ID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate, page, pageSize)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query assets")
 		return
 	}
 
-	total, err := h.db.countFilteredAssets(ctx, user.ID, albumID, withGPS, hiddenFilter, startDate, endDate)
+	total, err := h.db.countFilteredAssets(ctx, user.ID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets")
 		return
@@ -254,6 +255,7 @@ func (h *Handlers) handleGetAssetDayCounts(w http.ResponseWriter, r *http.Reques
 	}
 
 	albumID := r.URL.Query().Get("albumID")
+	tagID := r.URL.Query().Get("tagID")
 	withGPS := r.URL.Query().Get("gpsFilter") == "with-gps"
 	hiddenFilter := r.URL.Query().Get("hiddenFilter")
 	if hiddenFilter == "" {
@@ -275,7 +277,7 @@ func (h *Handlers) handleGetAssetDayCounts(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	counts, err := h.db.countAssetsByDay(ctx, user.ID, albumID, withGPS, hiddenFilter, startDate, endDate)
+	counts, err := h.db.countAssetsByDay(ctx, user.ID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets by day")
 		return
@@ -329,6 +331,27 @@ func (h *Handlers) handleGetAlbums(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, albums)
 }
 
+func (h *Handlers) handleGetTags(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getUserFromContext(r)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	tags, err := h.db.getTags(ctx, user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to query tags")
+		return
+	}
+
+	if tags == nil {
+		tags = []TagRow{}
+	}
+
+	writeJSON(w, http.StatusOK, tags)
+}
+
 func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getUserFromContext(r)
@@ -337,6 +360,21 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	albumID := r.URL.Query().Get("albumID")
+	tagID := r.URL.Query().Get("tagID")
+	startDate := r.URL.Query().Get("startDate")
+	endDate := r.URL.Query().Get("endDate")
+	if startDate != "" {
+		if _, err := time.Parse("2006-01-02", startDate); err != nil {
+			writeError(w, http.StatusBadRequest, "startDate must be a valid date (YYYY-MM-DD)")
+			return
+		}
+	}
+	if endDate != "" {
+		if _, err := time.Parse("2006-01-02", endDate); err != nil {
+			writeError(w, http.StatusBadRequest, "endDate must be a valid date (YYYY-MM-DD)")
+			return
+		}
+	}
 	limit, err := queryInt(r, "limit", defaultMapMarkersLimit)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -379,7 +417,7 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		bounds = &TViewportBounds{North: n, South: s, East: boundsReq.East, West: boundsReq.West}
 	}
 
-	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, bounds, limit)
+	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, tagID, startDate, endDate, bounds, limit)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query map markers")
 		return
@@ -763,13 +801,14 @@ func (h *Handlers) handleGetAssetPageInfo(w http.ResponseWriter, r *http.Request
 		return
 	}
 	albumID := r.URL.Query().Get("albumID")
+	tagID := r.URL.Query().Get("tagID")
 
 	if pageSize < 1 || pageSize > maxPageInfoPageSize {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("pageSize must be between 1 and %d", maxPageInfoPageSize))
 		return
 	}
 
-	info, err := h.db.getAssetPageInfo(ctx, user.ID, assetID, albumID, pageSize)
+	info, err := h.db.getAssetPageInfo(ctx, user.ID, assetID, albumID, tagID, pageSize)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "asset not found")

@@ -219,6 +219,69 @@ func (c *ImmichClient) getLibraries(ctx context.Context) ([]ImmichLibraryRespons
 	return libraries, nil
 }
 
+func (c *ImmichClient) getTags(ctx context.Context) ([]ImmichTagResponse, error) {
+	resp, err := c.doRequest(ctx, "GET", "/api/tags", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		io.Copy(io.Discard, resp.Body)
+		return nil, fmt.Errorf("immich getTags returned HTTP %d", resp.StatusCode)
+	}
+
+	var tags []ImmichTagResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
+		return nil, fmt.Errorf("failed to decode tags response: %w", err)
+	}
+	return tags, nil
+}
+
+func (c *ImmichClient) getTagAssetIDs(ctx context.Context, tagID string) ([]string, error) {
+	const tagSearchPageSize = 1000
+	const tagSearchMaxPages = 1000
+
+	payload := map[string]interface{}{
+		"tagIds":     []string{tagID},
+		"type":       "IMAGE",
+		"visibility": "timeline",
+		"size":       tagSearchPageSize,
+		"page":       1,
+	}
+
+	var ids []string
+	for page := 1; page <= tagSearchMaxPages; page++ {
+		payload["page"] = page
+		resp, err := c.doRequest(ctx, "POST", "/api/search/metadata", payload)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			return nil, fmt.Errorf("immich tag search returned HTTP %d", resp.StatusCode)
+		}
+
+		var result ImmichSearchResponse
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			resp.Body.Close()
+			return nil, fmt.Errorf("failed to decode tag search response: %w", err)
+		}
+		resp.Body.Close()
+
+		for _, item := range result.Assets.Items {
+			ids = append(ids, item.ID)
+		}
+
+		if result.Assets.NextPage == nil {
+			return ids, nil
+		}
+	}
+	return nil, fmt.Errorf("tag %s asset list exceeded %d pages of %d", tagID, tagSearchMaxPages, tagSearchPageSize)
+}
+
 func (c *ImmichClient) getAlbumAssetIDs(ctx context.Context, albumID string) ([]string, error) {
 	resp, err := c.doRequest(ctx, "GET", "/api/albums/"+albumID+"?withoutAssets=false", nil)
 	if err != nil {

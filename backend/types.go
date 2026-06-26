@@ -150,6 +150,24 @@ type ImmichAlbumDetailResponse struct {
 	} `json:"assets"`
 }
 
+type TagRow struct {
+	ImmichID   string  `json:"immichID"`
+	Name       string  `json:"name"`
+	Value      string  `json:"value"`
+	ParentID   *string `json:"parentID"`
+	Color      *string `json:"color"`
+	AssetCount int     `json:"assetCount"`
+}
+
+type ImmichTagResponse struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Value     string  `json:"value"`
+	ParentID  *string `json:"parentId"`
+	Color     *string `json:"color"`
+	UpdatedAt string  `json:"updatedAt"`
+}
+
 type AssetPageInfo struct {
 	Page    int     `json:"page"`
 	AlbumID *string `json:"albumID"`

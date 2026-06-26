@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {useURLState} from '@/features/filterBar/useURLState';
 import {clampVisibleMarkerLimit} from '@/utils/view';
@@ -21,14 +21,17 @@ type TViewDomain = {
 	viewMode: TViewMode;
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
+	selectedTagID: string | null;
 	startDate: string | null;
 	endDate: string | null;
 	setGPSFilterRawAction: (filter: TGPSFilter) => void;
 	setHiddenFilterRawAction: (filter: THiddenFilter) => void;
 	setSelectedAlbumIDAction: (albumID: string | null) => void;
+	setSelectedTagIDAction: (tagID: string | null) => void;
 	setGPSFilterAction: TViewContextValue['setGPSFilterAction'];
 	setHiddenFilterAction: TViewContextValue['setHiddenFilterAction'];
 	selectAlbumAction: TViewContextValue['selectAlbumAction'];
+	selectTagAction: TViewContextValue['selectTagAction'];
 	setDateRangeAction: (startDate: string | null, endDate: string | null) => void;
 };
 
@@ -48,6 +51,8 @@ export function useViewDomain(): TViewDomain {
 		setViewModeAction,
 		selectedAlbumID,
 		setSelectedAlbumIDAction,
+		selectedTagID,
+		setSelectedTagIDAction,
 		startDate,
 		setStartDateAction,
 		endDate,
@@ -130,6 +135,14 @@ export function useViewDomain(): TViewDomain {
 		[setSelectedAlbumIDAction, syncURLAction]
 	);
 
+	const selectTagAction = useCallback(
+		(tagID: string | null) => {
+			setSelectedTagIDAction(tagID);
+			syncURLAction({selectedTagID: tagID});
+		},
+		[setSelectedTagIDAction, syncURLAction]
+	);
+
 	const setDateRangeAction = useCallback(
 		(nextStartDate: string | null, nextEndDate: string | null) => {
 			setStartDateAction(nextStartDate);
@@ -138,6 +151,12 @@ export function useViewDomain(): TViewDomain {
 		},
 		[setStartDateAction, setEndDateAction, syncURLAction]
 	);
+
+	useEffect(() => {
+		if (viewMode === 'album' && selectedAlbumID === null && selectedTagID !== null) {
+			selectTagAction(null);
+		}
+	}, [viewMode, selectedAlbumID, selectedTagID, selectTagAction]);
 
 	return {
 		gpsFilter,
@@ -153,12 +172,15 @@ export function useViewDomain(): TViewDomain {
 		viewMode,
 		setViewModeAction: handleSetViewMode,
 		selectedAlbumID,
+		selectedTagID,
 		startDate,
 		endDate,
 		setSelectedAlbumIDAction,
+		setSelectedTagIDAction,
 		setGPSFilterAction: setGPSFilter,
 		setHiddenFilterAction: setHiddenFilter,
 		selectAlbumAction,
+		selectTagAction,
 		setDateRangeAction
 	};
 }

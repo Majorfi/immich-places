@@ -39,6 +39,7 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 	mux.HandleFunc("GET /health", handlers.handleHealth)
 	mux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	mux.HandleFunc("GET /albums", handlers.handleGetAlbums)
+	mux.HandleFunc("GET /tags", handlers.handleGetTags)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
@@ -70,6 +71,44 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 	if resp.ImmichURL != "http://external:2283" {
 		t.Errorf("expected external URL, got %s", resp.ImmichURL)
+	}
+}
+
+func TestHandleGetTags(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
+	seedAsset(t, db, "a2", nil, nil, "2024-01-02T12:00:00Z")
+	if err := db.upsertTag(ctx, testUserID, "tag1", "Vacation", "Vacation", nil, nil); err != nil {
+		t.Fatalf("upsertTag: %v", err)
+	}
+	if err := db.replaceTagAssets(ctx, testUserID, "tag1", []string{"a1", "a2"}); err != nil {
+		t.Fatalf("replaceTagAssets: %v", err)
+	}
+
+	req := withTestUser(httptest.NewRequest("GET", "/tags", nil))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var tags []TagRow
+	if err := json.NewDecoder(rec.Body).Decode(&tags); err != nil {
+		t.Fatalf("decode tags: %v", err)
+	}
+	if len(tags) != 1 {
+		t.Fatalf("expected 1 tag, got %d", len(tags))
+	}
+	if tags[0].ImmichID != "tag1" || tags[0].AssetCount != 2 {
+		t.Errorf("unexpected tag payload: %+v", tags[0])
+	}
+
+	unauthRec := httptest.NewRecorder()
+	mux.ServeHTTP(unauthRec, httptest.NewRequest("GET", "/tags", nil))
+	if unauthRec.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauthRec.Code)
 	}
 }
 
@@ -348,6 +387,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 	mux.HandleFunc("GET /health", handlers.handleHealth)
 	mux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	mux.HandleFunc("GET /albums", handlers.handleGetAlbums)
+	mux.HandleFunc("GET /tags", handlers.handleGetTags)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
@@ -857,7 +897,7 @@ func TestHandleUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -926,7 +966,7 @@ func TestHandleBulkUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, err := d.countFilteredAssets(ctx, testUserID, "", true, "hidden", "", "")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", "", true, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}

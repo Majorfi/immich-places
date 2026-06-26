@@ -83,10 +83,12 @@ export function useAppProviderState(): TAppProviderState {
 		viewMode,
 		setViewModeAction,
 		selectedAlbumID,
+		selectedTagID,
 		startDate,
 		endDate,
 		setGPSFilterAction,
 		selectAlbumAction,
+		selectTagAction,
 		setDateRangeAction
 	} = useViewDomain();
 
@@ -96,6 +98,7 @@ export function useAppProviderState(): TAppProviderState {
 		pageSize,
 		viewMode,
 		selectedAlbumID,
+		selectedTagID,
 		startDate,
 		endDate,
 		isReady
@@ -149,6 +152,7 @@ export function useAppProviderState(): TAppProviderState {
 		setGPSFilterRawAction,
 		viewMode,
 		selectedAlbumID,
+		selectedTagID,
 		selectAlbumAction,
 		pageSize,
 		loadPageAction: catalogDomain.loadPageAction,
@@ -214,6 +218,8 @@ export function useAppProviderState(): TAppProviderState {
 		setViewModeAction,
 		selectedAlbumID,
 		selectAlbumAction,
+		selectedTagID,
+		selectTagAction,
 		startDate,
 		endDate,
 		setDateRangeAction
@@ -275,6 +281,9 @@ export function useAppProviderState(): TAppProviderState {
 		gpsFilter,
 		viewMode,
 		selectedAlbumID,
+		selectedTagID,
+		startDate,
+		endDate,
 		assets: catalogDomain.assets,
 		selectedAssets,
 		pendingLocation,

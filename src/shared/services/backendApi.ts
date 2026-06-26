@@ -11,7 +11,8 @@ import {
 	isSyncStatus,
 	isTLocationCluster,
 	isTRawSuggestionsResponse,
-	isTSuggestionsResponse
+	isTSuggestionsResponse,
+	isTagRow
 } from '@/shared/services/backendApi.guards';
 import {getBackendBaseURL} from '@/utils/backendUrls';
 import {normalizePositiveInteger} from '@/utils/math';
@@ -27,6 +28,7 @@ import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TGPSFilter, THiddenFilter, TMapMarker} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionsResponse} from '@/shared/types/suggestion';
+import type {TTagRow} from '@/shared/types/tag';
 
 const BASE = getBackendBaseURL();
 
@@ -94,6 +96,7 @@ export async function fetchAssets(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
 	albumID?: string,
+	tagID?: string,
 	startDate?: string,
 	endDate?: string,
 	opts: TRequestOptions = {}
@@ -106,6 +109,9 @@ export async function fetchAssets(
 	});
 	if (albumID) {
 		params.set('albumID', albumID);
+	}
+	if (tagID) {
+		params.set('tagID', tagID);
 	}
 	if (startDate) {
 		params.set('startDate', startDate);
@@ -134,11 +140,15 @@ export async function fetchAssetDayCounts(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
 	albumID?: string,
+	tagID?: string,
 	opts: TRequestOptions = {}
 ): Promise<Record<string, number>> {
 	const params = buildSearchParams({startDate, endDate, gpsFilter, hiddenFilter});
 	if (albumID) {
 		params.set('albumID', albumID);
+	}
+	if (tagID) {
+		params.set('tagID', tagID);
 	}
 	const url = `${BASE}/assets/day-counts?${params.toString()}`;
 	const response = await backendFetch(url, {}, opts);
@@ -146,6 +156,18 @@ export async function fetchAssetDayCounts(
 		throw new Error(`Failed to fetch day counts: ${response.status}`);
 	}
 	return parseJSON(response, isDayCounts, 'Invalid day counts response payload');
+}
+
+export async function fetchTags(opts: TRequestOptions = {}): Promise<TTagRow[]> {
+	const response = await backendFetch(`${BASE}/tags`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch tags: ${response.status}`);
+	}
+	return parseJSON(
+		response,
+		(value): value is TTagRow[] => Array.isArray(value) && value.every(isTagRow),
+		'Invalid tags response payload'
+	);
 }
 
 export async function fetchAlbums(
@@ -168,6 +190,9 @@ export async function fetchAlbums(
 
 export async function fetchMapMarkers(
 	albumID?: string,
+	tagID?: string,
+	startDate?: string,
+	endDate?: string,
 	bounds?: TViewportBounds | null,
 	limit: number = DEFAULT_VISIBLE_MARKER_LIMIT,
 	opts: TRequestOptions = {}
@@ -175,6 +200,15 @@ export async function fetchMapMarkers(
 	const params = new URLSearchParams();
 	if (albumID) {
 		params.set('albumID', albumID);
+	}
+	if (tagID) {
+		params.set('tagID', tagID);
+	}
+	if (startDate) {
+		params.set('startDate', startDate);
+	}
+	if (endDate) {
+		params.set('endDate', endDate);
 	}
 	addIfNumber(params, 'limit', limit);
 	if (bounds) {
@@ -286,11 +320,15 @@ export async function fetchAssetPageInfo(
 	assetID: string,
 	pageSize: number,
 	albumID?: string,
+	tagID?: string,
 	opts: TRequestOptions = {}
 ): Promise<TAssetPageInfo> {
 	const params = buildSearchParams({pageSize: String(normalizePageSize(pageSize))});
 	if (albumID) {
 		params.set('albumID', albumID);
+	}
+	if (tagID) {
+		params.set('tagID', tagID);
 	}
 	const url = `${BASE}/assets/${encodeURIComponent(assetID)}/page-info?${params.toString()}`;
 	const response = await backendFetch(url, {}, opts);
