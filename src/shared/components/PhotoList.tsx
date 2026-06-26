@@ -45,6 +45,8 @@ type TPhotoListProps = {
 		startDate: string | null;
 		endDate: string | null;
 		onDateRangeAction: (startDate: string | null, endDate: string | null) => void;
+		selectedTagID: string | null;
+		onTagAction: (tagID: string | null) => void;
 		gpxPreviews: TGPXPreviewResponse[];
 		gpxError: string | null;
 		onGPXResetAction: () => void;
@@ -115,6 +117,8 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		startDate,
 		endDate,
 		onDateRangeAction,
+		selectedTagID,
+		onTagAction,
 		gpxPreviews,
 		gpxError,
 		onGPXResetAction,
@@ -180,6 +184,9 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				startDate={startDate}
 				endDate={endDate}
 				onDateRangeAction={onDateRangeAction}
+				selectedTagID={selectedTagID}
+				onTagAction={onTagAction}
+				tagFilterDisabled={shouldShowAlbumList}
 				isSyncing={isSyncing}
 				syncError={syncError}
 				onSyncAction={onRetrySyncAction}

@@ -16,6 +16,7 @@ type TUseCatalogDomainArgs = {
 	pageSize: number;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
+	selectedTagID: string | null;
 	startDate: string | null;
 	endDate: string | null;
 	isReady: boolean;
@@ -43,6 +44,7 @@ export function useCatalogDomain({
 	pageSize,
 	viewMode,
 	selectedAlbumID,
+	selectedTagID,
 	startDate,
 	endDate,
 	isReady
@@ -62,7 +64,7 @@ export function useCatalogDomain({
 		removeAsset,
 		loadPageAction,
 		clear: clearAssets
-	} = useAssets(gpsFilter, hiddenFilter, pageSize, albumFilter, startDate, endDate, focusPageRef);
+	} = useAssets(gpsFilter, hiddenFilter, pageSize, albumFilter, selectedTagID, startDate, endDate, focusPageRef);
 	const {
 		albums,
 		isLoading: isLoadingAlbums,

@@ -39,6 +39,9 @@ type TUseMapViewControllerArgs = {
 		| 'gpsFilter'
 		| 'viewMode'
 		| 'albumFilter'
+		| 'tagFilter'
+		| 'startDate'
+		| 'endDate'
 		| 'setMapBoundsAction'
 		| 'mapMarkers'
 		| 'selectedAssets'
@@ -76,6 +79,9 @@ export function useMapViewController({
 		gpsFilter,
 		viewMode,
 		albumFilter,
+		tagFilter,
+		startDate,
+		endDate,
 		setMapBoundsAction,
 		mapMarkers,
 		selectedAssets,
@@ -221,6 +227,9 @@ export function useMapViewController({
 		gpsFilter,
 		viewMode,
 		albumFilter,
+		tagFilter,
+		startDate,
+		endDate,
 		mapMarkers,
 		fittedBoundsKeyRef,
 		prevFitAlbumRef

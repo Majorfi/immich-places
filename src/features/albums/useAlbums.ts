@@ -67,7 +67,6 @@ export function useAlbums(
 		const prev = prevFilterRef.current;
 		if (prev.gpsFilter !== gpsFilter || prev.startDate !== startDate || prev.endDate !== endDate) {
 			prevFilterRef.current = {gpsFilter, startDate, endDate};
-			setAlbums([]);
 			void load();
 		}
 	}, [gpsFilter, startDate, endDate, load]);

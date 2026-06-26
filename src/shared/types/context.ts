@@ -40,6 +40,8 @@ export type TViewContextValue = {
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
 	selectAlbumAction: (albumID: string | null) => void;
+	selectedTagID: string | null;
+	selectTagAction: (tagID: string | null) => void;
 	startDate: string | null;
 	endDate: string | null;
 	setDateRangeAction: (startDate: string | null, endDate: string | null) => void;
@@ -118,6 +120,9 @@ export type TMapSceneValue = {
 	gpsFilter: TViewContextValue['gpsFilter'];
 	viewMode: TViewContextValue['viewMode'];
 	selectedAlbumID: string | null;
+	selectedTagID: string | null;
+	startDate: string | null;
+	endDate: string | null;
 	assets: TAssetRow[];
 	selectedAssets: TSelectionContextValue['selectedAssets'];
 	pendingLocation: TSelectionContextValue['pendingLocation'];

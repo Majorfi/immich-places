@@ -136,14 +136,29 @@ type assetFilter struct {
 	aliased    bool
 }
 
-func buildAssetFilter(userID, albumID string, withGPS bool, hiddenFilter, startDate, endDate string) assetFilter {
+func buildAssetFilter(userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) assetFilter {
 	var f assetFilter
-	if albumID != "" {
+	if albumID != "" || tagID != "" {
 		f.aliased = true
-		f.fromClause = `FROM assets a
-			JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID
-			WHERE a.userID = ? AND aa.albumID = ?`
-		f.args = append(f.args, userID, albumID)
+		f.fromClause = `FROM assets a`
+		if albumID != "" {
+			f.fromClause += `
+				JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID`
+		}
+		if tagID != "" {
+			f.fromClause += `
+				JOIN assetTags at ON at.userID = a.userID AND at.assetID = a.immichID`
+		}
+		f.fromClause += ` WHERE a.userID = ?`
+		f.args = append(f.args, userID)
+		if albumID != "" {
+			f.fromClause += ` AND aa.albumID = ?`
+			f.args = append(f.args, albumID)
+		}
+		if tagID != "" {
+			f.fromClause += ` AND at.tagID = ?`
+			f.args = append(f.args, tagID)
+		}
 		if withGPS {
 			f.fromClause += ` AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL`
 		} else {
@@ -197,8 +212,8 @@ func buildAssetFilter(userID, albumID string, withGPS bool, hiddenFilter, startD
 	return f
 }
 
-func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error) {
-	f := buildAssetFilter(userID, albumID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error) {
+	f := buildAssetFilter(userID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
 
 	cols := assetColumns
 	orderPrefix := ""
@@ -220,8 +235,8 @@ func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID string
 	return scanAssetRows(rows)
 }
 
-func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter, startDate, endDate string) (int, error) {
-	f := buildAssetFilter(userID, albumID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) (int, error) {
+	f := buildAssetFilter(userID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
 	query := `SELECT COUNT(*) ` + f.fromClause
 
 	var count int
@@ -229,8 +244,8 @@ func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID stri
 	return count, err
 }
 
-func (d *Database) countAssetsByDay(ctx context.Context, userID, albumID string, withGPS bool, hiddenFilter, startDate, endDate string) (map[string]int, error) {
-	f := buildAssetFilter(userID, albumID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) countAssetsByDay(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) (map[string]int, error) {
+	f := buildAssetFilter(userID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
 
 	dateCol := "dateTimeOriginal"
 	if f.aliased {
@@ -263,20 +278,45 @@ type markerFilter struct {
 	prefix     string
 }
 
-func buildMarkerFilter(userID, albumID string, bounds *TViewportBounds) markerFilter {
+func buildMarkerFilter(userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds) markerFilter {
 	var f markerFilter
-	if albumID != "" {
+	if albumID != "" || tagID != "" {
 		f.prefix = "a."
-		f.fromClause = `FROM assets a
-			JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID
-			WHERE a.userID = ? AND aa.albumID = ? AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
+		f.fromClause = `FROM assets a`
+		if albumID != "" {
+			f.fromClause += `
+				JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID`
+		}
+		if tagID != "" {
+			f.fromClause += `
+				JOIN assetTags at ON at.userID = a.userID AND at.assetID = a.immichID`
+		}
+		f.fromClause += ` WHERE a.userID = ?`
+		f.args = append(f.args, userID)
+		if albumID != "" {
+			f.fromClause += ` AND aa.albumID = ?`
+			f.args = append(f.args, albumID)
+		}
+		if tagID != "" {
+			f.fromClause += ` AND at.tagID = ?`
+			f.args = append(f.args, tagID)
+		}
+		f.fromClause += ` AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
 				AND a.stackPrimaryAssetID IS NULL` + hiddenLibraryFilterAliased
-		f.args = append(f.args, userID, albumID)
 	} else {
 		f.fromClause = `FROM assets
 			WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
 				AND stackPrimaryAssetID IS NULL` + hiddenLibraryFilter
 		f.args = append(f.args, userID)
+	}
+
+	if startDate != "" {
+		f.fromClause += fmt.Sprintf(` AND %sdateTimeOriginal >= ?`, f.prefix)
+		f.args = append(f.args, startDate)
+	}
+	if endDate != "" {
+		f.fromClause += fmt.Sprintf(` AND %sdateTimeOriginal < ?`, f.prefix)
+		f.args = append(f.args, endDate+"T99")
 	}
 
 	if bounds != nil {
@@ -292,8 +332,8 @@ func buildMarkerFilter(userID, albumID string, bounds *TViewportBounds) markerFi
 	return f
 }
 
-func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds, limit int) ([]MapMarker, error) {
-	f := buildMarkerFilter(userID, albumID, bounds)
+func (d *Database) getMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, limit int) ([]MapMarker, error) {
+	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds)
 
 	selectCols := "immichID, latitude, longitude"
 	if f.prefix != "" {
@@ -321,8 +361,8 @@ func (d *Database) getMapMarkers(ctx context.Context, userID, albumID string, bo
 	return markers, rows.Err()
 }
 
-func (d *Database) countMapMarkers(ctx context.Context, userID, albumID string, bounds *TViewportBounds) (int, error) {
-	f := buildMarkerFilter(userID, albumID, bounds)
+func (d *Database) countMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds) (int, error) {
+	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds)
 	query := "SELECT COUNT(*) " + f.fromClause
 
 	var count int
@@ -538,7 +578,7 @@ func (d *Database) computeFrequentLocationClusters(ctx context.Context, userID s
 	return clusters, rows.Err()
 }
 
-func (d *Database) getAssetPageInfo(ctx context.Context, userID, assetID string, albumID string, pageSize int) (*AssetPageInfo, error) {
+func (d *Database) getAssetPageInfo(ctx context.Context, userID, assetID string, albumID, tagID string, pageSize int) (*AssetPageInfo, error) {
 	var fileCreatedAt string
 	err := d.db.QueryRowContext(ctx, "SELECT fileCreatedAt FROM assets WHERE immichID = ? AND userID = ?"+hiddenLibraryFilter, assetID, userID).Scan(&fileCreatedAt)
 	if err != nil {
@@ -555,17 +595,45 @@ func (d *Database) getAssetPageInfo(ctx context.Context, userID, assetID string,
 		}
 	}
 
+	if tagID != "" {
+		var inTag bool
+		err := d.db.QueryRowContext(ctx,
+			`SELECT EXISTS(SELECT 1 FROM assetTags WHERE userID = ? AND assetID = ? AND tagID = ?)`,
+			userID, assetID, tagID,
+		).Scan(&inTag)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check tag membership: %w", err)
+		}
+		if !inTag {
+			tagID = ""
+		}
+	}
+
 	var position int
-	if albumID != "" {
-		err = d.db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM assets a
-			JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID
-			WHERE a.userID = ? AND aa.albumID = ?
-				AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
+	if albumID != "" || tagID != "" {
+		query := `SELECT COUNT(*) FROM assets a`
+		var args []interface{}
+		if albumID != "" {
+			query += ` JOIN albumAssets aa ON aa.userID = a.userID AND aa.assetID = a.immichID`
+		}
+		if tagID != "" {
+			query += ` JOIN assetTags at ON at.userID = a.userID AND at.assetID = a.immichID`
+		}
+		query += ` WHERE a.userID = ?`
+		args = append(args, userID)
+		if albumID != "" {
+			query += ` AND aa.albumID = ?`
+			args = append(args, albumID)
+		}
+		if tagID != "" {
+			query += ` AND at.tagID = ?`
+			args = append(args, tagID)
+		}
+		query += ` AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
 				AND a.stackPrimaryAssetID IS NULL
-				AND (a.fileCreatedAt > ? OR (a.fileCreatedAt = ? AND a.immichID > ?))`+hiddenLibraryFilterAliased,
-			userID, albumID, fileCreatedAt, fileCreatedAt, assetID,
-		).Scan(&position)
+				AND (a.fileCreatedAt > ? OR (a.fileCreatedAt = ? AND a.immichID > ?))` + hiddenLibraryFilterAliased
+		args = append(args, fileCreatedAt, fileCreatedAt, assetID)
+		err = d.db.QueryRowContext(ctx, query, args...).Scan(&position)
 	} else {
 		err = d.db.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM assets
@@ -829,6 +897,8 @@ func (d *Database) deleteUserSyncData(ctx context.Context, userID string) error 
 		"dawarichTracks",
 		"albumAssets",
 		"albums",
+		"assetTags",
+		"tags",
 		"frequentLocations",
 		"favoritePlaces",
 		"assets",

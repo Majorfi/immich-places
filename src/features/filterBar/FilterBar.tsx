@@ -10,6 +10,7 @@ import {GPXStatusFilterGroup} from '@/features/filterBar/GPXStatusFilterGroup';
 import {HeaderTitle} from '@/features/filterBar/HeaderTitle';
 import {SettingsIcon} from '@/features/filterBar/SettingsIcon';
 import {SettingsPanel} from '@/features/filterBar/SettingsPanel';
+import {TagFilterGroup} from '@/features/filterBar/TagFilterGroup';
 import {useScrollHeight} from '@/features/filterBar/useScrollHeight';
 import {ViewModeGroup} from '@/features/filterBar/ViewModeGroup';
 import {cn} from '@/utils/cn';
@@ -37,6 +38,9 @@ type TFilterBarProps = {
 	startDate: string | null;
 	endDate: string | null;
 	onDateRangeAction: (startDate: string | null, endDate: string | null) => void;
+	selectedTagID: string | null;
+	onTagAction: (tagID: string | null) => void;
+	tagFilterDisabled: boolean;
 	isSyncing: boolean;
 	syncError?: string | null;
 	onSyncAction: () => Promise<void>;
@@ -67,6 +71,9 @@ export function FilterBar({
 	startDate,
 	endDate,
 	onDateRangeAction,
+	selectedTagID,
+	onTagAction,
+	tagFilterDisabled,
 	isSyncing,
 	syncError,
 	onSyncAction,
@@ -232,6 +239,11 @@ export function FilterBar({
 								startDate={startDate}
 								endDate={endDate}
 								onDateRangeAction={onDateRangeAction}
+							/>
+							<TagFilterGroup
+								selectedTagID={selectedTagID}
+								onTagAction={onTagAction}
+								disabled={tagFilterDisabled}
 							/>
 						</>
 					)}

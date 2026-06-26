@@ -15,6 +15,7 @@ type TUseFocusMapAssetArgs = {
 	setGPSFilterRawAction: (filter: TGPSFilter) => void;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
+	selectedTagID: string | null;
 	selectAlbumAction: (albumID: string | null) => void;
 	closeLightboxAction: () => void;
 	pageSize: number;
@@ -37,6 +38,7 @@ export function useFocusMapAsset({
 	setGPSFilterRawAction,
 	viewMode,
 	selectedAlbumID,
+	selectedTagID,
 	selectAlbumAction,
 	closeLightboxAction,
 	pageSize,
@@ -67,6 +69,7 @@ export function useFocusMapAsset({
 					pageSize,
 					viewMode,
 					selectedAlbumID,
+					selectedTagID,
 					signal: controller.signal
 				});
 				if (focusRequestIDRef.current !== requestID) {
@@ -101,6 +104,7 @@ export function useFocusMapAsset({
 			setGPSFilterRawAction,
 			viewMode,
 			selectedAlbumID,
+			selectedTagID,
 			selectAlbumAction,
 			closeLightboxAction,
 			pageSize,

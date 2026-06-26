@@ -26,6 +26,7 @@ export function useAssets(
 	hiddenFilter: THiddenFilter,
 	pageSize: number,
 	albumID?: string | null,
+	tagID?: string | null,
 	startDate?: string | null,
 	endDate?: string | null,
 	focusPageRef?: MutableRefObject<number | null>
@@ -57,6 +58,7 @@ export function useAssets(
 					gpsFilter,
 					hiddenFilter,
 					albumID ?? undefined,
+					tagID ?? undefined,
 					startDate ?? undefined,
 					endDate ?? undefined,
 					{
@@ -87,10 +89,11 @@ export function useAssets(
 				}
 			}
 		},
-		[albumID, gpsFilter, hiddenFilter, startDate, endDate, pageSize]
+		[albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, pageSize]
 	);
 
 	const prevAlbumID = useRef(albumID);
+	const prevTagID = useRef(tagID);
 	const prevGPSFilter = useRef(gpsFilter);
 	const prevHiddenFilter = useRef(hiddenFilter);
 	const prevPageSize = useRef(pageSize);
@@ -99,6 +102,7 @@ export function useAssets(
 	useEffect(() => {
 		if (
 			prevAlbumID.current !== albumID ||
+			prevTagID.current !== tagID ||
 			prevGPSFilter.current !== gpsFilter ||
 			prevHiddenFilter.current !== hiddenFilter ||
 			prevPageSize.current !== pageSize ||
@@ -106,6 +110,7 @@ export function useAssets(
 			prevEndDate.current !== endDate
 		) {
 			prevAlbumID.current = albumID;
+			prevTagID.current = tagID;
 			prevGPSFilter.current = gpsFilter;
 			prevHiddenFilter.current = hiddenFilter;
 			prevPageSize.current = pageSize;
@@ -120,7 +125,7 @@ export function useAssets(
 			}
 			void loadPageAction(page);
 		}
-	}, [albumID, gpsFilter, hiddenFilter, pageSize, startDate, endDate, loadPageAction, focusPageRef]);
+	}, [albumID, tagID, gpsFilter, hiddenFilter, pageSize, startDate, endDate, loadPageAction, focusPageRef]);
 
 	useEffect(() => {
 		return () => {

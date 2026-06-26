@@ -17,6 +17,7 @@ import (
 const (
 	syncPageSize             = 1000
 	albumFetchLimit          = 5
+	tagFetchLimit            = 5
 	cancelSyncWaitTimeout    = 5 * time.Second
 	cancelSyncPollIntervalMS = 10 * time.Millisecond
 )
@@ -225,10 +226,14 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 	}
 	s.recomputeFrequentLocations(ctx, userID)
 	albumErr := s.syncAlbums(ctx, userID, immich, true)
+	tagErr := s.syncTags(ctx, userID, immich, true)
 
-	if albumErr != nil {
+	switch {
+	case albumErr != nil:
 		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", albumErr))
-	} else {
+	case tagErr != nil:
+		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", tagErr))
+	default:
 		s.clearSyncError(ctx, userID)
 	}
 
@@ -293,10 +298,14 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 	}
 
 	albumErr := s.syncAlbums(ctx, userID, immich, false)
+	tagErr := s.syncTags(ctx, userID, immich, false)
 
-	if albumErr != nil {
+	switch {
+	case albumErr != nil:
 		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", albumErr))
-	} else {
+	case tagErr != nil:
+		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", tagErr))
+	default:
 		s.clearSyncError(ctx, userID)
 	}
 
@@ -443,8 +452,9 @@ type albumWork struct {
 }
 
 type albumFetchResult struct {
-	albumID  string
-	assetIDs []string
+	albumID   string
+	assetIDs  []string
+	updatedAt string
 }
 
 func (s *SyncService) syncAlbums(ctx context.Context, userID string, immich SyncImmichAPI, forceRefresh bool) error {
@@ -483,7 +493,10 @@ func (s *SyncService) upsertAlbumMetadata(ctx context.Context, userID string, al
 	for _, album := range albums {
 		albumIDs = append(albumIDs, album.ID)
 
-		if err := s.db.upsertAlbum(ctx, userID, album.ID, album.AlbumName, album.AlbumThumbnailAssetID, album.AssetCount, album.UpdatedAt, album.StartDate); err != nil {
+		// Keep the stored updatedAt at its old value (empty for a new album) so the
+		// album stays "changed" until its assets are replaced; setAlbumSynced advances
+		// it only after a successful fetch. A failed fetch is then retried next sync.
+		if err := s.db.upsertAlbum(ctx, userID, album.ID, album.AlbumName, album.AlbumThumbnailAssetID, album.AssetCount, existing[album.ID], album.StartDate); err != nil {
 			log.Printf("[Sync] Failed to upsert album %s for user %s: %v", album.ID, userID, err)
 			continue
 		}
@@ -500,6 +513,7 @@ func (s *SyncService) fetchAndReplaceAlbumAssets(ctx context.Context, userID str
 	g.SetLimit(albumFetchLimit)
 	var fetchMu sync.Mutex
 	var fetched []albumFetchResult
+	var fetchErrs []error
 
 	for _, w := range work {
 		if !w.changed {
@@ -510,25 +524,31 @@ func (s *SyncService) fetchAndReplaceAlbumAssets(ctx context.Context, userID str
 			fetchCtx, fetchCancel := context.WithTimeout(ctx, 30*time.Second)
 			defer fetchCancel()
 			assetIDs, err := immich.getAlbumAssetIDs(fetchCtx, album.ID)
-			if err != nil {
-				return fmt.Errorf("fetch asset IDs for album %s: %w", album.ID, err)
-			}
 			fetchMu.Lock()
-			fetched = append(fetched, albumFetchResult{albumID: album.ID, assetIDs: assetIDs})
-			fetchMu.Unlock()
+			defer fetchMu.Unlock()
+			if err != nil {
+				fetchErrs = append(fetchErrs, fmt.Errorf("fetch asset IDs for album %s: %w", album.ID, err))
+				return nil
+			}
+			fetched = append(fetched, albumFetchResult{albumID: album.ID, assetIDs: assetIDs, updatedAt: album.UpdatedAt})
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("album asset fetch: %w", err)
-	}
+	_ = g.Wait()
 
 	for _, result := range fetched {
 		if err := s.db.replaceAlbumAssets(ctx, userID, result.albumID, result.assetIDs); err != nil {
-			return fmt.Errorf("replace album assets for %s: %w", result.albumID, err)
+			fetchErrs = append(fetchErrs, fmt.Errorf("replace album assets for %s: %w", result.albumID, err))
+			continue
+		}
+		if err := s.db.setAlbumSynced(ctx, userID, result.albumID, result.updatedAt); err != nil {
+			fetchErrs = append(fetchErrs, fmt.Errorf("mark album %s synced for user %s: %w", result.albumID, userID, err))
 		}
 	}
 
+	if len(fetchErrs) > 0 {
+		return errors.Join(fetchErrs...)
+	}
 	return nil
 }
 

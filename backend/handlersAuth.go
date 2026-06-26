@@ -141,7 +141,7 @@ func (h *AuthHandlers) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	markerCount, err := h.db.countMapMarkers(r.Context(), userID, "", nil)
+	markerCount, err := h.db.countMapMarkers(r.Context(), userID, "", "", "", "", nil)
 	if err != nil {
 		log.Printf("[Auth] Register failed to count map markers for user %s: %v", userID, err)
 	}
@@ -210,7 +210,7 @@ func buildMeResponse(ctx context.Context, db *Database, user *UserRow) (TMeRespo
 	if err != nil {
 		return TMeResponse{}, fmt.Errorf("get hasLibraryAccess for user %s: %w", user.ID, err)
 	}
-	markerCount, err := db.countMapMarkers(ctx, user.ID, "", nil)
+	markerCount, err := db.countMapMarkers(ctx, user.ID, "", "", "", "", nil)
 	if err != nil {
 		return TMeResponse{}, fmt.Errorf("count map markers for user %s: %w", user.ID, err)
 	}

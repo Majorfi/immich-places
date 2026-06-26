@@ -16,6 +16,7 @@ type TUIMapControllerArgs = {
 	setGPSFilterRawAction: (filter: TGPSFilter) => void;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
+	selectedTagID: string | null;
 	selectAlbumAction: (albumID: string | null) => void;
 	pageSize: number;
 	loadPageAction: (page: number) => Promise<void>;
@@ -37,6 +38,7 @@ export function useUIMapController({
 	setGPSFilterRawAction,
 	viewMode,
 	selectedAlbumID,
+	selectedTagID,
 	selectAlbumAction,
 	pageSize,
 	loadPageAction,
@@ -63,6 +65,7 @@ export function useUIMapController({
 		setGPSFilterRawAction,
 		viewMode,
 		selectedAlbumID,
+		selectedTagID,
 		selectAlbumAction,
 		closeLightboxAction,
 		pageSize,

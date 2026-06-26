@@ -8,6 +8,7 @@ import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TMapMarker} from '@/shared/types/map';
 import type {TLocationCluster, TRawSuggestionsResponse, TSuggestionsResponse} from '@/shared/types/suggestion';
+import type {TTagRow} from '@/shared/types/tag';
 
 /**
  * Shared internal row predicate for asset payload entries.
@@ -136,6 +137,20 @@ export function isAlbumRow(value: unknown): value is TAlbumRow {
 		isFiniteNumber(value.noGPSCount) &&
 		isString(value.updatedAt) &&
 		isNullableString(value.startDate)
+	);
+}
+
+export function isTagRow(value: unknown): value is TTagRow {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		isString(value.immichID) &&
+		isString(value.name) &&
+		isString(value.value) &&
+		isNullableString(value.parentID) &&
+		isNullableString(value.color) &&
+		isFiniteNumber(value.assetCount)
 	);
 }
 

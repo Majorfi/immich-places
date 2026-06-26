@@ -24,6 +24,7 @@ export const GRID_COLUMN_OPTIONS = [1, 2, 3, 4] as const;
 export const URL_PARAM_GPS_FILTER = 'gps';
 export const URL_PARAM_VIEW_MODE = 'view';
 export const URL_PARAM_ALBUM_ID = 'album';
+export const URL_PARAM_TAG_ID = 'tag';
 export const URL_PARAM_PAGE_SIZE = 'pageSize';
 export const URL_PARAM_GRID_COLUMNS = 'gridCols';
 export const URL_PARAM_MARKER_LIMIT = 'markerLimit';

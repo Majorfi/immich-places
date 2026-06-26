@@ -202,6 +202,108 @@ func TestSyncAlbumsErrorPropagation(t *testing.T) {
 	}
 }
 
+func TestSyncAlbumsFailedFetchLeavesAlbumUnsynced(t *testing.T) {
+	ctx := context.Background()
+	var failAssets atomic.Bool
+	failAssets.Store(true)
+
+	factory, immich := newMockImmichFactoryNoRetry(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api/albums":
+			json.NewEncoder(w).Encode([]ImmichAlbumResponse{
+				{ID: "album1", AlbumName: "Test", AssetCount: 1, UpdatedAt: "2024-06-01T00:00:00Z"},
+			})
+		case strings.HasPrefix(r.URL.Path, "/api/albums/"):
+			if failAssets.Load() {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(ImmichAlbumDetailResponse{})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	db := newTestDB(t)
+	svc := newSyncService(db, factory, newNominatimClient(10*time.Second))
+
+	// Album asset fetch fails: the album must stay unsynced so it is re-detected next run.
+	if err := svc.syncAlbums(ctx, testUserID, immich, false); err == nil {
+		t.Fatal("expected error from failed album asset fetch")
+	}
+	m, err := db.getAlbumUpdatedAtMap(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("getAlbumUpdatedAtMap: %v", err)
+	}
+	if m["album1"] != "" {
+		t.Errorf("expected album1 to stay unsynced (empty updatedAt), got %q", m["album1"])
+	}
+
+	// Immich recovers: the still-changed album is re-fetched and stamped.
+	failAssets.Store(false)
+	if err := svc.syncAlbums(ctx, testUserID, immich, false); err != nil {
+		t.Fatalf("syncAlbums after recovery: %v", err)
+	}
+	m, err = db.getAlbumUpdatedAtMap(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("getAlbumUpdatedAtMap after recovery: %v", err)
+	}
+	if m["album1"] != "2024-06-01T00:00:00Z" {
+		t.Errorf("expected album1 stamped after recovery, got %q", m["album1"])
+	}
+}
+
+func TestSyncTagsFailedFetchLeavesTagUnsynced(t *testing.T) {
+	ctx := context.Background()
+	var failSearch atomic.Bool
+	failSearch.Store(true)
+
+	factory, immich := newMockImmichFactoryNoRetry(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/tags":
+			json.NewEncoder(w).Encode([]ImmichTagResponse{
+				{ID: "tag1", Name: "Vacation", Value: "Vacation", UpdatedAt: "2024-06-01T00:00:00Z"},
+			})
+		case "/api/search/metadata":
+			if failSearch.Load() {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(ImmichSearchResponse{})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	db := newTestDB(t)
+	svc := newSyncService(db, factory, newNominatimClient(10*time.Second))
+
+	// Tag asset fetch fails: the tag must stay unsynced so it is re-detected next run.
+	if err := svc.syncTags(ctx, testUserID, immich, false); err == nil {
+		t.Fatal("expected error from failed tag asset fetch")
+	}
+	m, err := db.getTagUpdatedAtMap(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("getTagUpdatedAtMap: %v", err)
+	}
+	if m["tag1"] != "" {
+		t.Errorf("expected tag1 to stay unsynced (empty updatedAt), got %q", m["tag1"])
+	}
+
+	// Immich recovers: the still-changed tag is re-fetched and stamped.
+	failSearch.Store(false)
+	if err := svc.syncTags(ctx, testUserID, immich, false); err != nil {
+		t.Fatalf("syncTags after recovery: %v", err)
+	}
+	m, err = db.getTagUpdatedAtMap(ctx, testUserID)
+	if err != nil {
+		t.Fatalf("getTagUpdatedAtMap after recovery: %v", err)
+	}
+	if m["tag1"] != "2024-06-01T00:00:00Z" {
+		t.Errorf("expected tag1 stamped after recovery, got %q", m["tag1"])
+	}
+}
+
 func TestSyncStacksUpdatesDB(t *testing.T) {
 	ctx := context.Background()
 
@@ -1394,7 +1496,7 @@ func TestBatchUpsertAssets(t *testing.T) {
 		t.Errorf("expected 3 assets, got %d", total)
 	}
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", true, "all", "", "")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", true, "all", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
