@@ -144,7 +144,7 @@ export function useMapMarkers(
 			!hasLoadedRef.current
 		) {
 			hasLoadedRef.current = true;
-			if (isAlbumChanged || isTagChanged) {
+			if (isAlbumChanged || isTagChanged || isStartDateChanged || isEndDateChanged) {
 				setMapMarkers([]);
 				setError(null);
 				load(

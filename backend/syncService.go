@@ -228,12 +228,9 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 	albumErr := s.syncAlbums(ctx, userID, immich, true)
 	tagErr := s.syncTags(ctx, userID, immich, true)
 
-	switch {
-	case albumErr != nil:
-		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", albumErr))
-	case tagErr != nil:
-		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", tagErr))
-	default:
+	if syncErr := errors.Join(albumErr, tagErr); syncErr != nil {
+		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", syncErr))
+	} else {
 		s.clearSyncError(ctx, userID)
 	}
 
@@ -300,12 +297,9 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 	albumErr := s.syncAlbums(ctx, userID, immich, false)
 	tagErr := s.syncTags(ctx, userID, immich, false)
 
-	switch {
-	case albumErr != nil:
-		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", albumErr))
-	case tagErr != nil:
-		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", tagErr))
-	default:
+	if syncErr := errors.Join(albumErr, tagErr); syncErr != nil {
+		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", syncErr))
+	} else {
 		s.clearSyncError(ctx, userID)
 	}
 
