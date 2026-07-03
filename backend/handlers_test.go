@@ -495,7 +495,7 @@ func TestHandleGetFrequentLocations(t *testing.T) {
 
 func TestHandleUpdateLocationSuccess(t *testing.T) {
 	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" && r.URL.Path == "/api/assets" {
+		if r.Method == "PATCH" && r.URL.Path == "/api/assets" {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -523,7 +523,7 @@ func TestHandleUpdateLocationSuccess(t *testing.T) {
 
 func TestHandleUpdateLocationImmichFailure(t *testing.T) {
 	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" && r.URL.Path == "/api/assets" {
+		if r.Method == "PATCH" && r.URL.Path == "/api/assets" {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -577,7 +577,7 @@ func TestHandleAlbumsWithGPSFilter(t *testing.T) {
 
 func TestHandleUpdateLocationWithStack(t *testing.T) {
 	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" && r.URL.Path == "/api/assets" {
+		if r.Method == "PATCH" && r.URL.Path == "/api/assets" {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -667,7 +667,7 @@ func TestHandleGetThumbnailHiddenLibraryAssetReturnsNotFound(t *testing.T) {
 func TestHandleUpdateLocationHiddenLibraryAssetReturnsNotFound(t *testing.T) {
 	immichWasCalled := false
 	handlers, mux := newTestHandlersWithMockImmich(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" && r.URL.Path == "/api/assets" {
+		if r.Method == "PATCH" && r.URL.Path == "/api/assets" {
 			immichWasCalled = true
 			w.WriteHeader(http.StatusNoContent)
 			return

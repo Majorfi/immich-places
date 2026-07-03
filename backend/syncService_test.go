@@ -175,6 +175,16 @@ func TestSyncAssetsAPIError(t *testing.T) {
 	}
 }
 
+func searchResponseJSON(ids ...string) ImmichSearchResponse {
+	items := make([]ImmichAssetResponse, len(ids))
+	for i, id := range ids {
+		items[i] = ImmichAssetResponse{ID: id}
+	}
+	var sr ImmichSearchResponse
+	sr.Assets.Items = items
+	return sr
+}
+
 func TestSyncAlbumsErrorPropagation(t *testing.T) {
 	factory, immich := newMockImmichFactoryNoRetry(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -182,7 +192,7 @@ func TestSyncAlbumsErrorPropagation(t *testing.T) {
 			json.NewEncoder(w).Encode([]ImmichAlbumResponse{
 				{ID: "album1", AlbumName: "Test", AssetCount: 1, UpdatedAt: "2024-01-02T00:00:00Z"},
 			})
-		case "/api/albums/album1":
+		case "/api/search/metadata":
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(`{"error":"fail"}`))
 		default:
@@ -213,12 +223,12 @@ func TestSyncAlbumsFailedFetchLeavesAlbumUnsynced(t *testing.T) {
 			json.NewEncoder(w).Encode([]ImmichAlbumResponse{
 				{ID: "album1", AlbumName: "Test", AssetCount: 1, UpdatedAt: "2024-06-01T00:00:00Z"},
 			})
-		case strings.HasPrefix(r.URL.Path, "/api/albums/"):
+		case r.URL.Path == "/api/search/metadata":
 			if failAssets.Load() {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			json.NewEncoder(w).Encode(ImmichAlbumDetailResponse{})
+			json.NewEncoder(w).Encode(searchResponseJSON())
 		default:
 			http.NotFound(w, r)
 		}
@@ -439,7 +449,7 @@ func newFullMockImmichFactory(t *testing.T) (*ImmichClientFactory, *ImmichClient
 			json.NewEncoder(w).Encode([]ImmichAlbumResponse{})
 		case r.URL.Path == "/api/libraries" && r.Method == "GET":
 			json.NewEncoder(w).Encode([]ImmichLibraryResponse{})
-		case r.Method == "PUT" && r.URL.Path == "/api/assets":
+		case r.Method == "PATCH" && r.URL.Path == "/api/assets":
 			w.WriteHeader(http.StatusNoContent)
 		default:
 			http.NotFound(w, r)
@@ -1132,12 +1142,8 @@ func TestSyncAlbumsSuccess(t *testing.T) {
 			json.NewEncoder(w).Encode([]ImmichAlbumResponse{
 				{ID: "album1", AlbumName: "Vacation", AssetCount: 2, UpdatedAt: "2024-01-02T00:00:00Z"},
 			})
-		case r.URL.Path == "/api/albums/album1":
-			json.NewEncoder(w).Encode(ImmichAlbumDetailResponse{
-				Assets: []struct {
-					ID string `json:"id"`
-				}{{ID: "a1"}, {ID: "a2"}},
-			})
+		case r.URL.Path == "/api/search/metadata":
+			json.NewEncoder(w).Encode(searchResponseJSON("a1", "a2"))
 		default:
 			http.NotFound(w, r)
 		}
@@ -1198,7 +1204,7 @@ func TestDoFullSyncWithAlbumError(t *testing.T) {
 
 func TestImmichBulkUpdateLocation(t *testing.T) {
 	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" && r.URL.Path == "/api/assets" {
+		if r.Method == "PATCH" && r.URL.Path == "/api/assets" {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -1366,15 +1372,26 @@ func TestImmichGetAlbums(t *testing.T) {
 
 func TestImmichGetAlbumAssetIDs(t *testing.T) {
 	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/albums/album1" {
-			json.NewEncoder(w).Encode(ImmichAlbumDetailResponse{
-				Assets: []struct {
-					ID string `json:"id"`
-				}{{ID: "a1"}, {ID: "a2"}, {ID: "a3"}},
-			})
+		if r.URL.Path != "/api/search/metadata" {
+			http.NotFound(w, r)
 			return
 		}
-		http.NotFound(w, r)
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+			return
+		}
+		if _, ok := body["tagIds"]; ok {
+			t.Errorf("album search must filter by albumIds, not tagIds: %v", body)
+		}
+		albumIDs, ok := body["albumIds"].([]interface{})
+		if !ok || len(albumIDs) != 1 || albumIDs[0] != "album1" {
+			t.Errorf("expected albumIds [album1], got %v", body["albumIds"])
+		}
+		json.NewEncoder(w).Encode(searchResponseJSON("a1", "a2", "a3"))
 	})
 
 	ids, err := immich.getAlbumAssetIDs(context.Background(), "album1")
@@ -1383,6 +1400,63 @@ func TestImmichGetAlbumAssetIDs(t *testing.T) {
 	}
 	if len(ids) != 3 {
 		t.Errorf("expected 3 asset IDs, got %d", len(ids))
+	}
+}
+
+func TestSearchAssetIDsFollowsNextPage(t *testing.T) {
+	var requested []int
+	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+			return
+		}
+		pageVal, ok := body["page"].(float64)
+		if !ok {
+			t.Errorf("request missing numeric page: %v", body)
+			return
+		}
+		page := int(pageVal)
+		requested = append(requested, page)
+
+		resp := ImmichSearchResponse{}
+		switch page {
+		case 1:
+			resp.Assets.Items = []ImmichAssetResponse{{ID: "a1"}, {ID: "a2"}}
+			next := "2"
+			resp.Assets.NextPage = &next
+		case 2:
+			resp.Assets.Items = []ImmichAssetResponse{{ID: "a3"}}
+			// NextPage nil -> terminate.
+		default:
+			t.Errorf("unexpected page requested: %d", page)
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+
+	ids, err := immich.getTagAssetIDs(context.Background(), "tag1")
+	if err != nil {
+		t.Fatalf("getTagAssetIDs: %v", err)
+	}
+	if len(ids) != 3 {
+		t.Errorf("expected 3 IDs across 2 pages, got %d (%v)", len(ids), ids)
+	}
+	if len(requested) != 2 || requested[0] != 1 || requested[1] != 2 {
+		t.Errorf("expected pages [1 2] to be requested via nextPage token, got %v", requested)
+	}
+}
+
+func TestSearchAssetIDsRejectsNonNumericNextPage(t *testing.T) {
+	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
+		resp := ImmichSearchResponse{}
+		resp.Assets.Items = []ImmichAssetResponse{{ID: "a1"}}
+		token := "not-a-number"
+		resp.Assets.NextPage = &token
+		json.NewEncoder(w).Encode(resp)
+	})
+
+	if _, err := immich.getTagAssetIDs(context.Background(), "tag1"); err == nil {
+		t.Error("expected error on non-numeric nextPage token")
 	}
 }
 

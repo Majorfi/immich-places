@@ -144,12 +144,6 @@ type ImmichAlbumResponse struct {
 	StartDate             *string `json:"startDate"`
 }
 
-type ImmichAlbumDetailResponse struct {
-	Assets []struct {
-		ID string `json:"id"`
-	} `json:"assets"`
-}
-
 type TagRow struct {
 	ImmichID   string  `json:"immichID"`
 	Name       string  `json:"name"`

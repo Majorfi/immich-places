@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -141,7 +142,8 @@ func (c *ImmichClient) bulkUpdateLocation(ctx context.Context, ids []string, lat
 		"longitude": lon,
 	}
 
-	resp, err := c.doRequest(ctx, "PUT", "/api/assets", payload)
+	// PATCH (not PUT): Immich v3 deprecated the PUT asset routes in favor of PATCH.
+	resp, err := c.doRequest(ctx, "PATCH", "/api/assets", payload)
 	if err != nil {
 		return err
 	}
@@ -239,19 +241,30 @@ func (c *ImmichClient) getTags(ctx context.Context) ([]ImmichTagResponse, error)
 }
 
 func (c *ImmichClient) getTagAssetIDs(ctx context.Context, tagID string) ([]string, error) {
-	const tagSearchPageSize = 1000
-	const tagSearchMaxPages = 1000
+	return c.searchAssetIDs(ctx, "tagIds", tagID)
+}
+
+// getAlbumAssetIDs lists an album's asset IDs via search/metadata rather than the
+// album detail endpoint: Immich v3 removed the nested assets array from
+// GET /api/albums/{id}, so that path now returns zero assets.
+func (c *ImmichClient) getAlbumAssetIDs(ctx context.Context, albumID string) ([]string, error) {
+	return c.searchAssetIDs(ctx, "albumIds", albumID)
+}
+
+func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID string) ([]string, error) {
+	const searchPageSize = 1000
+	const searchMaxPages = 1000
 
 	payload := map[string]interface{}{
-		"tagIds":     []string{tagID},
+		filterKey:    []string{filterID},
 		"type":       "IMAGE",
 		"visibility": "timeline",
-		"size":       tagSearchPageSize,
-		"page":       1,
+		"size":       searchPageSize,
 	}
 
 	var ids []string
-	for page := 1; page <= tagSearchMaxPages; page++ {
+	page := 1
+	for range searchMaxPages {
 		payload["page"] = page
 		resp, err := c.doRequest(ctx, "POST", "/api/search/metadata", payload)
 		if err != nil {
@@ -261,16 +274,19 @@ func (c *ImmichClient) getTagAssetIDs(ctx context.Context, tagID string) ([]stri
 		if resp.StatusCode != http.StatusOK {
 			io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
-			return nil, fmt.Errorf("immich tag search returned HTTP %d", resp.StatusCode)
+			return nil, fmt.Errorf("immich %s search returned HTTP %d", filterKey, resp.StatusCode)
 		}
 
 		var result ImmichSearchResponse
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			resp.Body.Close()
-			return nil, fmt.Errorf("failed to decode tag search response: %w", err)
+			return nil, fmt.Errorf("failed to decode %s search response: %w", filterKey, err)
 		}
 		resp.Body.Close()
 
+		if len(result.Assets.Items) == 0 {
+			return ids, nil
+		}
 		for _, item := range result.Assets.Items {
 			ids = append(ids, item.ID)
 		}
@@ -278,30 +294,12 @@ func (c *ImmichClient) getTagAssetIDs(ctx context.Context, tagID string) ([]stri
 		if result.Assets.NextPage == nil {
 			return ids, nil
 		}
+		// Follow the server-provided page token rather than assuming it is sequential.
+		next, err := strconv.Atoi(*result.Assets.NextPage)
+		if err != nil {
+			return nil, fmt.Errorf("%s search: unexpected non-numeric nextPage token %q", filterKey, *result.Assets.NextPage)
+		}
+		page = next
 	}
-	return nil, fmt.Errorf("tag %s asset list exceeded %d pages of %d", tagID, tagSearchMaxPages, tagSearchPageSize)
-}
-
-func (c *ImmichClient) getAlbumAssetIDs(ctx context.Context, albumID string) ([]string, error) {
-	resp, err := c.doRequest(ctx, "GET", "/api/albums/"+albumID+"?withoutAssets=false", nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		io.Copy(io.Discard, resp.Body)
-		return nil, fmt.Errorf("immich getAlbum returned HTTP %d", resp.StatusCode)
-	}
-
-	var detail ImmichAlbumDetailResponse
-	if err := json.NewDecoder(resp.Body).Decode(&detail); err != nil {
-		return nil, fmt.Errorf("failed to decode album detail response: %w", err)
-	}
-
-	ids := make([]string, len(detail.Assets))
-	for i, a := range detail.Assets {
-		ids[i] = a.ID
-	}
-	return ids, nil
+	return nil, fmt.Errorf("%s %s asset list exceeded %d pages of %d", filterKey, filterID, searchMaxPages, searchPageSize)
 }
