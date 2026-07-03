@@ -264,7 +264,7 @@ func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID s
 
 	var ids []string
 	page := 1
-	for i := 0; i < searchMaxPages; i++ {
+	for range searchMaxPages {
 		payload["page"] = page
 		resp, err := c.doRequest(ctx, "POST", "/api/search/metadata", payload)
 		if err != nil {

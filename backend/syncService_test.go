@@ -1400,6 +1400,55 @@ func TestImmichGetAlbumAssetIDs(t *testing.T) {
 	}
 }
 
+func TestSearchAssetIDsFollowsNextPage(t *testing.T) {
+	var requested []int
+	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		page := int(body["page"].(float64))
+		requested = append(requested, page)
+
+		resp := ImmichSearchResponse{}
+		switch page {
+		case 1:
+			resp.Assets.Items = []ImmichAssetResponse{{ID: "a1"}, {ID: "a2"}}
+			next := "2"
+			resp.Assets.NextPage = &next
+		case 2:
+			resp.Assets.Items = []ImmichAssetResponse{{ID: "a3"}}
+			// NextPage nil -> terminate.
+		default:
+			t.Errorf("unexpected page requested: %d", page)
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+
+	ids, err := immich.getTagAssetIDs(context.Background(), "tag1")
+	if err != nil {
+		t.Fatalf("getTagAssetIDs: %v", err)
+	}
+	if len(ids) != 3 {
+		t.Errorf("expected 3 IDs across 2 pages, got %d (%v)", len(ids), ids)
+	}
+	if len(requested) != 2 || requested[0] != 1 || requested[1] != 2 {
+		t.Errorf("expected pages [1 2] to be requested via nextPage token, got %v", requested)
+	}
+}
+
+func TestSearchAssetIDsRejectsNonNumericNextPage(t *testing.T) {
+	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
+		resp := ImmichSearchResponse{}
+		resp.Assets.Items = []ImmichAssetResponse{{ID: "a1"}}
+		token := "not-a-number"
+		resp.Assets.NextPage = &token
+		json.NewEncoder(w).Encode(resp)
+	})
+
+	if _, err := immich.getTagAssetIDs(context.Background(), "tag1"); err == nil {
+		t.Error("expected error on non-numeric nextPage token")
+	}
+}
+
 func TestSyncStacksWithStacks(t *testing.T) {
 	ctx := context.Background()
 
