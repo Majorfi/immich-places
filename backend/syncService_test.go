@@ -1372,11 +1372,23 @@ func TestImmichGetAlbums(t *testing.T) {
 
 func TestImmichGetAlbumAssetIDs(t *testing.T) {
 	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/search/metadata" {
-			json.NewEncoder(w).Encode(searchResponseJSON("a1", "a2", "a3"))
+		if r.URL.Path != "/api/search/metadata" {
+			http.NotFound(w, r)
 			return
 		}
-		http.NotFound(w, r)
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if _, ok := body["tagIds"]; ok {
+			t.Errorf("album search must filter by albumIds, not tagIds: %v", body)
+		}
+		albumIDs, _ := body["albumIds"].([]interface{})
+		if len(albumIDs) != 1 || albumIDs[0] != "album1" {
+			t.Errorf("expected albumIds [album1], got %v", body["albumIds"])
+		}
+		json.NewEncoder(w).Encode(searchResponseJSON("a1", "a2", "a3"))
 	})
 
 	ids, err := immich.getAlbumAssetIDs(context.Background(), "album1")

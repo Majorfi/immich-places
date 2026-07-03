@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -262,7 +263,8 @@ func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID s
 	}
 
 	var ids []string
-	for page := 1; page <= searchMaxPages; page++ {
+	page := 1
+	for i := 0; i < searchMaxPages; i++ {
 		payload["page"] = page
 		resp, err := c.doRequest(ctx, "POST", "/api/search/metadata", payload)
 		if err != nil {
@@ -282,6 +284,9 @@ func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID s
 		}
 		resp.Body.Close()
 
+		if len(result.Assets.Items) == 0 {
+			return ids, nil
+		}
 		for _, item := range result.Assets.Items {
 			ids = append(ids, item.ID)
 		}
@@ -289,6 +294,12 @@ func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID s
 		if result.Assets.NextPage == nil {
 			return ids, nil
 		}
+		// Follow the server-provided page token rather than assuming it is sequential.
+		next, err := strconv.Atoi(*result.Assets.NextPage)
+		if err != nil {
+			return nil, fmt.Errorf("%s search: unexpected non-numeric nextPage token %q", filterKey, *result.Assets.NextPage)
+		}
+		page = next
 	}
 	return nil, fmt.Errorf("%s %s asset list exceeded %d pages of %d", filterKey, filterID, searchMaxPages, searchPageSize)
 }
