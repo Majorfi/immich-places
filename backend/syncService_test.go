@@ -1380,12 +1380,15 @@ func TestImmichGetAlbumAssetIDs(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+			return
+		}
 		if _, ok := body["tagIds"]; ok {
 			t.Errorf("album search must filter by albumIds, not tagIds: %v", body)
 		}
-		albumIDs, _ := body["albumIds"].([]interface{})
-		if len(albumIDs) != 1 || albumIDs[0] != "album1" {
+		albumIDs, ok := body["albumIds"].([]interface{})
+		if !ok || len(albumIDs) != 1 || albumIDs[0] != "album1" {
 			t.Errorf("expected albumIds [album1], got %v", body["albumIds"])
 		}
 		json.NewEncoder(w).Encode(searchResponseJSON("a1", "a2", "a3"))
@@ -1404,8 +1407,16 @@ func TestSearchAssetIDsFollowsNextPage(t *testing.T) {
 	var requested []int
 	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		page := int(body["page"].(float64))
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+			return
+		}
+		pageVal, ok := body["page"].(float64)
+		if !ok {
+			t.Errorf("request missing numeric page: %v", body)
+			return
+		}
+		page := int(pageVal)
 		requested = append(requested, page)
 
 		resp := ImmichSearchResponse{}
