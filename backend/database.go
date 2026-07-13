@@ -865,12 +865,7 @@ func (d *Database) deleteAssetsNotIn(ctx context.Context, userID string, assetID
 		return fmt.Errorf("delete stale assets: %w", err)
 	}
 
-	// Drop inside the transaction: a deferred drop would run after Commit, when the
-	// tx is already closed. Error paths roll the whole tx back via defer tx.Rollback().
-	if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
-		return fmt.Errorf("drop temp table: %w", err)
-	}
-
+	tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets")
 	return tx.Commit()
 }
 
