@@ -860,14 +860,15 @@ func (d *Database) deleteAssetsNotIn(ctx context.Context, userID string, assetID
 	if err := bulkInsertTemp(ctx, tx, "tmpKeepAssets", assetIDs); err != nil {
 		return fmt.Errorf("populate temp table: %w", err)
 	}
-	defer func() {
-		if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
-			log.Printf("[DB] Failed to drop temp table: %v", err)
-		}
-	}()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM assets WHERE userID = ? AND immichID NOT IN (SELECT val FROM tmpKeepAssets)", userID); err != nil {
 		return fmt.Errorf("delete stale assets: %w", err)
+	}
+
+	// Drop inside the transaction: a deferred drop would run after Commit, when the
+	// tx is already closed. Error paths roll the whole tx back via defer tx.Rollback().
+	if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
+		return fmt.Errorf("drop temp table: %w", err)
 	}
 
 	return tx.Commit()
