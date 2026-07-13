@@ -217,7 +217,13 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 
 	s.syncStacks(ctx, userID, immich)
 	if err := s.syncLibraries(ctx, userID, immich); err != nil {
-		log.Printf("[Sync] Library sync failed during full sync for user %s: %v", userID, err)
+		// A 401/403 only means the key is not an admin key: syncLibraries already logs
+		// that as an expected condition, so don't repeat it here as a failure.
+		var httpErr *ImmichHTTPError
+		isMissingAccess := errors.As(err, &httpErr) && (httpErr.StatusCode == http.StatusUnauthorized || httpErr.StatusCode == http.StatusForbidden)
+		if !isMissingAccess {
+			log.Printf("[Sync] Library sync failed during full sync for user %s: %v", userID, err)
+		}
 		s.db.deleteSyncState(ctx, userID, "libraryIDBackfillDone")
 	} else {
 		if err := s.db.setSyncState(ctx, userID, "libraryIDBackfillDone", "true"); err != nil {

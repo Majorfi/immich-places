@@ -860,16 +860,12 @@ func (d *Database) deleteAssetsNotIn(ctx context.Context, userID string, assetID
 	if err := bulkInsertTemp(ctx, tx, "tmpKeepAssets", assetIDs); err != nil {
 		return fmt.Errorf("populate temp table: %w", err)
 	}
-	defer func() {
-		if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets"); err != nil {
-			log.Printf("[DB] Failed to drop temp table: %v", err)
-		}
-	}()
 
 	if _, err := tx.ExecContext(ctx, "DELETE FROM assets WHERE userID = ? AND immichID NOT IN (SELECT val FROM tmpKeepAssets)", userID); err != nil {
 		return fmt.Errorf("delete stale assets: %w", err)
 	}
 
+	tx.ExecContext(ctx, "DROP TABLE IF EXISTS tmpKeepAssets")
 	return tx.Commit()
 }
 
