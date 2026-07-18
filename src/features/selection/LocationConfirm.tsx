@@ -4,10 +4,13 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {SAVE_LOCATION_ERROR_MESSAGE} from '@/features/selection/constant';
 import {hasGPXPendingEntries, matchesGPXStatusFilter} from '@/features/selection/selectionStateHelpers';
+import {FavoriteNameField} from '@/features/suggestions/FavoriteNameField';
+import {StarIcon, resolveStarColorClass} from '@/shared/components/StarIcon';
 import {useSelection} from '@/shared/context/AppContext';
 import {LOCATION_CONFIRM_COORDINATES_DECIMALS} from '@/utils/locationAssignment';
 import {MAP_LOCATION_SOURCE_REMOVE_LOCATION} from '@/utils/map';
 
+import type {TFavoriteState} from '@/features/suggestions/useFavoriteState';
 import type {TPendingLocation} from '@/shared/types/map';
 import type {ReactElement} from 'react';
 
@@ -18,7 +21,7 @@ import type {ReactElement} from 'react';
  *
  * @returns Confirmation UI, or `null` when no unsaved edits exist.
  */
-export function LocationConfirm(): ReactElement | null {
+export function LocationConfirm({favoriteState}: {favoriteState: TFavoriteState}): ReactElement | null {
 	const {
 		pendingLocation,
 		pendingLocationsByAssetID,
@@ -34,6 +37,8 @@ export function LocationConfirm(): ReactElement | null {
 		gpxStatusFilter
 	} = useSelection();
 	const [localSaveError, setLocalSaveError] = useState<string | null>(null);
+	const [isNamingFavorite, setIsNamingFavorite] = useState(false);
+	const {isFavorited, toggleFavorite} = favoriteState;
 
 	const pendingAssetIDs = useMemo(
 		() =>
@@ -85,6 +90,33 @@ export function LocationConfirm(): ReactElement | null {
 			assetID => pendingLocationsByAssetID[assetID]?.source === MAP_LOCATION_SOURCE_REMOVE_LOCATION
 		);
 	}, [pendingAssetIDs, pendingLocationsByAssetID]);
+
+	// Single distinct coordinate eligible to be saved as a favorite (not a removal).
+	const favoriteCoordinate = useMemo<{latitude: number; longitude: number} | null>(() => {
+		if (isRemoveLocationOnly) {
+			return null;
+		}
+		if (pendingLocation) {
+			return {latitude: pendingLocation.latitude, longitude: pendingLocation.longitude};
+		}
+		if (pendingAssetIDs.length === 0) {
+			return null;
+		}
+		const first = pendingLocationsByAssetID[pendingAssetIDs[0]];
+		if (!first || first.source === MAP_LOCATION_SOURCE_REMOVE_LOCATION) {
+			return null;
+		}
+		for (const assetID of pendingAssetIDs.slice(1)) {
+			const location = pendingLocationsByAssetID[assetID];
+			if (!location) {
+				continue;
+			}
+			if (location.latitude !== first.latitude || location.longitude !== first.longitude) {
+				return null;
+			}
+		}
+		return {latitude: first.latitude, longitude: first.longitude};
+	}, [isRemoveLocationOnly, pendingLocation, pendingAssetIDs, pendingLocationsByAssetID]);
 
 	const referenceCoordinateLabel = useMemo<string | null>(() => {
 		if (isRemoveLocationOnly) {
@@ -142,6 +174,12 @@ export function LocationConfirm(): ReactElement | null {
 	const handleCancel = useCallback(() => {
 		clearLocationAction();
 	}, [clearLocationAction]);
+
+	useEffect(() => {
+		if (!favoriteCoordinate) {
+			setIsNamingFavorite(false);
+		}
+	}, [favoriteCoordinate]);
 
 	const isVisible =
 		isAllAlreadyApplied ||
@@ -220,19 +258,56 @@ export function LocationConfirm(): ReactElement | null {
 					{' edited image'}
 					{editedImageCount !== 1 && 's'}
 				</span>
-				<span className={'block font-mono text-[0.75rem] text-(--color-text-secondary)'}>
-					{referenceCoordinateLabel}
-					{allAlreadyAppliedGPXCount > 0 && (
-						<span className={'ml-1.5 font-sans text-(--color-text-secondary)/60'}>
-							{'('}
-							{allAlreadyAppliedGPXCount}
-							{' already set)'}
-						</span>
-					)}
-				</span>
+				{isNamingFavorite && favoriteCoordinate ? (
+					<FavoriteNameField
+						defaultName={referenceCoordinateLabel ?? ''}
+						onConfirmAction={name => {
+							toggleFavorite(favoriteCoordinate.latitude, favoriteCoordinate.longitude, name);
+							setIsNamingFavorite(false);
+						}}
+						onCancelAction={() => setIsNamingFavorite(false)}
+					/>
+				) : (
+					<span className={'block font-mono text-[0.75rem] text-(--color-text-secondary)'}>
+						{referenceCoordinateLabel}
+						{allAlreadyAppliedGPXCount > 0 && (
+							<span className={'ml-1.5 font-sans text-(--color-text-secondary)/60'}>
+								{'('}
+								{allAlreadyAppliedGPXCount}
+								{' already set)'}
+							</span>
+						)}
+					</span>
+				)}
 			</div>
 			{visibleError && <div className={'text-[0.75rem] text-[#b91c1c]'}>{visibleError}</div>}
 			<div className={'flex shrink-0 items-center gap-2'}>
+				{favoriteCoordinate && !isNamingFavorite && (
+					<button
+						className={`cursor-pointer rounded-md border border-(--color-border) bg-(--color-bg) p-1.5 transition-all duration-150 hover:border-(--color-text-secondary) disabled:cursor-not-allowed disabled:opacity-30 ${resolveStarColorClass(isFavorited(favoriteCoordinate.latitude, favoriteCoordinate.longitude))}`}
+						onClick={() => {
+							if (isFavorited(favoriteCoordinate.latitude, favoriteCoordinate.longitude)) {
+								toggleFavorite(
+									favoriteCoordinate.latitude,
+									favoriteCoordinate.longitude,
+									referenceCoordinateLabel ?? ''
+								);
+							} else {
+								setIsNamingFavorite(true);
+							}
+						}}
+						disabled={isSaving}
+						title={
+							isFavorited(favoriteCoordinate.latitude, favoriteCoordinate.longitude)
+								? 'Remove from favorites'
+								: 'Save as favorite'
+						}>
+						<StarIcon
+							filled={isFavorited(favoriteCoordinate.latitude, favoriteCoordinate.longitude)}
+							size={16}
+						/>
+					</button>
+				)}
 				<button
 					className={
 						'cursor-pointer rounded-md border border-(--color-border) bg-(--color-bg) p-1.5 text-(--color-text) transition-all duration-150 hover:border-(--color-text-secondary) disabled:cursor-not-allowed disabled:opacity-30'

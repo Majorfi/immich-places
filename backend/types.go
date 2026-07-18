@@ -247,6 +247,11 @@ type RemoveFavoritePlaceRequest struct {
 	Longitude *float64 `json:"longitude" validate:"required,min=-180,max=180"`
 }
 
+type RenameFavoritePlaceRequest struct {
+	ID          *int   `json:"ID" validate:"required"`
+	DisplayName string `json:"displayName" validate:"required"`
+}
+
 type GPXTrackPoint struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`

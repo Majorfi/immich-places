@@ -2,7 +2,12 @@
 
 import {useCallback, useEffect, useState} from 'react';
 
-import {addFavoritePlace, fetchFavoritePlaces, removeFavoritePlace} from '@/shared/services/backendApi';
+import {
+	addFavoritePlace,
+	fetchFavoritePlaces,
+	removeFavoritePlace,
+	renameFavoritePlace
+} from '@/shared/services/backendApi';
 
 import type {TFavoritePlace} from '@/shared/types/favoritePlace';
 
@@ -16,6 +21,7 @@ export type TFavoriteState = {
 	favorites: TFavoritePlace[];
 	isFavorited: (latitude: number, longitude: number) => boolean;
 	toggleFavorite: (latitude: number, longitude: number, displayName: string) => void;
+	renameFavorite: (id: number, displayName: string) => void;
 };
 
 export function useFavoriteState(): TFavoriteState {
@@ -71,5 +77,19 @@ export function useFavoriteState(): TFavoriteState {
 		[favorites]
 	);
 
-	return {favorites, isFavorited, toggleFavorite};
+	const renameFavorite = useCallback(
+		(id: number, displayName: string) => {
+			const existing = favorites.find(f => f.ID === id);
+			if (!existing || existing.displayName === displayName) {
+				return;
+			}
+			setFavorites(prev => prev.map(f => (f.ID === id ? {...f, displayName} : f)));
+			renameFavoritePlace(id, displayName).catch(() => {
+				setFavorites(prev => prev.map(f => (f.ID === id ? {...f, displayName: existing.displayName} : f)));
+			});
+		},
+		[favorites]
+	);
+
+	return {favorites, isFavorited, toggleFavorite, renameFavorite};
 }

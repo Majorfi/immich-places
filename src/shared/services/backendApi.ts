@@ -506,3 +506,23 @@ export async function removeFavoritePlace(
 		throw new Error(msg ?? `Failed to remove favorite place: ${response.status}`);
 	}
 }
+
+export async function renameFavoritePlace(
+	id: number,
+	displayName: string,
+	opts: TRequestOptions = {}
+): Promise<void> {
+	const response = await backendFetch(
+		`${BASE}/favorite-places`,
+		{
+			method: 'PATCH',
+			headers: {'Content-Type': 'application/json'}, //eslint-disable-line
+			body: JSON.stringify({ID: id, displayName})
+		},
+		opts
+	);
+	if (!response.ok) {
+		const msg = await readErrorMessage(response);
+		throw new Error(msg ?? `Failed to rename favorite place: ${response.status}`);
+	}
+}

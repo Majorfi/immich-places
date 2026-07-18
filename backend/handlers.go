@@ -753,6 +753,36 @@ func (h *Handlers) handleRemoveFavoritePlace(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handlers) handleRenameFavoritePlace(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getUserFromContext(r)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	var req RenameFavoritePlaceRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		writeError(w, http.StatusBadRequest, "ID and displayName are required")
+		return
+	}
+
+	if err := h.db.renameFavoritePlace(ctx, user.ID, *req.ID, req.DisplayName); err != nil {
+		log.Printf("[API] Failed to rename favorite place: %v", err)
+		writeError(w, http.StatusInternalServerError, "failed to rename favorite place")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handlers) handleGetFrequentLocations(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getUserFromContext(r)

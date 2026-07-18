@@ -22,7 +22,7 @@ The app has two parts:
 - Interactive map with clustered markers (Leaflet)
 - Drag-and-drop a photo onto the map to assign coordinates
 - Geocoding search with autocomplete and history (Nominatim by default, optional HERE and Google Maps providers)
-- Favorite places: star locations from search results for quick access
+- Favorite places: star locations from search results or a photo's assigned coordinates, give them custom names (e.g. "Home"), rename them, and pick them for quick access
 - Smart suggestions: locations from same-day, nearby-day, weekly patterns, frequent spots, and album context
 - GPX import: upload one or multiple GPX tracks to batch-assign coordinates to photos by timestamp
 

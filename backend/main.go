@@ -84,6 +84,7 @@ func main() {
 	protectedMux.HandleFunc("GET /favorite-places", handlers.handleGetFavoritePlaces)
 	protectedMux.HandleFunc("POST /favorite-places", handlers.handleAddFavoritePlace)
 	protectedMux.HandleFunc("DELETE /favorite-places", handlers.handleRemoveFavoritePlace)
+	protectedMux.HandleFunc("PATCH /favorite-places", handlers.handleRenameFavoritePlace)
 	protectedMux.HandleFunc("POST /gpx/preview", handlers.handleGPXPreview)
 	protectedMux.HandleFunc("PUT /dawarich/settings", dawarichHandlers.handleDawarichSettings)
 	protectedMux.HandleFunc("DELETE /dawarich/settings", dawarichHandlers.handleDeleteDawarichSettings)

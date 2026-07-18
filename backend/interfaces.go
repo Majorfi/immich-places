@@ -52,6 +52,7 @@ type HandlerStore interface {
 	getFavoritePlaces(ctx context.Context, userID string) ([]FavoritePlaceRow, error)
 	addFavoritePlace(ctx context.Context, userID string, latitude, longitude float64, displayName string) error
 	removeFavoritePlace(ctx context.Context, userID string, latitude, longitude float64) error
+	renameFavoritePlace(ctx context.Context, userID string, id int, displayName string) error
 	getTags(ctx context.Context, userID string) ([]TagRow, error)
 }
 

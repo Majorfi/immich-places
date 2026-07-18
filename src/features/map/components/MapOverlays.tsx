@@ -41,7 +41,7 @@ export function MapOverlays(): ReactElement {
 					width: MAP_OVERLAY_BOTTOM_WIDTH
 				}}>
 				<div className={'pointer-events-auto'}>
-					<LocationConfirm />
+					<LocationConfirm favoriteState={favoriteState} />
 				</div>
 			</div>
 		</>

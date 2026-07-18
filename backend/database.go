@@ -507,6 +507,14 @@ func (d *Database) removeFavoritePlace(ctx context.Context, userID string, latit
 	return err
 }
 
+func (d *Database) renameFavoritePlace(ctx context.Context, userID string, id int, displayName string) error {
+	_, err := d.db.ExecContext(ctx,
+		"UPDATE favoritePlaces SET displayName = ? WHERE ID = ? AND userID = ?",
+		displayName, id, userID,
+	)
+	return err
+}
+
 func (d *Database) getFrequentLocations(ctx context.Context, userID string, limit int) ([]FrequentLocationRow, error) {
 	rows, err := d.db.QueryContext(ctx,
 		"SELECT latitude, longitude, label, assetCount FROM frequentLocations WHERE userID = ? ORDER BY assetCount DESC LIMIT ?",

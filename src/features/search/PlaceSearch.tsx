@@ -1,7 +1,10 @@
 'use client';
 
+import {useState} from 'react';
+
 import {getHistoryStorage, saveSearchResultToHistory} from '@/features/search/searchHistory';
 import {usePlaceSearch} from '@/features/search/usePlaceSearch';
+import {FavoriteNameField} from '@/features/suggestions/FavoriteNameField';
 import {StarIcon, resolveStarColorClass} from '@/shared/components/StarIcon';
 import {useSelection} from '@/shared/context/AppContext';
 import {parseCoordinatePair} from '@/utils/coordinates';
@@ -13,6 +16,7 @@ import type {ReactElement} from 'react';
 export function PlaceSearch({favoriteState}: {favoriteState: TFavoriteState}): ReactElement {
 	const {setLocationAction} = useSelection();
 	const {isFavorited, toggleFavorite} = favoriteState;
+	const [namingPlaceID, setNamingPlaceID] = useState<number | null>(null);
 	const {query, results, error, isOpen, isSearching, wrapperRef, setQuery, handleChange, handleSelect, handleFocus} =
 		usePlaceSearch({
 			onLocationSelectedAction(latitude: number, longitude: number) {
@@ -73,28 +77,52 @@ export function PlaceSearch({favoriteState}: {favoriteState: TFavoriteState}): R
 						if (coordinates) {
 							isStarred = isFavorited(coordinates.latitude, coordinates.longitude);
 						}
+						const defaultName = result.displayName.split(',').slice(0, 2).join(',').trim();
+						const isNaming = namingPlaceID === result.placeID;
 						return (
 							<li
 								key={result.placeID}
 								className={
 									'flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-[0.8125rem] leading-[1.3] transition-colors duration-100 hover:bg-white/80'
 								}
-								onClick={() => handleSelect(result)}>
-								<span className={'min-w-0 flex-1 truncate'}>{result.displayName}</span>
-								{coordinates && (
-									<button
-										type={'button'}
-										onClick={event => {
-											event.stopPropagation();
-											toggleFavorite(
-												coordinates.latitude,
-												coordinates.longitude,
-												result.displayName.split(',').slice(0, 2).join(',').trim()
-											);
+								onClick={() => {
+									if (isNaming) {
+										return;
+									}
+									handleSelect(result);
+								}}>
+								{isNaming && coordinates ? (
+									<FavoriteNameField
+										defaultName={defaultName}
+										onConfirmAction={name => {
+											toggleFavorite(coordinates.latitude, coordinates.longitude, name);
+											setNamingPlaceID(null);
 										}}
-										className={`ml-2 flex-shrink-0 ${resolveStarColorClass(isStarred)}`}>
-										<StarIcon filled={isStarred} />
-									</button>
+										onCancelAction={() => setNamingPlaceID(null)}
+									/>
+								) : (
+									<>
+										<span className={'min-w-0 flex-1 truncate'}>{result.displayName}</span>
+										{coordinates && (
+											<button
+												type={'button'}
+												onClick={event => {
+													event.stopPropagation();
+													if (isStarred) {
+														toggleFavorite(
+															coordinates.latitude,
+															coordinates.longitude,
+															defaultName
+														);
+													} else {
+														setNamingPlaceID(result.placeID);
+													}
+												}}
+												className={`ml-2 flex-shrink-0 ${resolveStarColorClass(isStarred)}`}>
+												<StarIcon filled={isStarred} />
+											</button>
+										)}
+									</>
 								)}
 							</li>
 						);
