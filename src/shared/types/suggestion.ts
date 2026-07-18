@@ -1,10 +1,11 @@
-export type TSuggestionCategoryKey = 'suggested' | 'album' | 'sameDay' | 'twoDay' | 'weekly' | 'frequent';
+export type TSuggestionCategoryKey = 'suggested' | 'album' | 'sameDay' | 'twoDay' | 'weekly' | 'frequent' | 'neighbor';
 
 export type TLocationCluster = {
 	latitude: number;
 	longitude: number;
 	label: string;
 	count: number;
+	secondsFromRef?: number;
 };
 
 export type TSuggestionsResponse = {
@@ -13,6 +14,7 @@ export type TSuggestionsResponse = {
 	weeklyClusters: TLocationCluster[];
 	frequentLocations: TLocationCluster[];
 	albumClusters: TLocationCluster[];
+	neighborClusters: TLocationCluster[];
 };
 
 export type TRawSuggestionsResponse = {
@@ -21,6 +23,7 @@ export type TRawSuggestionsResponse = {
 	weeklyClusters: TLocationCluster[] | null;
 	frequentLocations: TLocationCluster[] | null;
 	albumClusters: TLocationCluster[] | null;
+	neighborClusters: TLocationCluster[] | null;
 };
 
 export type TSuggestionCategory = {

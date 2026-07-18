@@ -732,6 +732,9 @@ func TestHandleGetSuggestionsSuccess(t *testing.T) {
 	if resp.SameDayClusters == nil {
 		t.Error("expected non-nil sameDayClusters")
 	}
+	if resp.NeighborClusters == nil {
+		t.Error("expected non-nil neighborClusters")
+	}
 }
 
 func TestHandleGetAssetPageInfoSuccess(t *testing.T) {

@@ -270,7 +270,8 @@ export async function fetchSuggestions(
 		twoDayClusters: payload.twoDayClusters ?? [],
 		weeklyClusters: payload.weeklyClusters ?? [],
 		frequentLocations: payload.frequentLocations ?? [],
-		albumClusters: payload.albumClusters ?? []
+		albumClusters: payload.albumClusters ?? [],
+		neighborClusters: payload.neighborClusters ?? []
 	};
 
 	if (!isTSuggestionsResponse(normalized)) {

@@ -136,6 +136,14 @@ function buildCategories(response: TSuggestionsResponse, excludeFrequentLocation
 		});
 	}
 
+	if (response.neighborClusters?.length) {
+		cats.push({
+			key: SUGGESTION_CATEGORY_KEY.neighbor,
+			label: SUGGESTION_CATEGORY_LABEL[SUGGESTION_CATEGORY_KEY.neighbor],
+			clusters: response.neighborClusters
+		});
+	}
+
 	if (response.albumClusters?.length) {
 		cats.push({
 			key: SUGGESTION_CATEGORY_KEY.album,

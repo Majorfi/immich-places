@@ -17,19 +17,19 @@ func TestGetSuggestionsWithSameDayAssets(t *testing.T) {
 	db.upsertAssets(ctx, testUserID, []AssetRow{
 		{
 			ImmichID: "target", Type: "IMAGE", OriginalFileName: "target.jpg",
-			FileCreatedAt: "2024-06-15T12:00:00Z",
+			FileCreatedAt:    "2024-06-15T12:00:00Z",
 			DateTimeOriginal: &dateTime,
 		},
 		{
 			ImmichID: "nearby", Type: "IMAGE", OriginalFileName: "nearby.jpg",
 			FileCreatedAt: nearbyTime,
-			Latitude: ptr(48.85), Longitude: ptr(2.35),
+			Latitude:      ptr(48.85), Longitude: ptr(2.35),
 			DateTimeOriginal: &nearbyTime,
 		},
 		{
 			ImmichID: "faraway", Type: "IMAGE", OriginalFileName: "far.jpg",
 			FileCreatedAt: farTime,
-			Latitude: ptr(40.71), Longitude: ptr(-74.0),
+			Latitude:      ptr(40.71), Longitude: ptr(-74.0),
 			DateTimeOriginal: &farTime,
 		},
 	})
@@ -41,6 +41,94 @@ func TestGetSuggestionsWithSameDayAssets(t *testing.T) {
 
 	if len(resp.SameDayClusters) != 1 {
 		t.Errorf("expected 1 same-day cluster, got %d", len(resp.SameDayClusters))
+	}
+}
+
+func TestGetSuggestionsWithNeighborClusters(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+	svc := newSuggestionService(db)
+
+	refTime := "2024-06-15T12:00:00Z"
+	before2min := "2024-06-15T11:58:00Z"
+	after5min := "2024-06-15T12:05:00Z"
+	outsideWindow := "2024-06-14T12:00:00Z" // 24h before -> beyond the 6h cap
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		{
+			ImmichID: "target", Type: "IMAGE", OriginalFileName: "target.jpg",
+			FileCreatedAt: refTime, DateTimeOriginal: &refTime,
+		},
+		{
+			ImmichID: "after", Type: "IMAGE", OriginalFileName: "after.jpg",
+			FileCreatedAt: after5min, Latitude: ptr(48.86), Longitude: ptr(2.36),
+			DateTimeOriginal: &after5min,
+		},
+		{
+			ImmichID: "before", Type: "IMAGE", OriginalFileName: "before.jpg",
+			FileCreatedAt: before2min, Latitude: ptr(48.85), Longitude: ptr(2.35),
+			DateTimeOriginal: &before2min,
+		},
+		{
+			ImmichID: "outside", Type: "IMAGE", OriginalFileName: "outside.jpg",
+			FileCreatedAt: outsideWindow, Latitude: ptr(40.71), Longitude: ptr(-74.0),
+			DateTimeOriginal: &outsideWindow,
+		},
+	})
+
+	resp, err := svc.getSuggestions(ctx, testUserID, "target", "")
+	if err != nil {
+		t.Fatalf("getSuggestions: %v", err)
+	}
+
+	if len(resp.NeighborClusters) != 2 {
+		t.Fatalf("expected 2 neighbor points (within window), got %d", len(resp.NeighborClusters))
+	}
+
+	// Closest-first ordering: the 2-min-before photo must precede the 5-min-after one.
+	first := resp.NeighborClusters[0]
+	second := resp.NeighborClusters[1]
+	if first.SecondsFromRef == nil || second.SecondsFromRef == nil {
+		t.Fatalf("expected SecondsFromRef to be set on neighbor points")
+	}
+	if *first.SecondsFromRef != -120 {
+		t.Errorf("expected first neighbor 2 min before, got %d", *first.SecondsFromRef)
+	}
+	if *second.SecondsFromRef != 300 {
+		t.Errorf("expected second neighbor 5 min after, got %d", *second.SecondsFromRef)
+	}
+	if first.Count != 1 || second.Count != 1 {
+		t.Errorf("expected neighbor points to have count 1, got %d and %d", first.Count, second.Count)
+	}
+}
+
+func TestGetSuggestionsNeighborClustersEmptyWhenNoneInWindow(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+	svc := newSuggestionService(db)
+
+	refTime := "2024-06-15T12:00:00Z"
+	farTime := "2024-01-01T12:00:00Z"
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		{
+			ImmichID: "target", Type: "IMAGE", OriginalFileName: "target.jpg",
+			FileCreatedAt: refTime, DateTimeOriginal: &refTime,
+		},
+		{
+			ImmichID: "far", Type: "IMAGE", OriginalFileName: "far.jpg",
+			FileCreatedAt: farTime, Latitude: ptr(40.71), Longitude: ptr(-74.0),
+			DateTimeOriginal: &farTime,
+		},
+	})
+
+	resp, err := svc.getSuggestions(ctx, testUserID, "target", "")
+	if err != nil {
+		t.Fatalf("getSuggestions: %v", err)
+	}
+
+	if len(resp.NeighborClusters) != 0 {
+		t.Errorf("expected no neighbor points outside the window, got %d", len(resp.NeighborClusters))
 	}
 }
 
@@ -68,17 +156,17 @@ func TestGetSuggestionsWithAlbumClusters(t *testing.T) {
 		{
 			ImmichID: "albumAsset1", Type: "IMAGE", OriginalFileName: "a1.jpg",
 			FileCreatedAt: dateTime,
-			Latitude: ptr(48.85), Longitude: ptr(2.35),
+			Latitude:      ptr(48.85), Longitude: ptr(2.35),
 		},
 		{
 			ImmichID: "albumAsset2", Type: "IMAGE", OriginalFileName: "a2.jpg",
 			FileCreatedAt: dateTime,
-			Latitude: ptr(48.86), Longitude: ptr(2.36),
+			Latitude:      ptr(48.86), Longitude: ptr(2.36),
 		},
 	})
 
 	db.upsertAlbum(ctx, testUserID, "testAlbum", "Test Album", nil, 2, dateTime, nil)
-	db.replaceAlbumAssets(ctx, testUserID,"testAlbum", []string{"albumAsset1", "albumAsset2"})
+	db.replaceAlbumAssets(ctx, testUserID, "testAlbum", []string{"albumAsset1", "albumAsset2"})
 
 	resp, err := svc.getSuggestions(ctx, testUserID, "target", "testAlbum")
 	if err != nil {
@@ -144,7 +232,7 @@ func TestAlbumClusterCacheHit(t *testing.T) {
 		FileCreatedAt: dateTime, Latitude: ptr(48.85), Longitude: ptr(2.35),
 	}})
 	db.upsertAlbum(ctx, testUserID, "testAlbum", "Test", nil, 1, dateTime, nil)
-	db.replaceAlbumAssets(ctx, testUserID,"testAlbum", []string{"a1"})
+	db.replaceAlbumAssets(ctx, testUserID, "testAlbum", []string{"a1"})
 
 	clusters1 := svc.clusterAlbumAssets(ctx, testUserID, "testAlbum")
 	clusters2 := svc.clusterAlbumAssets(ctx, testUserID, "testAlbum")

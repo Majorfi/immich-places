@@ -467,6 +467,68 @@ func TestGetSameDayAssetsRange(t *testing.T) {
 	}
 }
 
+func TestGetNeighborAssetsOrderingAndWindow(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	ref := "2024-06-15T12:00:00Z"
+	after5 := time.Date(2024, 6, 15, 12, 5, 0, 0, time.UTC).Format(time.RFC3339)
+	before2 := time.Date(2024, 6, 15, 11, 58, 0, 0, time.UTC).Format(time.RFC3339)
+	after3h := time.Date(2024, 6, 15, 15, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	outside := time.Date(2024, 6, 14, 12, 0, 0, 0, time.UTC).Format(time.RFC3339) // 24h before
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		{
+			ImmichID: "after5", Type: "IMAGE", OriginalFileName: "after5.jpg",
+			FileCreatedAt: after5, Latitude: ptr(48.86), Longitude: ptr(2.36),
+			DateTimeOriginal: &after5,
+		},
+		{
+			ImmichID: "before2", Type: "IMAGE", OriginalFileName: "before2.jpg",
+			FileCreatedAt: before2, Latitude: ptr(48.85), Longitude: ptr(2.35),
+			DateTimeOriginal: &before2,
+		},
+		{
+			ImmichID: "after3h", Type: "IMAGE", OriginalFileName: "after3h.jpg",
+			FileCreatedAt: after3h, Latitude: ptr(48.87), Longitude: ptr(2.37),
+			DateTimeOriginal: &after3h,
+		},
+		{
+			ImmichID: "outside", Type: "IMAGE", OriginalFileName: "outside.jpg",
+			FileCreatedAt: outside, Latitude: ptr(40.71), Longitude: ptr(-74.0),
+			DateTimeOriginal: &outside,
+		},
+	})
+
+	// 6h window keeps the three in-window photos, excludes the 24h-away one.
+	assets, err := db.getNeighborAssets(ctx, testUserID, ref, 6, 6)
+	if err != nil {
+		t.Fatalf("getNeighborAssets: %v", err)
+	}
+	if len(assets) != 3 {
+		t.Fatalf("expected 3 neighbors within 6h window, got %d", len(assets))
+	}
+	// Closest-first: before2 (2m), after5 (5m), after3h (3h).
+	wantOrder := []string{"before2", "after5", "after3h"}
+	for i, want := range wantOrder {
+		if assets[i].ImmichID != want {
+			t.Errorf("position %d: expected %q, got %q", i, want, assets[i].ImmichID)
+		}
+	}
+
+	// limit truncates to the closest N.
+	assets, err = db.getNeighborAssets(ctx, testUserID, ref, 6, 2)
+	if err != nil {
+		t.Fatalf("getNeighborAssets limit=2: %v", err)
+	}
+	if len(assets) != 2 {
+		t.Fatalf("expected limit to truncate to 2, got %d", len(assets))
+	}
+	if assets[0].ImmichID != "before2" || assets[1].ImmichID != "after5" {
+		t.Errorf("expected closest two [before2 after5], got [%s %s]", assets[0].ImmichID, assets[1].ImmichID)
+	}
+}
+
 func TestAlbumDiffReplaceAssets(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
