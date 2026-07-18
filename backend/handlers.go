@@ -23,7 +23,6 @@ const (
 	maxPageInfoPageSize     = 500
 	defaultPageInfoPageSize = 90
 	frequentLocationsLimit  = 5
-	neighborWindowHours     = 6
 	neighborLimit           = 6
 	maxClusterResults       = 5
 	defaultMapMarkersLimit  = maxMapMarkers

@@ -5,10 +5,12 @@ import (
 	"testing"
 )
 
+const testNeighborWindow = 6
+
 func TestGetSuggestionsWithSameDayAssets(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	dateTime := "2024-06-15T12:00:00Z"
 	nearbyTime := "2024-06-15T14:00:00Z"
@@ -47,7 +49,7 @@ func TestGetSuggestionsWithSameDayAssets(t *testing.T) {
 func TestGetSuggestionsWithNeighborClusters(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	refTime := "2024-06-15T12:00:00Z"
 	before2min := "2024-06-15T11:58:00Z"
@@ -105,7 +107,7 @@ func TestGetSuggestionsWithNeighborClusters(t *testing.T) {
 func TestGetSuggestionsNeighborClustersEmptyWhenNoneInWindow(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	refTime := "2024-06-15T12:00:00Z"
 	farTime := "2024-01-01T12:00:00Z"
@@ -134,7 +136,7 @@ func TestGetSuggestionsNeighborClustersEmptyWhenNoneInWindow(t *testing.T) {
 
 func TestGetSuggestionsAssetNotFound(t *testing.T) {
 	db := newTestDB(t)
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	_, err := svc.getSuggestions(context.Background(), testUserID, "nonexistent", "")
 	if err == nil {
@@ -145,7 +147,7 @@ func TestGetSuggestionsAssetNotFound(t *testing.T) {
 func TestGetSuggestionsWithAlbumClusters(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	dateTime := "2024-06-15T12:00:00Z"
 	db.upsertAssets(ctx, testUserID, []AssetRow{
@@ -224,7 +226,7 @@ func TestBuildMetadataLabel(t *testing.T) {
 func TestAlbumClusterCacheHit(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	dateTime := "2024-06-15T12:00:00Z"
 	db.upsertAssets(ctx, testUserID, []AssetRow{{
@@ -245,7 +247,7 @@ func TestAlbumClusterCacheHit(t *testing.T) {
 func TestGetSuggestionsNoDateTimeOriginal(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	db.upsertAssets(ctx, testUserID, []AssetRow{{
 		ImmichID: "target", Type: "IMAGE", OriginalFileName: "target.jpg",
@@ -264,7 +266,7 @@ func TestGetSuggestionsNoDateTimeOriginal(t *testing.T) {
 func TestGetSuggestionsWithFrequentLocations(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	svc := newSuggestionService(db)
+	svc := newSuggestionService(db, testNeighborWindow)
 
 	db.replaceFrequentLocations(ctx, testUserID, []FrequentLocationRow{
 		{Latitude: 48.85, Longitude: 2.35, Label: "Paris, France", AssetCount: 100},

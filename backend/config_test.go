@@ -121,3 +121,18 @@ func TestLoadConfigRegistrationDisabled(t *testing.T) {
 		t.Error("expected RegistrationEnabled to be false")
 	}
 }
+
+func TestLoadConfigNeighborWindowOverride(t *testing.T) {
+	withCleanWorkDir(t)
+	t.Setenv("IMMICH_URL", "http://test:2283")
+	t.Setenv("ENCRYPTION_KEY", "test-secret")
+	t.Setenv("SUGGESTIONS_NEIGHBOR_WINDOW_HOURS", "24")
+
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.NeighborWindowHours != 24 {
+		t.Errorf("expected NeighborWindowHours 24, got %d", cfg.NeighborWindowHours)
+	}
+}

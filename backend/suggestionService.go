@@ -20,13 +20,15 @@ type albumClusterCache struct {
 
 type SuggestionService struct {
 	db               SuggestionStore
+	neighborWindow   int
 	albumClustersMu  sync.Mutex
 	albumClustersMap map[string]albumClusterCache
 }
 
-func newSuggestionService(db SuggestionStore) *SuggestionService {
+func newSuggestionService(db SuggestionStore, neighborWindowHours int) *SuggestionService {
 	return &SuggestionService{
 		db:               db,
+		neighborWindow:   neighborWindowHours,
 		albumClustersMap: make(map[string]albumClusterCache),
 	}
 }
@@ -76,7 +78,7 @@ func (s *SuggestionService) getSuggestions(ctx context.Context, userID, assetID 
 		response.WeeklyClusters = clusterAssets(weeklyAssets)
 	}
 
-	if neighborAssets, err := s.db.getNeighborAssets(ctx, userID, *dateRef, neighborWindowHours, neighborLimit); err != nil {
+	if neighborAssets, err := s.db.getNeighborAssets(ctx, userID, *dateRef, s.neighborWindow, neighborLimit); err != nil {
 		log.Printf("[Suggest] Failed to get neighbor assets: %v", err)
 	} else if parseErr == nil {
 		response.NeighborClusters = buildNeighborPoints(neighborAssets, refTime)

@@ -46,7 +46,7 @@ func main() {
 	}, geocodeTimeout)
 	log.Printf("[Geocode] Provider: %s (timeout: %v)", describeProvider(geocoder), geocodeTimeout)
 	syncService := newSyncService(db, immichFactory, geocoder)
-	suggestions := newSuggestionService(db)
+	suggestions := newSuggestionService(db, cfg.NeighborWindowHours)
 	handlers := newHandlers(db, immichFactory, cfg.ImmichExternalURL, syncService, suggestions, cfg.defaultTimezoneLocation, geocoder)
 	libraryHandlers := newLibraryHandlers(db, immichFactory, syncService)
 	authHandlers := newAuthHandlers(db, immichFactory, syncService, cfg.RegistrationEnabled, !cfg.AllowInsecure)
