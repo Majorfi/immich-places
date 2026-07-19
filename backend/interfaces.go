@@ -58,7 +58,7 @@ type HandlerStore interface {
 type SuggestionStore interface {
 	getAssetByID(ctx context.Context, userID, immichID string) (*AssetRow, error)
 	getSameDayAssets(ctx context.Context, userID, dateTimeOriginal string, hoursRange int) ([]AssetRow, error)
-	getNeighborAssets(ctx context.Context, userID, dateTimeOriginal string, windowHours, limit int) ([]AssetRow, error)
+	getNeighborAssets(ctx context.Context, userID, excludeAssetID, dateTimeOriginal string, windowHours, limit int) ([]AssetRow, error)
 	getFrequentLocations(ctx context.Context, userID string, limit int) ([]FrequentLocationRow, error)
 	getAlbumUpdatedAt(ctx context.Context, userID, albumID string) (string, error)
 	getGeolocatedAssetsByAlbum(ctx context.Context, userID, albumID string) ([]AssetRow, error)

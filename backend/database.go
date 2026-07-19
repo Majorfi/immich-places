@@ -472,7 +472,7 @@ func (d *Database) getSameDayAssets(ctx context.Context, userID, dateTimeOrigina
 	return scanAssetRows(rows)
 }
 
-func (d *Database) getNeighborAssets(ctx context.Context, userID, dateTimeOriginal string, windowHours, limit int) ([]AssetRow, error) {
+func (d *Database) getNeighborAssets(ctx context.Context, userID, excludeAssetID, dateTimeOriginal string, windowHours, limit int) ([]AssetRow, error) {
 	refTime, err := parseTimestamp(dateTimeOriginal)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse dateTimeOriginal: %w", err)
@@ -483,11 +483,11 @@ func (d *Database) getNeighborAssets(ctx context.Context, userID, dateTimeOrigin
 	rows, err := d.db.QueryContext(ctx,
 		`SELECT `+assetColumns+`
 		FROM assets
-		WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
+		WHERE userID = ? AND immichID != ? AND latitude IS NOT NULL AND longitude IS NOT NULL
 			AND dateTimeOriginal IS NOT NULL
 			AND stackPrimaryAssetID IS NULL
 			AND dateTimeOriginal BETWEEN ? AND ?`+hiddenLibraryFilter,
-		userID, rangeStart, rangeEnd,
+		userID, excludeAssetID, rangeStart, rangeEnd,
 	)
 	if err != nil {
 		return nil, err

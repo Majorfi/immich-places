@@ -78,7 +78,7 @@ func (s *SuggestionService) getSuggestions(ctx context.Context, userID, assetID 
 		response.WeeklyClusters = clusterAssets(weeklyAssets)
 	}
 
-	if neighborAssets, err := s.db.getNeighborAssets(ctx, userID, *dateRef, s.neighborWindow, neighborLimit); err != nil {
+	if neighborAssets, err := s.db.getNeighborAssets(ctx, userID, assetID, *dateRef, s.neighborWindow, neighborLimit); err != nil {
 		log.Printf("[Suggest] Failed to get neighbor assets: %v", err)
 	} else if parseErr == nil {
 		response.NeighborClusters = buildNeighborPoints(neighborAssets, refTime)

@@ -472,12 +472,18 @@ func TestGetNeighborAssetsOrderingAndWindow(t *testing.T) {
 	ctx := context.Background()
 
 	ref := "2024-06-15T12:00:00Z"
+	self := ref
 	after5 := time.Date(2024, 6, 15, 12, 5, 0, 0, time.UTC).Format(time.RFC3339)
 	before2 := time.Date(2024, 6, 15, 11, 58, 0, 0, time.UTC).Format(time.RFC3339)
 	after3h := time.Date(2024, 6, 15, 15, 0, 0, 0, time.UTC).Format(time.RFC3339)
 	outside := time.Date(2024, 6, 14, 12, 0, 0, 0, time.UTC).Format(time.RFC3339) // 24h before
 
 	db.upsertAssets(ctx, testUserID, []AssetRow{
+		{
+			ImmichID: "self", Type: "IMAGE", OriginalFileName: "self.jpg",
+			FileCreatedAt: self, Latitude: ptr(48.86), Longitude: ptr(2.36),
+			DateTimeOriginal: &self,
+		},
 		{
 			ImmichID: "after5", Type: "IMAGE", OriginalFileName: "after5.jpg",
 			FileCreatedAt: after5, Latitude: ptr(48.86), Longitude: ptr(2.36),
@@ -500,8 +506,9 @@ func TestGetNeighborAssetsOrderingAndWindow(t *testing.T) {
 		},
 	})
 
-	// 6h window keeps the three in-window photos, excludes the 24h-away one.
-	assets, err := db.getNeighborAssets(ctx, testUserID, ref, 6, 6)
+	// 6h window keeps the three in-window photos, excludes the 24h-away one
+	// and the reference asset itself
+	assets, err := db.getNeighborAssets(ctx, testUserID, "self", ref, 6, 6)
 	if err != nil {
 		t.Fatalf("getNeighborAssets: %v", err)
 	}
@@ -517,7 +524,7 @@ func TestGetNeighborAssetsOrderingAndWindow(t *testing.T) {
 	}
 
 	// limit truncates to the closest N.
-	assets, err = db.getNeighborAssets(ctx, testUserID, ref, 6, 2)
+	assets, err = db.getNeighborAssets(ctx, testUserID, "self", ref, 6, 2)
 	if err != nil {
 		t.Fatalf("getNeighborAssets limit=2: %v", err)
 	}
