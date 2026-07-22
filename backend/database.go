@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -468,6 +470,58 @@ func (d *Database) getSameDayAssets(ctx context.Context, userID, dateTimeOrigina
 	defer rows.Close()
 
 	return scanAssetRows(rows)
+}
+
+func (d *Database) getNeighborAssets(ctx context.Context, userID, excludeAssetID, dateTimeOriginal string, windowHours, limit int) ([]AssetRow, error) {
+	refTime, err := parseTimestamp(dateTimeOriginal)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse dateTimeOriginal: %w", err)
+	}
+	rangeStart := refTime.Add(-time.Duration(windowHours) * time.Hour).Format(time.RFC3339)
+	rangeEnd := refTime.Add(time.Duration(windowHours) * time.Hour).Format(time.RFC3339)
+
+	rows, err := d.db.QueryContext(ctx,
+		`SELECT `+assetColumns+`
+		FROM assets
+		WHERE userID = ? AND immichID != ? AND latitude IS NOT NULL AND longitude IS NOT NULL
+			AND dateTimeOriginal IS NOT NULL
+			AND stackPrimaryAssetID IS NULL
+			AND dateTimeOriginal BETWEEN ? AND ?`+hiddenLibraryFilter,
+		userID, excludeAssetID, rangeStart, rangeEnd,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	assets, err := scanAssetRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(assets, func(i, j int) bool {
+		return absTimeDiff(refTime, assets[i].DateTimeOriginal) < absTimeDiff(refTime, assets[j].DateTimeOriginal)
+	})
+
+	if limit >= 0 && len(assets) > limit {
+		assets = assets[:limit]
+	}
+	return assets, nil
+}
+
+func absTimeDiff(refTime time.Time, ts *string) time.Duration {
+	if ts == nil {
+		return time.Duration(math.MaxInt64)
+	}
+	t, err := parseTimestamp(*ts)
+	if err != nil {
+		return time.Duration(math.MaxInt64)
+	}
+	diff := refTime.Sub(t)
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff
 }
 
 func (d *Database) getFavoritePlaces(ctx context.Context, userID string) ([]FavoritePlaceRow, error) {

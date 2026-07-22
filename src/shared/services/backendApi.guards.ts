@@ -67,7 +67,8 @@ export function isTLocationCluster(value: unknown): value is TLocationCluster {
 		isFiniteNumber(value.latitude) &&
 		isFiniteNumber(value.longitude) &&
 		isString(value.label) &&
-		isFiniteNumber(value.count)
+		isFiniteNumber(value.count) &&
+		(value.secondsFromRef === undefined || isFiniteNumber(value.secondsFromRef))
 	);
 }
 
@@ -91,7 +92,9 @@ export function isTSuggestionsResponse(value: unknown): value is TSuggestionsRes
 		Array.isArray(value.frequentLocations) &&
 		value.frequentLocations.every(isTLocationCluster) &&
 		Array.isArray(value.albumClusters) &&
-		value.albumClusters.every(isTLocationCluster)
+		value.albumClusters.every(isTLocationCluster) &&
+		Array.isArray(value.neighborClusters) &&
+		value.neighborClusters.every(isTLocationCluster)
 	);
 }
 
@@ -114,7 +117,8 @@ export function isTRawSuggestionsResponse(value: unknown): value is TRawSuggesti
 		isNullableLocationClusterArray(value.twoDayClusters) &&
 		isNullableLocationClusterArray(value.weeklyClusters) &&
 		isNullableLocationClusterArray(value.frequentLocations) &&
-		isNullableLocationClusterArray(value.albumClusters)
+		isNullableLocationClusterArray(value.albumClusters) &&
+		isNullableLocationClusterArray(value.neighborClusters)
 	);
 }
 

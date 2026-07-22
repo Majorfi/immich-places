@@ -26,6 +26,7 @@ type Config struct {
 	HereAPIKey             string `env:"HERE_API_KEY"`
 	GoogleAPIKey           string `env:"GOOGLE_API_KEY"`
 	GeocodeTimeoutSecs     int    `env:"GEOCODE_TIMEOUT" envDefault:"10"`
+	NeighborWindowHours    int    `env:"SUGGESTIONS_NEIGHBOR_WINDOW_HOURS" envDefault:"6"`
 	Debug                  bool   `env:"DEBUG" envDefault:"false"`
 
 	defaultTimezoneLocation *time.Location
@@ -49,6 +50,10 @@ func loadConfig() (*Config, error) {
 
 	if cfg.GeocodeTimeoutSecs <= 0 {
 		return nil, fmt.Errorf("GEOCODE_TIMEOUT must be > 0, got %d", cfg.GeocodeTimeoutSecs)
+	}
+
+	if cfg.NeighborWindowHours <= 0 {
+		return nil, fmt.Errorf("SUGGESTIONS_NEIGHBOR_WINDOW_HOURS must be > 0, got %d", cfg.NeighborWindowHours)
 	}
 
 	if !cfg.TrustProxyTLS && !cfg.AllowInsecure {

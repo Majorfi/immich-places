@@ -41,10 +41,11 @@ type MapMarker struct {
 }
 
 type LocationCluster struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	Label     string  `json:"label"`
-	Count     int     `json:"count"`
+	Latitude       float64 `json:"latitude"`
+	Longitude      float64 `json:"longitude"`
+	Label          string  `json:"label"`
+	Count          int     `json:"count"`
+	SecondsFromRef *int64  `json:"secondsFromRef,omitempty"`
 }
 
 type SuggestionsResponse struct {
@@ -53,6 +54,7 @@ type SuggestionsResponse struct {
 	WeeklyClusters    []LocationCluster `json:"weeklyClusters"`
 	FrequentLocations []LocationCluster `json:"frequentLocations"`
 	AlbumClusters     []LocationCluster `json:"albumClusters"`
+	NeighborClusters  []LocationCluster `json:"neighborClusters"`
 }
 
 type HealthResponse struct {
@@ -175,13 +177,13 @@ type TViewportBounds struct {
 }
 
 type UserRow struct {
-	ID              string  `json:"ID"`
-	Email           string  `json:"email"`
-	PasswordHash    string  `json:"-"`
-	ImmichAPIKey    *string `json:"-"`
-	DawarichAPIKey  *string `json:"-"`
-	CreatedAt       string  `json:"createdAt"`
-	UpdatedAt       string  `json:"updatedAt"`
+	ID             string  `json:"ID"`
+	Email          string  `json:"email"`
+	PasswordHash   string  `json:"-"`
+	ImmichAPIKey   *string `json:"-"`
+	DawarichAPIKey *string `json:"-"`
+	CreatedAt      string  `json:"createdAt"`
+	UpdatedAt      string  `json:"updatedAt"`
 }
 
 type RegisterRequest struct {
@@ -278,4 +280,3 @@ type GPXPreviewResponse struct {
 	Matches          []GPXMatchResult `json:"matches"`
 	DetectedTimezone string           `json:"detectedTimezone"`
 }
-

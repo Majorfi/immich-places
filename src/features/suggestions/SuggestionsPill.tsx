@@ -15,6 +15,7 @@ import {
 } from '@/features/suggestions/useSuggestionState';
 import {useCatalog, useSelection} from '@/shared/context/AppContext';
 import {MAP_LOCATION_SOURCE_SUGGESTION} from '@/utils/map';
+import {SUGGESTION_CATEGORY_KEY, formatNeighborOffset} from '@/utils/suggestions';
 
 import type {ReactElement} from 'react';
 
@@ -109,7 +110,11 @@ export function SuggestionsPill(): ReactElement {
 										/>
 										<span className={'max-w-70 truncate'}>{cluster.label}</span>
 									</span>
-									<span className={'text-[11px] text-(--color-text-secondary)'}>{cluster.count}</span>
+									<span className={'text-[11px] text-(--color-text-secondary)'}>
+										{activeCategory.key === SUGGESTION_CATEGORY_KEY.neighbor
+											? formatNeighborOffset(cluster.secondsFromRef)
+											: cluster.count}
+									</span>
 								</button>
 							))}
 					</div>

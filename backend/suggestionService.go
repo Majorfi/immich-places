@@ -20,13 +20,15 @@ type albumClusterCache struct {
 
 type SuggestionService struct {
 	db               SuggestionStore
+	neighborWindow   int
 	albumClustersMu  sync.Mutex
 	albumClustersMap map[string]albumClusterCache
 }
 
-func newSuggestionService(db SuggestionStore) *SuggestionService {
+func newSuggestionService(db SuggestionStore, neighborWindowHours int) *SuggestionService {
 	return &SuggestionService{
 		db:               db,
+		neighborWindow:   neighborWindowHours,
 		albumClustersMap: make(map[string]albumClusterCache),
 	}
 }
@@ -51,6 +53,7 @@ func (s *SuggestionService) getSuggestions(ctx context.Context, userID, assetID 
 		WeeklyClusters:    []LocationCluster{},
 		FrequentLocations: []LocationCluster{},
 		AlbumClusters:     []LocationCluster{},
+		NeighborClusters:  []LocationCluster{},
 	}
 
 	if albumID != "" {
@@ -73,6 +76,12 @@ func (s *SuggestionService) getSuggestions(ctx context.Context, userID, assetID 
 		response.WeeklyClusters = clusterAssets(weeklyAssets)
 	} else {
 		response.WeeklyClusters = clusterAssets(weeklyAssets)
+	}
+
+	if neighborAssets, err := s.db.getNeighborAssets(ctx, userID, assetID, *dateRef, s.neighborWindow, neighborLimit); err != nil {
+		log.Printf("[Suggest] Failed to get neighbor assets: %v", err)
+	} else if parseErr == nil {
+		response.NeighborClusters = buildNeighborPoints(neighborAssets, refTime)
 	}
 
 	freqLocs, err := s.db.getFrequentLocations(ctx, userID, frequentLocationsLimit)
@@ -141,6 +150,32 @@ func filterByHourRange(assets []AssetRow, refTime time.Time, hoursRange int) []A
 		}
 	}
 	return filtered
+}
+
+func buildNeighborPoints(assets []AssetRow, refTime time.Time) []LocationCluster {
+	points := make([]LocationCluster, 0, len(assets))
+	for _, a := range assets {
+		if a.Latitude == nil || a.Longitude == nil || a.DateTimeOriginal == nil {
+			continue
+		}
+		t, err := parseTimestamp(*a.DateTimeOriginal)
+		if err != nil {
+			continue
+		}
+		offset := int64(t.Sub(refTime).Seconds())
+		label := buildMetadataLabel(a.City, a.State, a.Country)
+		if label == "" {
+			label = formatCoords(*a.Latitude, *a.Longitude)
+		}
+		points = append(points, LocationCluster{
+			Latitude:       *a.Latitude,
+			Longitude:      *a.Longitude,
+			Label:          label,
+			Count:          1,
+			SecondsFromRef: &offset,
+		})
+	}
+	return points
 }
 
 func clusterAssets(assets []AssetRow) []LocationCluster {

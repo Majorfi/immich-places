@@ -14,7 +14,7 @@ The `suggestions` feature provides location suggestions and recently used locati
 - `useSuggestions.ts`
     - Fetches suggestion clusters from backend.
     - Scores and merges suggestion sources.
-    - Builds categorized suggestion groups (suggested, album, same-day, two-day, weekly, frequent).
+    - Builds categorized suggestion groups (suggested, neighbor, album, same-day, two-day, weekly, frequent).
 - `useSuggestionState.ts`
     - UI state derivation for suggestion tabs, counts, and frequent-load behavior.
     - Includes visual constants and stable cluster/category helpers.
@@ -38,5 +38,6 @@ The `suggestions` feature provides location suggestions and recently used locati
 
 ## Notes
 
+- The "Nearby in time" (neighbor) category lists the geolocated photos closest in time to the selected one, as individual points ordered by proximity and labeled with their time distance ("2 min before").
 - Frequent-location clusters can be loaded on-demand when the suggestion panel opens.
 - Recent locations are read from local storage-backed history and trimmed/validated before rendering.

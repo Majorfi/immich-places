@@ -23,7 +23,7 @@ The app has two parts:
 - Drag-and-drop a photo onto the map to assign coordinates
 - Geocoding search with autocomplete and history (Nominatim by default, optional HERE and Google Maps providers)
 - Favorite places: star locations from search results for quick access
-- Smart suggestions: locations from same-day, nearby-day, weekly patterns, frequent spots, and album context
+- Smart suggestions: locations from nearby-in-time photos, same-day, nearby-day, weekly patterns, frequent spots, and album context
 - GPX import: upload one or multiple GPX tracks to batch-assign coordinates to photos by timestamp
 
 **Photo Browsing**
@@ -138,6 +138,7 @@ The following Immich permissions are required:
 - `FRONTEND_PORT` (default `3032`): Frontend port exposed to the host.
 - `REGISTRATION_ENABLED` (default `true`): Set to `false` to disable new users.
 - `SYNC_INTERVAL_MS` (default `300000`): Background sync frequency in milliseconds.
+- `SUGGESTIONS_NEIGHBOR_WINDOW_HOURS` (default `6`): For "Nearby in time" suggestions, how many hours before/after a photo to search for geolocated neighbors. Widen it if your library is geotagged sparsely; narrow it to avoid suggesting a location from a different outing on the same day.
 - `DATA_DIR` (default `/data`): Backend DB path inside container.
 - `PORT` (default `8082`): Backend listen port inside container.
 - `BACKEND_URL` (frontend): Backend service URL used by the Next.js rewrite, default is `http://backend:8082`.

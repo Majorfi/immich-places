@@ -8,7 +8,8 @@ import {
 	SUGGESTION_CATEGORY_KEY,
 	SUGGESTION_CATEGORY_LABEL,
 	SUGGESTION_PANEL_FREQUENT_MAX_ITEMS,
-	SUGGESTION_PANEL_MAX_ITEMS
+	SUGGESTION_PANEL_MAX_ITEMS,
+	SUGGESTION_PANEL_NEIGHBOR_MAX_ITEMS
 } from '@/utils/suggestions';
 
 import type {TLocationCluster, TSuggestionCategory, TSuggestionCategoryKey} from '@/shared/types/suggestion';
@@ -19,6 +20,7 @@ import type {TLocationCluster, TSuggestionCategory, TSuggestionCategoryKey} from
 const categoryColors: Record<TSuggestionCategoryKey, string> = {
 	suggested: '#2563eb',
 	album: '#0d9488',
+	neighbor: '#db2777',
 	sameDay: '#d97706',
 	twoDay: '#ea580c',
 	weekly: '#7c3aed',
@@ -62,7 +64,7 @@ export function categoryColor(value: string): string {
  * @returns Stable key string.
  */
 export function clusterStableKey(cluster: TLocationCluster): string {
-	return `${cluster.latitude}:${cluster.longitude}:${cluster.label}:${cluster.count}`;
+	return `${cluster.latitude}:${cluster.longitude}:${cluster.label}:${cluster.count}:${cluster.secondsFromRef ?? ''}`;
 }
 
 type TFrequentSuggestionsState = {
@@ -198,6 +200,9 @@ export function useSuggestionState(selectedAssetsCount: number, categories: TSug
 export function resolveMaxItemsForCategory(categoryKey: string): number {
 	if (categoryKey === SUGGESTION_CATEGORY_KEY.frequent) {
 		return SUGGESTION_PANEL_FREQUENT_MAX_ITEMS;
+	}
+	if (categoryKey === SUGGESTION_CATEGORY_KEY.neighbor) {
+		return SUGGESTION_PANEL_NEIGHBOR_MAX_ITEMS;
 	}
 	return SUGGESTION_PANEL_MAX_ITEMS;
 }
