@@ -214,6 +214,9 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 	if err := s.db.setSyncState(ctx, userID, "lastSyncAt", now); err != nil {
 		log.Printf("[Sync] Failed to set lastSyncAt for user %s: %v", userID, err)
 	}
+	if err := s.db.setSyncState(ctx, userID, "originalPathBackfillDone", "true"); err != nil {
+		log.Printf("[Sync] Failed to set originalPathBackfillDone for user %s: %v", userID, err)
+	}
 
 	s.syncStacks(ctx, userID, immich)
 	if err := s.syncLibraries(ctx, userID, immich); err != nil {
@@ -274,6 +277,16 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 	}
 	if needsBackfill {
 		log.Printf("[Sync] Assets need libraryID backfill for user %s, running full sync", userID)
+		s.doUserFullSync(ctx, userID, immich)
+		return
+	}
+
+	needsPathBackfill, err := s.db.needsOriginalPathBackfill(ctx, userID)
+	if err != nil {
+		log.Printf("[Sync] Failed to check originalPath backfill for user %s: %v", userID, err)
+	}
+	if needsPathBackfill {
+		log.Printf("[Sync] Assets need originalPath backfill for user %s, running full sync", userID)
 		s.doUserFullSync(ctx, userID, immich)
 		return
 	}
@@ -662,6 +675,7 @@ func mapImmichToAssetRow(item ImmichAssetResponse) AssetRow {
 		ImmichID:         item.ID,
 		Type:             item.Type,
 		OriginalFileName: item.OriginalFileName,
+		OriginalPath:     item.OriginalPath,
 		FileCreatedAt:    item.FileCreatedAt,
 		LibraryID:        item.LibraryID,
 	}

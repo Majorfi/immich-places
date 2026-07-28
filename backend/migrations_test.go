@@ -113,8 +113,8 @@ func TestRunMigrationsBootstrapExistingDatabase(t *testing.T) {
 	if err := db.QueryRow("SELECT version_id FROM goose_db_version WHERE is_applied = 1 ORDER BY id DESC LIMIT 1").Scan(&version); err != nil {
 		t.Fatalf("query goose version: %v", err)
 	}
-	if version != 16 {
-		t.Errorf("expected stamped version 16, got %d", version)
+	if version != 17 {
+		t.Errorf("expected stamped version 17, got %d", version)
 	}
 
 	if _, err := db.Exec("INSERT INTO users (ID, email, passwordHash) VALUES ('u1', 'test@example.com', 'hashed')"); err != nil {

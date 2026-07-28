@@ -4,6 +4,7 @@ type AssetRow struct {
 	ImmichID            string   `json:"immichID"`
 	Type                string   `json:"type"`
 	OriginalFileName    string   `json:"originalFileName"`
+	OriginalPath        string   `json:"originalPath"`
 	FileCreatedAt       string   `json:"fileCreatedAt"`
 	Latitude            *float64 `json:"latitude"`
 	Longitude           *float64 `json:"longitude"`
@@ -106,9 +107,21 @@ type ImmichAssetResponse struct {
 	ID               string          `json:"id"`
 	Type             string          `json:"type"`
 	OriginalFileName string          `json:"originalFileName"`
+	OriginalPath     string          `json:"originalPath"`
 	FileCreatedAt    string          `json:"fileCreatedAt"`
 	ExifInfo         *ImmichExifInfo `json:"exifInfo"`
 	LibraryID        *string         `json:"libraryId"`
+}
+
+type FolderNode struct {
+	Name       string       `json:"name"`
+	Path       string       `json:"path"`
+	AssetCount int          `json:"assetCount"`
+	Children   []FolderNode `json:"children"`
+}
+
+type FolderTree struct {
+	Children []FolderNode `json:"children"`
 }
 
 type ImmichStackResponse struct {

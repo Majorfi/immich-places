@@ -25,10 +25,10 @@ const (
 )
 
 const assetColumns = `immichID, type, originalFileName, fileCreatedAt, latitude, longitude,
-		city, state, country, dateTimeOriginal, syncedAt, stackID, stackPrimaryAssetID, stackAssetCount, libraryID, isHidden`
+		city, state, country, dateTimeOriginal, syncedAt, stackID, stackPrimaryAssetID, stackAssetCount, libraryID, isHidden, originalPath`
 
 const assetColumnsAliased = `a.immichID, a.type, a.originalFileName, a.fileCreatedAt, a.latitude, a.longitude,
-		a.city, a.state, a.country, a.dateTimeOriginal, a.syncedAt, a.stackID, a.stackPrimaryAssetID, a.stackAssetCount, a.libraryID, a.isHidden`
+		a.city, a.state, a.country, a.dateTimeOriginal, a.syncedAt, a.stackID, a.stackPrimaryAssetID, a.stackAssetCount, a.libraryID, a.isHidden, a.originalPath`
 
 type Database struct {
 	db            *sql.DB
@@ -384,7 +384,7 @@ func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*
 		&a.ImmichID, &a.Type, &a.OriginalFileName, &a.FileCreatedAt,
 		&a.Latitude, &a.Longitude, &a.City, &a.State, &a.Country,
 		&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount, &a.LibraryID,
-		&a.IsHidden,
+		&a.IsHidden, &a.OriginalPath,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -395,11 +395,12 @@ func (d *Database) getAssetByID(ctx context.Context, userID, immichID string) (*
 	return &a, nil
 }
 
-const upsertAssetSQL = `INSERT INTO assets (immichID, userID, type, originalFileName, fileCreatedAt, latitude, longitude, city, state, country, dateTimeOriginal, stackID, stackPrimaryAssetID, stackAssetCount, libraryID, syncedAt)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+const upsertAssetSQL = `INSERT INTO assets (immichID, userID, type, originalFileName, originalPath, fileCreatedAt, latitude, longitude, city, state, country, dateTimeOriginal, stackID, stackPrimaryAssetID, stackAssetCount, libraryID, syncedAt)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
 	ON CONFLICT(userID, immichID) DO UPDATE SET
 		type = excluded.type,
 		originalFileName = excluded.originalFileName,
+		originalPath = excluded.originalPath,
 		fileCreatedAt = excluded.fileCreatedAt,
 		latitude = excluded.latitude,
 		longitude = excluded.longitude,
@@ -428,7 +429,7 @@ func (d *Database) upsertAssets(ctx context.Context, userID string, assets []Ass
 
 	for _, a := range assets {
 		if _, err := stmt.ExecContext(ctx,
-			a.ImmichID, userID, a.Type, a.OriginalFileName, a.FileCreatedAt,
+			a.ImmichID, userID, a.Type, a.OriginalFileName, a.OriginalPath, a.FileCreatedAt,
 			a.Latitude, a.Longitude, a.City, a.State, a.Country, a.DateTimeOriginal,
 			a.StackID, a.StackPrimaryAssetID, a.StackAssetCount, a.LibraryID,
 		); err != nil {
@@ -975,7 +976,7 @@ func scanAssetRows(rows *sql.Rows) ([]AssetRow, error) {
 			&a.ImmichID, &a.Type, &a.OriginalFileName, &a.FileCreatedAt,
 			&a.Latitude, &a.Longitude, &a.City, &a.State, &a.Country,
 			&a.DateTimeOriginal, &a.SyncedAt, &a.StackID, &a.StackPrimaryAssetID, &a.StackAssetCount, &a.LibraryID,
-			&a.IsHidden,
+			&a.IsHidden, &a.OriginalPath,
 		); err != nil {
 			return nil, err
 		}

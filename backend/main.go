@@ -64,6 +64,8 @@ func main() {
 	protectedMux := http.NewServeMux()
 	protectedMux.HandleFunc("GET /albums", handlers.handleGetAlbums)
 	protectedMux.HandleFunc("GET /tags", handlers.handleGetTags)
+	protectedMux.HandleFunc("GET /folders", handlers.handleGetFolders)
+	protectedMux.HandleFunc("GET /folders/assets", handlers.handleGetFolderAssets)
 	protectedMux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	protectedMux.HandleFunc("GET /assets/day-counts", handlers.handleGetAssetDayCounts)
 	protectedMux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)

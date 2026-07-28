@@ -23,6 +23,7 @@ type SyncStore interface {
 	upsertLibrary(ctx context.Context, libraryID, name string, assetCount int) error
 	deleteLibrariesNotIn(ctx context.Context, libraryIDs []string) error
 	needsLibraryIDBackfill(ctx context.Context, userID string) (bool, error)
+	needsOriginalPathBackfill(ctx context.Context, userID string) (bool, error)
 	getTagUpdatedAtMap(ctx context.Context, userID string) (map[string]string, error)
 	upsertTag(ctx context.Context, userID, tagID, name, value string, parentID, color *string) error
 	setTagSynced(ctx context.Context, userID, tagID, updatedAt string) error
@@ -53,6 +54,8 @@ type HandlerStore interface {
 	addFavoritePlace(ctx context.Context, userID string, latitude, longitude float64, displayName string) error
 	removeFavoritePlace(ctx context.Context, userID string, latitude, longitude float64) error
 	getTags(ctx context.Context, userID string) ([]TagRow, error)
+	getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter string) (*FolderTree, error)
+	getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter string, page, pageSize int) ([]AssetRow, int, error)
 }
 
 type SuggestionStore interface {
