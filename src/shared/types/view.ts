@@ -1,1 +1,1 @@
-export type TViewMode = 'timeline' | 'album';
+export type TViewMode = 'timeline' | 'album' | 'folders';

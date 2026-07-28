@@ -4,6 +4,7 @@ import type {TGPXMatchResult, TGPXPreviewResponse, TGPXTrackPoint} from '@/featu
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TFavoritePlace} from '@/shared/types/favoritePlace';
+import type {TFolderNode, TFolderTree} from '@/shared/types/folder';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TMapMarker} from '@/shared/types/map';
@@ -238,6 +239,38 @@ export function isFavoritePlace(value: unknown): value is TFavoritePlace {
 		isString(value.displayName) &&
 		isString(value.createdAt)
 	);
+}
+
+/**
+ * Type guard for folder tree node payloads.
+ *
+ * @param value - Unknown input value.
+ * @returns `true` when value matches `TFolderNode` recursively.
+ */
+export function isFolderNode(value: unknown): value is TFolderNode {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		isString(value.name) &&
+		isString(value.path) &&
+		isFiniteNumber(value.assetCount) &&
+		Array.isArray(value.children) &&
+		value.children.every(isFolderNode)
+	);
+}
+
+/**
+ * Type guard for folder tree payloads.
+ *
+ * @param value - Unknown input value.
+ * @returns `true` when value matches `TFolderTree`.
+ */
+export function isFolderTree(value: unknown): value is TFolderTree {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return Array.isArray(value.children) && value.children.every(isFolderNode);
 }
 
 function isGPXTrackPoint(value: unknown): value is TGPXTrackPoint {

@@ -3,6 +3,7 @@ import {
 	isAlbumRow,
 	isAssetPageInfo,
 	isFavoritePlace,
+	isFolderTree,
 	isGPXPreviewResponse,
 	isHealthResponse,
 	isLibraryRow,
@@ -24,6 +25,7 @@ import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TAuthErrorCode} from '@/shared/types/auth';
 import type {TFavoritePlace} from '@/shared/types/favoritePlace';
+import type {TFolderTree} from '@/shared/types/folder';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TGPSFilter, THiddenFilter, TMapMarker} from '@/shared/types/map';
@@ -186,6 +188,42 @@ export async function fetchAlbums(
 		(value): value is TAlbumRow[] => Array.isArray(value) && value.every(isAlbumRow),
 		'Invalid albums response payload'
 	);
+}
+
+export async function getFolders(
+	gpsFilter: TGPSFilter,
+	hiddenFilter: THiddenFilter,
+	opts: TRequestOptions = {}
+): Promise<TFolderTree> {
+	const params = buildSearchParams({gpsFilter, hiddenFilter});
+	const response = await backendFetch(`${BASE}/folders?${params.toString()}`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch folders: ${response.status}`);
+	}
+	return parseJSON(response, isFolderTree, 'Invalid folders response payload');
+}
+
+export async function getFolderAssets(
+	path: string,
+	gpsFilter: TGPSFilter,
+	hiddenFilter: THiddenFilter,
+	page: number,
+	pageSize: number,
+	opts: TRequestOptions = {}
+): Promise<TPaginatedAssets> {
+	const params = buildSearchParams({
+		path,
+		page: String(normalizeAssetPage(page)),
+		pageSize: String(normalizePageSize(pageSize)),
+		gpsFilter,
+		hiddenFilter
+	});
+	const url = `${BASE}/folders/assets?${params.toString()}`;
+	const response = await backendFetch(url, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch folder assets: ${response.status}`);
+	}
+	return parseJSON(response, isPaginatedAssets, 'Invalid folder assets response payload');
 }
 
 export async function fetchMapMarkers(

@@ -30,6 +30,8 @@ export function PhotoListContainer(): ReactElement {
 		setViewModeAction,
 		selectedAlbumID,
 		selectAlbumAction,
+		selectedFolderPath,
+		selectFolderAction,
 		selectedTagID,
 		selectTagAction,
 		startDate,
@@ -119,10 +121,11 @@ export function PhotoListContainer(): ReactElement {
 		if (mode === viewMode) {
 			return;
 		}
-		if (selectedAlbumID) {
+		if (selectedAlbumID || selectedFolderPath) {
 			closeAlbumAndClearPending(() => {
 				closeLightboxAction();
 				selectAlbumAction(null);
+				selectFolderAction(null);
 				setViewModeAction(mode);
 			});
 			return;
@@ -144,6 +147,16 @@ export function PhotoListContainer(): ReactElement {
 		});
 	};
 
+	const handleBackToFolders = (): void => {
+		if (!selectedFolderPath) {
+			return;
+		}
+		closeAlbumAndClearPending(() => {
+			closeLightboxAction();
+			selectFolderAction(null);
+		});
+	};
+
 	const handleSelectAlbum = (albumID: string): void => {
 		if (selectedAlbumID === albumID) {
 			return;
@@ -157,6 +170,21 @@ export function PhotoListContainer(): ReactElement {
 		}
 		closeLightboxAction();
 		selectAlbumAction(albumID);
+	};
+
+	const handleSelectFolder = (folderPath: string): void => {
+		if (selectedFolderPath === folderPath) {
+			return;
+		}
+		if (selectedFolderPath) {
+			closeAlbumAndClearPending(() => {
+				closeLightboxAction();
+				selectFolderAction(folderPath);
+			});
+			return;
+		}
+		closeLightboxAction();
+		selectFolderAction(folderPath);
 	};
 
 	const handleLoadPageAction = async (page: number): Promise<void> => {
@@ -216,6 +244,7 @@ export function PhotoListContainer(): ReactElement {
 				viewMode,
 				selectedAlbumID,
 				selectedAlbum,
+				selectedFolderPath,
 				missingCount,
 				onGPSFilterAction: setGPSFilterAction,
 				onHiddenFilterAction: setHiddenFilterAction,
@@ -224,6 +253,7 @@ export function PhotoListContainer(): ReactElement {
 				onVisibleMarkerLimitAction: setVisibleMarkerLimitAction,
 				onViewModeAction: handleToggleViewMode,
 				onBackToAlbumsAction: handleBackToAlbums,
+				onBackToFoldersAction: handleBackToFolders,
 				gpxPreviews: activeGPXPreviews,
 				gpxError,
 				startDate,
@@ -247,6 +277,7 @@ export function PhotoListContainer(): ReactElement {
 				assetsError,
 				onLoadPageAction: handleLoadPageAction,
 				onSelectAlbumAction: handleSelectAlbum,
+				onSelectFolderAction: handleSelectFolder,
 				onRetrySyncAction: resyncAction
 			}}
 			selection={{

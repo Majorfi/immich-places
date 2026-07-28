@@ -21,16 +21,19 @@ type TViewDomain = {
 	viewMode: TViewMode;
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
+	selectedFolderPath: string | null;
 	selectedTagID: string | null;
 	startDate: string | null;
 	endDate: string | null;
 	setGPSFilterRawAction: (filter: TGPSFilter) => void;
 	setHiddenFilterRawAction: (filter: THiddenFilter) => void;
 	setSelectedAlbumIDAction: (albumID: string | null) => void;
+	setSelectedFolderPathAction: (folderPath: string | null) => void;
 	setSelectedTagIDAction: (tagID: string | null) => void;
 	setGPSFilterAction: TViewContextValue['setGPSFilterAction'];
 	setHiddenFilterAction: TViewContextValue['setHiddenFilterAction'];
 	selectAlbumAction: TViewContextValue['selectAlbumAction'];
+	selectFolderAction: TViewContextValue['selectFolderAction'];
 	selectTagAction: TViewContextValue['selectTagAction'];
 	setDateRangeAction: (startDate: string | null, endDate: string | null) => void;
 };
@@ -51,6 +54,8 @@ export function useViewDomain(): TViewDomain {
 		setViewModeAction,
 		selectedAlbumID,
 		setSelectedAlbumIDAction,
+		selectedFolderPath,
+		setSelectedFolderPathAction,
 		selectedTagID,
 		setSelectedTagIDAction,
 		startDate,
@@ -135,6 +140,14 @@ export function useViewDomain(): TViewDomain {
 		[setSelectedAlbumIDAction, syncURLAction]
 	);
 
+	const selectFolderAction = useCallback(
+		(folderPath: string | null) => {
+			setSelectedFolderPathAction(folderPath);
+			syncURLAction({selectedFolderPath: folderPath});
+		},
+		[setSelectedFolderPathAction, syncURLAction]
+	);
+
 	const selectTagAction = useCallback(
 		(tagID: string | null) => {
 			setSelectedTagIDAction(tagID);
@@ -172,14 +185,17 @@ export function useViewDomain(): TViewDomain {
 		viewMode,
 		setViewModeAction: handleSetViewMode,
 		selectedAlbumID,
+		selectedFolderPath,
 		selectedTagID,
 		startDate,
 		endDate,
 		setSelectedAlbumIDAction,
+		setSelectedFolderPathAction,
 		setSelectedTagIDAction,
 		setGPSFilterAction: setGPSFilter,
 		setHiddenFilterAction: setHiddenFilter,
 		selectAlbumAction,
+		selectFolderAction,
 		selectTagAction,
 		setDateRangeAction
 	};

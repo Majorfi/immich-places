@@ -13,6 +13,7 @@ import {
 	HIDDEN_FILTER_DEFAULT,
 	URL_PARAM_ALBUM_ID,
 	URL_PARAM_END_DATE,
+	URL_PARAM_FOLDER_PATH,
 	URL_PARAM_GPS_FILTER,
 	URL_PARAM_GRID_COLUMNS,
 	URL_PARAM_HIDDEN_FILTER,
@@ -33,6 +34,7 @@ type TURLSyncState = {
 	hiddenFilter: THiddenFilter;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
+	selectedFolderPath: string | null;
 	selectedTagID: string | null;
 	pageSize: number;
 	gridColumns: number;
@@ -56,6 +58,8 @@ type TURLState = {
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
 	setSelectedAlbumIDAction: (albumID: string | null) => void;
+	selectedFolderPath: string | null;
+	setSelectedFolderPathAction: (folderPath: string | null) => void;
 	selectedTagID: string | null;
 	setSelectedTagIDAction: (tagID: string | null) => void;
 	startDate: string | null;
@@ -74,6 +78,7 @@ type TURLSyncEnvironment = {
 };
 
 const MAX_ALBUM_ID_LENGTH = 256;
+const MAX_FOLDER_PATH_LENGTH = 4096;
 
 function sanitizeAlbumID(albumID: string | null): string | null {
 	if (!albumID) {
@@ -87,6 +92,22 @@ function sanitizeAlbumID(albumID: string | null): string | null {
 		return null;
 	}
 	return trimmed;
+}
+
+function sanitizeFolderPath(folderPath: string | null): string | null {
+	if (!folderPath) {
+		return null;
+	}
+	if (folderPath.length > MAX_FOLDER_PATH_LENGTH) {
+		return null;
+	}
+	for (let index = 0; index < folderPath.length; index += 1) {
+		const code = folderPath.charCodeAt(index);
+		if (code < 0x20 || code === 0x7f) {
+			return null;
+		}
+	}
+	return folderPath;
 }
 
 function createBrowserURLSync(): TURLSyncEnvironment | null {
@@ -179,6 +200,12 @@ function buildURLFromState(state: TURLSyncState): string {
 			params.set(URL_PARAM_ALBUM_ID, sanitizedAlbumID);
 		}
 	}
+	if (state.selectedFolderPath) {
+		const sanitizedFolderPath = sanitizeFolderPath(state.selectedFolderPath);
+		if (sanitizedFolderPath) {
+			params.set(URL_PARAM_FOLDER_PATH, sanitizedFolderPath);
+		}
+	}
 	if (state.selectedTagID) {
 		const sanitizedTagID = sanitizeAlbumID(state.selectedTagID);
 		if (sanitizedTagID) {
@@ -212,6 +239,7 @@ type TURLStateSetters = {
 	setHiddenFilter: (filter: THiddenFilter) => void;
 	setViewMode: (mode: TViewMode) => void;
 	setSelectedAlbumID: (albumID: string | null) => void;
+	setSelectedFolderPath: (folderPath: string | null) => void;
 	setSelectedTagID: (tagID: string | null) => void;
 	setPageSize: (size: number) => void;
 	setGridColumns: (cols: number) => void;
@@ -230,13 +258,19 @@ function applyURLToState(search: string, setters: TURLStateSetters): void {
 	setters.setHiddenFilter(parseHiddenFilter(params.get(URL_PARAM_HIDDEN_FILTER)));
 
 	const urlView = params.get(URL_PARAM_VIEW_MODE);
-	if (urlView === 'timeline' || urlView === 'album') {
-		setters.setViewMode(urlView);
-	} else {
-		setters.setViewMode(VIEW_MODE_DEFAULT);
+	let resolvedView: TViewMode = VIEW_MODE_DEFAULT;
+	if (urlView === 'timeline' || urlView === 'album' || urlView === 'folders') {
+		resolvedView = urlView;
 	}
+	setters.setViewMode(resolvedView);
 
-	setters.setSelectedAlbumID(sanitizeAlbumID(params.get(URL_PARAM_ALBUM_ID)));
+	if (resolvedView === 'folders') {
+		setters.setSelectedFolderPath(sanitizeFolderPath(params.get(URL_PARAM_FOLDER_PATH)));
+		setters.setSelectedAlbumID(null);
+	} else {
+		setters.setSelectedAlbumID(sanitizeAlbumID(params.get(URL_PARAM_ALBUM_ID)));
+		setters.setSelectedFolderPath(null);
+	}
 	setters.setSelectedTagID(sanitizeAlbumID(params.get(URL_PARAM_TAG_ID)));
 	setters.setPageSize(normalizePageParam(params.get(URL_PARAM_PAGE_SIZE), DEFAULT_PAGE_SIZE, ALLOWED_PAGE_SIZES));
 	setters.setGridColumns(
@@ -256,6 +290,7 @@ export function useURLState(): TURLState {
 	const [visibleMarkerLimit, setVisibleMarkerLimitState] = useState(DEFAULT_VISIBLE_MARKER_LIMIT);
 	const [viewMode, setViewModeState] = useState<TViewMode>(VIEW_MODE_DEFAULT);
 	const [selectedAlbumID, setSelectedAlbumIDState] = useState<string | null>(null);
+	const [selectedFolderPath, setSelectedFolderPathState] = useState<string | null>(null);
 	const [selectedTagID, setSelectedTagIDState] = useState<string | null>(null);
 	const [startDate, setStartDateState] = useState<string | null>(null);
 	const [endDate, setEndDateState] = useState<string | null>(null);
@@ -265,6 +300,7 @@ export function useURLState(): TURLState {
 		hiddenFilter: HIDDEN_FILTER_DEFAULT,
 		viewMode: VIEW_MODE_DEFAULT,
 		selectedAlbumID: null,
+		selectedFolderPath: null,
 		selectedTagID: null,
 		pageSize: DEFAULT_PAGE_SIZE,
 		gridColumns: DEFAULT_GRID_COLUMNS,
@@ -301,6 +337,10 @@ export function useURLState(): TURLState {
 		liveStateRef.current.selectedAlbumID = value;
 		setSelectedAlbumIDState(value);
 	}, []);
+	const setSelectedFolderPathAction = useCallback((value: string | null) => {
+		liveStateRef.current.selectedFolderPath = value;
+		setSelectedFolderPathState(value);
+	}, []);
 	const setSelectedTagIDAction = useCallback((value: string | null) => {
 		liveStateRef.current.selectedTagID = value;
 		setSelectedTagIDState(value);
@@ -321,6 +361,7 @@ export function useURLState(): TURLState {
 			hiddenFilter: state?.hiddenFilter ?? live.hiddenFilter,
 			viewMode: state?.viewMode ?? live.viewMode,
 			selectedAlbumID: resolveNullableOverride(state, 'selectedAlbumID', live.selectedAlbumID),
+			selectedFolderPath: resolveNullableOverride(state, 'selectedFolderPath', live.selectedFolderPath),
 			selectedTagID: resolveNullableOverride(state, 'selectedTagID', live.selectedTagID),
 			pageSize: state?.pageSize ?? live.pageSize,
 			gridColumns: state?.gridColumns ?? live.gridColumns,
@@ -353,6 +394,7 @@ export function useURLState(): TURLState {
 			setHiddenFilter: setHiddenFilterRawAction,
 			setViewMode: setViewModeAction,
 			setSelectedAlbumID: setSelectedAlbumIDAction,
+			setSelectedFolderPath: setSelectedFolderPathAction,
 			setSelectedTagID: setSelectedTagIDAction,
 			setPageSize: setPageSizeAction,
 			setGridColumns: setGridColumnsAction,
@@ -376,6 +418,7 @@ export function useURLState(): TURLState {
 		setHiddenFilterRawAction,
 		setViewModeAction,
 		setSelectedAlbumIDAction,
+		setSelectedFolderPathAction,
 		setSelectedTagIDAction,
 		setPageSizeAction,
 		setGridColumnsAction,
@@ -399,6 +442,8 @@ export function useURLState(): TURLState {
 		setViewModeAction,
 		selectedAlbumID,
 		setSelectedAlbumIDAction,
+		selectedFolderPath,
+		setSelectedFolderPathAction,
 		selectedTagID,
 		setSelectedTagIDAction,
 		startDate,

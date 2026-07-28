@@ -1,9 +1,10 @@
 'use client';
 
-import {useCallback, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {useAlbums} from '@/features/albums/useAlbums';
 import {useInitialCatalogLoad} from '@/features/albums/useInitialCatalogLoad';
+import {useFolders} from '@/features/folders/useFolders';
 import {useAssets} from '@/features/photoGrid/useAssets';
 
 import type {TCatalogContextValue} from '@/shared/types/context';
@@ -16,6 +17,7 @@ type TUseCatalogDomainArgs = {
 	pageSize: number;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
+	selectedFolderPath: string | null;
 	selectedTagID: string | null;
 	startDate: string | null;
 	endDate: string | null;
@@ -27,6 +29,10 @@ type TUseCatalogDomainResult = {
 	albumsError: TCatalogContextValue['albumsError'];
 	isLoadingAlbums: TCatalogContextValue['isLoadingAlbums'];
 	loadAlbumsAction: () => Promise<void>;
+	folderTree: TCatalogContextValue['folderTree'];
+	isLoadingFolders: TCatalogContextValue['isLoadingFolders'];
+	foldersError: TCatalogContextValue['foldersError'];
+	loadFolderTreeAction: () => Promise<void>;
 	assets: TCatalogContextValue['assets'];
 	total: TCatalogContextValue['total'];
 	currentPage: TCatalogContextValue['currentPage'];
@@ -44,6 +50,7 @@ export function useCatalogDomain({
 	pageSize,
 	viewMode,
 	selectedAlbumID,
+	selectedFolderPath,
 	selectedTagID,
 	startDate,
 	endDate,
@@ -52,6 +59,10 @@ export function useCatalogDomain({
 	let albumFilter: string | null = null;
 	if (viewMode === 'album') {
 		albumFilter = selectedAlbumID;
+	}
+	let folderPathFilter: string | null = null;
+	if (viewMode === 'folders') {
+		folderPathFilter = selectedFolderPath;
 	}
 	const focusPageRef = useRef<number | null>(null);
 
@@ -64,7 +75,17 @@ export function useCatalogDomain({
 		removeAsset,
 		loadPageAction,
 		clear: clearAssets
-	} = useAssets(gpsFilter, hiddenFilter, pageSize, albumFilter, selectedTagID, startDate, endDate, focusPageRef);
+	} = useAssets(
+		gpsFilter,
+		hiddenFilter,
+		pageSize,
+		albumFilter,
+		selectedTagID,
+		startDate,
+		endDate,
+		folderPathFilter,
+		focusPageRef
+	);
 	const {
 		albums,
 		isLoading: isLoadingAlbums,
@@ -72,11 +93,25 @@ export function useCatalogDomain({
 		load: loadAlbumsAction,
 		clear: clearAlbums
 	} = useAlbums(gpsFilter, startDate, endDate);
+	const {
+		folderTree,
+		isLoading: isLoadingFolders,
+		error: foldersError,
+		load: loadFolderTreeAction,
+		clear: clearFolders
+	} = useFolders(gpsFilter, hiddenFilter);
+
+	useEffect(() => {
+		if (isReady && viewMode === 'folders' && folderTree === null && !isLoadingFolders && foldersError === null) {
+			void loadFolderTreeAction();
+		}
+	}, [isReady, viewMode, folderTree, isLoadingFolders, foldersError, loadFolderTreeAction]);
 
 	const clearCatalog = useCallback(() => {
 		clearAssets();
 		clearAlbums();
-	}, [clearAssets, clearAlbums]);
+		clearFolders();
+	}, [clearAssets, clearAlbums, clearFolders]);
 
 	useInitialCatalogLoad({
 		isReady,
@@ -89,6 +124,10 @@ export function useCatalogDomain({
 		isLoadingAlbums,
 		albumsError,
 		loadAlbumsAction,
+		folderTree,
+		isLoadingFolders,
+		foldersError,
+		loadFolderTreeAction,
 		assets,
 		total,
 		currentPage,

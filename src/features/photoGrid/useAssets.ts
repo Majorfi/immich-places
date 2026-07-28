@@ -2,11 +2,11 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {fetchAssets} from '@/shared/services/backendApi';
+import {fetchAssets, getFolderAssets} from '@/shared/services/backendApi';
 import {normalizePositiveInteger} from '@/utils/math';
 import {DEFAULT_PAGE_SIZE} from '@/utils/view';
 
-import type {TAssetRow} from '@/shared/types/asset';
+import type {TAssetRow, TPaginatedAssets} from '@/shared/types/asset';
 import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
 import type {MutableRefObject} from 'react';
 
@@ -29,6 +29,7 @@ export function useAssets(
 	tagID?: string | null,
 	startDate?: string | null,
 	endDate?: string | null,
+	folderPath?: string | null,
 	focusPageRef?: MutableRefObject<number | null>
 ): TUseAssetsReturn {
 	const [assets, setAssets] = useState<TAssetRow[]>([]);
@@ -52,19 +53,33 @@ export function useAssets(
 			setIsLoading(true);
 			setError(null);
 			try {
-				const result = await fetchAssets(
-					normalizedPage,
-					normalizedPageSizeValue,
-					gpsFilter,
-					hiddenFilter,
-					albumID ?? undefined,
-					tagID ?? undefined,
-					startDate ?? undefined,
-					endDate ?? undefined,
-					{
-						signal: controller.signal
-					}
-				);
+				let result: TPaginatedAssets;
+				if (folderPath) {
+					result = await getFolderAssets(
+						folderPath,
+						gpsFilter,
+						hiddenFilter,
+						normalizedPage,
+						normalizedPageSizeValue,
+						{
+							signal: controller.signal
+						}
+					);
+				} else {
+					result = await fetchAssets(
+						normalizedPage,
+						normalizedPageSizeValue,
+						gpsFilter,
+						hiddenFilter,
+						albumID ?? undefined,
+						tagID ?? undefined,
+						startDate ?? undefined,
+						endDate ?? undefined,
+						{
+							signal: controller.signal
+						}
+					);
+				}
 				if (requestIDRef.current !== requestID) {
 					return;
 				}
@@ -89,7 +104,7 @@ export function useAssets(
 				}
 			}
 		},
-		[albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, pageSize]
+		[albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, folderPath, pageSize]
 	);
 
 	const prevAlbumID = useRef(albumID);
@@ -99,6 +114,7 @@ export function useAssets(
 	const prevPageSize = useRef(pageSize);
 	const prevStartDate = useRef(startDate);
 	const prevEndDate = useRef(endDate);
+	const prevFolderPath = useRef(folderPath);
 	useEffect(() => {
 		if (
 			prevAlbumID.current !== albumID ||
@@ -107,7 +123,8 @@ export function useAssets(
 			prevHiddenFilter.current !== hiddenFilter ||
 			prevPageSize.current !== pageSize ||
 			prevStartDate.current !== startDate ||
-			prevEndDate.current !== endDate
+			prevEndDate.current !== endDate ||
+			prevFolderPath.current !== folderPath
 		) {
 			prevAlbumID.current = albumID;
 			prevTagID.current = tagID;
@@ -116,6 +133,7 @@ export function useAssets(
 			prevPageSize.current = pageSize;
 			prevStartDate.current = startDate;
 			prevEndDate.current = endDate;
+			prevFolderPath.current = folderPath;
 			setAssets([]);
 			setTotal(0);
 			setCurrentPage(1);
@@ -125,7 +143,18 @@ export function useAssets(
 			}
 			void loadPageAction(page);
 		}
-	}, [albumID, tagID, gpsFilter, hiddenFilter, pageSize, startDate, endDate, loadPageAction, focusPageRef]);
+	}, [
+		albumID,
+		tagID,
+		gpsFilter,
+		hiddenFilter,
+		pageSize,
+		startDate,
+		endDate,
+		folderPath,
+		loadPageAction,
+		focusPageRef
+	]);
 
 	useEffect(() => {
 		return () => {
