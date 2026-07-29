@@ -25,7 +25,25 @@ func findNode(nodes []FolderNode, path string) *FolderNode {
 	return nil
 }
 
-func TestGetFolderTreeExternalScopeAndCounts(t *testing.T) {
+func TestNormalizeOriginalPath(t *testing.T) {
+	upload := "/usr/src/app/upload/library/df6fba2a-63e4-49bf-a6ec-fb266b45e813/2026/2026-07-24/L1.jpg"
+	if got := normalizeOriginalPath(upload, nil); got != "2026/2026-07-24/L1.jpg" {
+		t.Errorf("upload strip: expected year-rooted path, got %q", got)
+	}
+
+	external := "/mnt/media/externalLibTest/26/x.jpg"
+	if got := normalizeOriginalPath(external, ptr("lib1")); got != external {
+		t.Errorf("external path must be unchanged, got %q", got)
+	}
+
+	// An upload path without the /library/<uuid>/ structure is left as-is (graceful fallback).
+	odd := "/some/other/path/x.jpg"
+	if got := normalizeOriginalPath(odd, nil); got != odd {
+		t.Errorf("non-matching upload path must be unchanged, got %q", got)
+	}
+}
+
+func TestGetFolderTreeIncludesUploadsAndExternal(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
 
@@ -33,21 +51,26 @@ func TestGetFolderTreeExternalScopeAndCounts(t *testing.T) {
 		extAsset("a", "/mnt/photos/2023/Vacation/a.jpg"),
 		extAsset("b", "/mnt/photos/2023/Vacation/b.jpg"),
 		extAsset("c", "/mnt/photos/2023/Birthday/c.jpg"),
-		// Uploaded asset (no libraryID) must be excluded from the folder view.
+		// Uploaded asset, stored normalized (year-rooted) as the sync would store it.
 		{
 			ImmichID: "up", Type: "IMAGE", OriginalFileName: "up.jpg",
-			OriginalPath:  "/usr/src/app/upload/library/uuid/2026/2026-01-01/up.jpg",
+			OriginalPath:  "2026/2026-01-01/up.jpg",
 			FileCreatedAt: "2024-01-01T00:00:00Z",
 		},
 	})
 
-	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible)
+	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible, "", "")
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}
 
+	// The internal upload prefix is gone; the upload surfaces as a year folder.
 	if findNode(tree.Children, "/usr") != nil {
-		t.Error("uploaded asset (libraryID NULL) must not appear in the folder tree")
+		t.Error("normalized uploads must not carry the /usr internal prefix")
+	}
+	year := findNode(tree.Children, "2026")
+	if year == nil || year.AssetCount != 1 {
+		t.Errorf("expected year folder 2026 with count 1, got %+v", year)
 	}
 
 	root := findNode(tree.Children, "/mnt/photos")
@@ -79,7 +102,7 @@ func TestGetFolderAssetsLikeWildcardEscaped(t *testing.T) {
 		extAsset("sibling", "/lib/myXphotos/sibling.jpg"),
 	})
 
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", false, hiddenFilterVisible, 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", false, hiddenFilterVisible, "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -103,7 +126,7 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	})
 
 	// Recursive: /lib/trip returns the direct file plus both subfolder files, not /lib/elsewhere.
-	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, 1, 50)
+	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -112,14 +135,14 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	}
 
 	// Pagination: page 1 of size 2 returns 2 items with hasNextPage semantics via total.
-	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, 1, 2)
+	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", 1, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page1: %v", err)
 	}
 	if len(page1) != 2 || total != 3 {
 		t.Errorf("expected 2 items and total 3, got len=%d total=%d", len(page1), total)
 	}
-	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, 2, 2)
+	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", 2, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page2: %v", err)
 	}

@@ -675,7 +675,7 @@ func mapImmichToAssetRow(item ImmichAssetResponse) AssetRow {
 		ImmichID:         item.ID,
 		Type:             item.Type,
 		OriginalFileName: item.OriginalFileName,
-		OriginalPath:     item.OriginalPath,
+		OriginalPath:     normalizeOriginalPath(item.OriginalPath, item.LibraryID),
 		FileCreatedAt:    item.FileCreatedAt,
 		LibraryID:        item.LibraryID,
 	}

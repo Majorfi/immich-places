@@ -3,14 +3,26 @@ package main
 import (
 	"context"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 )
 
-// Folder views are scoped to external-library assets: uploaded assets carry an
-// internal Immich path (e.g. /usr/src/app/upload/library/<uuid>/YYYY/MM-DD/) that
-// is not a user-meaningful folder structure, so they are excluded here.
-const externalLibraryScope = ` AND libraryID IS NOT NULL`
+// uploadLibraryPrefixRE matches Immich's internal upload prefix
+// (<UPLOAD_LOCATION>/library/<userUUID>/) so it can be stripped, leaving the
+// user-meaningful YYYY/MM-DD structure. External-library paths do not contain
+// a /library/<uuid>/ segment and are left untouched.
+var uploadLibraryPrefixRE = regexp.MustCompile(`^.*/library/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/`)
+
+// normalizeOriginalPath turns a raw Immich originalPath into the path shown in the
+// folder view. Uploaded assets (no libraryID) get their internal prefix stripped so
+// they surface as year folders; external-library assets keep their real filesystem path.
+func normalizeOriginalPath(rawPath string, libraryID *string) string {
+	if libraryID != nil {
+		return rawPath
+	}
+	return uploadLibraryPrefixRE.ReplaceAllString(rawPath, "")
+}
 
 // escapeLikePattern escapes LIKE wildcards so a folder name containing '_' or '%'
 // (e.g. "my_photos") does not accidentally match sibling folders.
@@ -21,9 +33,8 @@ func escapeLikePattern(s string) string {
 	return s
 }
 
-func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter string) (*FolderTree, error) {
-	f := buildAssetFilter(userID, "", "", withGPS, hiddenFilter, "", "")
-	f.fromClause += externalLibraryScope
+func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, startDate, endDate string) (*FolderTree, error) {
+	f := buildAssetFilter(userID, "", "", withGPS, hiddenFilter, startDate, endDate)
 
 	rows, err := d.db.QueryContext(ctx, "SELECT originalPath "+f.fromClause, f.args...)
 	if err != nil {
@@ -50,9 +61,8 @@ func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS boo
 	return buildFolderTree(dirCounts), nil
 }
 
-func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter string, page, pageSize int) ([]AssetRow, int, error) {
-	f := buildAssetFilter(userID, "", "", withGPS, hiddenFilter, "", "")
-	f.fromClause += externalLibraryScope
+func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error) {
+	f := buildAssetFilter(userID, "", "", withGPS, hiddenFilter, startDate, endDate)
 
 	// Recursive prefix match: everything under folderPath (files directly inside it
 	// and in any subfolder). The trailing "/" avoids /Photos/2 matching /Photos/2023.
