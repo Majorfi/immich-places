@@ -15,7 +15,12 @@ type TUseFoldersReturnProps = {
 	clear: () => void;
 };
 
-export function useFolders(gpsFilter: TGPSFilter, hiddenFilter: THiddenFilter): TUseFoldersReturnProps {
+export function useFolders(
+	gpsFilter: TGPSFilter,
+	hiddenFilter: THiddenFilter,
+	startDate: string | null,
+	endDate: string | null
+): TUseFoldersReturnProps {
 	const [folderTree, setFolderTree] = useState<TFolderTree | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -32,7 +37,9 @@ export function useFolders(gpsFilter: TGPSFilter, hiddenFilter: THiddenFilter): 
 		setIsLoading(true);
 		setError(null);
 		try {
-			const result = await getFolders(gpsFilter, hiddenFilter, {signal: controller.signal});
+			const result = await getFolders(gpsFilter, hiddenFilter, startDate ?? undefined, endDate ?? undefined, {
+				signal: controller.signal
+			});
 			if (requestIDRef.current !== requestID) {
 				return;
 			}
@@ -54,20 +61,25 @@ export function useFolders(gpsFilter: TGPSFilter, hiddenFilter: THiddenFilter): 
 				setIsLoading(false);
 			}
 		}
-	}, [gpsFilter, hiddenFilter]);
+	}, [gpsFilter, hiddenFilter, startDate, endDate]);
 
-	const prevFilterRef = useRef({gpsFilter, hiddenFilter});
+	const prevFilterRef = useRef({gpsFilter, hiddenFilter, startDate, endDate});
 	useEffect(() => {
 		const prev = prevFilterRef.current;
-		if (prev.gpsFilter !== gpsFilter || prev.hiddenFilter !== hiddenFilter) {
-			prevFilterRef.current = {gpsFilter, hiddenFilter};
+		if (
+			prev.gpsFilter !== gpsFilter ||
+			prev.hiddenFilter !== hiddenFilter ||
+			prev.startDate !== startDate ||
+			prev.endDate !== endDate
+		) {
+			prevFilterRef.current = {gpsFilter, hiddenFilter, startDate, endDate};
 			abortRef.current?.abort();
 			requestIDRef.current += 1;
 			setFolderTree(null);
 			setIsLoading(false);
 			setError(null);
 		}
-	}, [gpsFilter, hiddenFilter]);
+	}, [gpsFilter, hiddenFilter, startDate, endDate]);
 
 	useEffect(() => {
 		return () => {

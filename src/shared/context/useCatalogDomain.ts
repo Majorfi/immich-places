@@ -99,7 +99,7 @@ export function useCatalogDomain({
 		error: foldersError,
 		load: loadFolderTreeAction,
 		clear: clearFolders
-	} = useFolders(gpsFilter, hiddenFilter);
+	} = useFolders(gpsFilter, hiddenFilter, startDate, endDate);
 
 	useEffect(() => {
 		if (isReady && viewMode === 'folders' && folderTree === null && !isLoadingFolders && foldersError === null) {

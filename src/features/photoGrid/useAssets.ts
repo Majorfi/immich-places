@@ -59,6 +59,8 @@ export function useAssets(
 						folderPath,
 						gpsFilter,
 						hiddenFilter,
+						startDate ?? undefined,
+						endDate ?? undefined,
 						normalizedPage,
 						normalizedPageSizeValue,
 						{
