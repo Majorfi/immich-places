@@ -18,6 +18,7 @@ type TUseFoldersReturnProps = {
 export function useFolders(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	tagID: string | null,
 	startDate: string | null,
 	endDate: string | null
 ): TUseFoldersReturnProps {
@@ -37,9 +38,14 @@ export function useFolders(
 		setIsLoading(true);
 		setError(null);
 		try {
-			const result = await getFolders(gpsFilter, hiddenFilter, startDate ?? undefined, endDate ?? undefined, {
-				signal: controller.signal
-			});
+			const result = await getFolders(
+				gpsFilter,
+				hiddenFilter,
+				tagID ?? undefined,
+				startDate ?? undefined,
+				endDate ?? undefined,
+				{signal: controller.signal}
+			);
 			if (requestIDRef.current !== requestID) {
 				return;
 			}
@@ -61,25 +67,26 @@ export function useFolders(
 				setIsLoading(false);
 			}
 		}
-	}, [gpsFilter, hiddenFilter, startDate, endDate]);
+	}, [gpsFilter, hiddenFilter, tagID, startDate, endDate]);
 
-	const prevFilterRef = useRef({gpsFilter, hiddenFilter, startDate, endDate});
+	const prevFilterRef = useRef({gpsFilter, hiddenFilter, tagID, startDate, endDate});
 	useEffect(() => {
 		const prev = prevFilterRef.current;
 		if (
 			prev.gpsFilter !== gpsFilter ||
 			prev.hiddenFilter !== hiddenFilter ||
+			prev.tagID !== tagID ||
 			prev.startDate !== startDate ||
 			prev.endDate !== endDate
 		) {
-			prevFilterRef.current = {gpsFilter, hiddenFilter, startDate, endDate};
+			prevFilterRef.current = {gpsFilter, hiddenFilter, tagID, startDate, endDate};
 			abortRef.current?.abort();
 			requestIDRef.current += 1;
 			setFolderTree(null);
 			setIsLoading(false);
 			setError(null);
 		}
-	}, [gpsFilter, hiddenFilter, startDate, endDate]);
+	}, [gpsFilter, hiddenFilter, tagID, startDate, endDate]);
 
 	useEffect(() => {
 		return () => {

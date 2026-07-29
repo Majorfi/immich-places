@@ -27,13 +27,24 @@ function FolderNodeItem({
 	return (
 		<div>
 			<div
+				role={'button'}
+				tabIndex={0}
 				className={
 					'flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-[0.8125rem] transition-colors hover:bg-(--color-hover)'
 				}
 				style={{paddingLeft: `${depth * 16 + 8}px`}}
-				onClick={() => onSelectAction(node.path)}>
+				onClick={() => onSelectAction(node.path)}
+				onKeyDown={event => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						onSelectAction(node.path);
+					}
+				}}>
 				{hasChildren && (
 					<button
+						type={'button'}
+						aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
+						aria-expanded={isExpanded}
 						className={'flex h-4 w-4 items-center justify-center text-(--color-text-secondary)'}
 						onClick={e => {
 							e.stopPropagation();
@@ -70,7 +81,7 @@ function FolderNodeItem({
 }
 
 export function FolderTree({onSelectAction, isSyncing}: TFolderTreeProps): ReactElement {
-	const {folderTree, isLoadingFolders, foldersError} = useCatalog();
+	const {folderTree, isLoadingFolders, foldersError, loadFolderTreeAction} = useCatalog();
 
 	if (isLoadingFolders) {
 		return (
@@ -87,9 +98,17 @@ export function FolderTree({onSelectAction, isSyncing}: TFolderTreeProps): React
 		return (
 			<div
 				className={
-					'flex items-center justify-center px-4 py-12 text-center text-[0.875rem] text-(--color-text-secondary)'
+					'flex flex-col items-center justify-center gap-3 px-4 py-12 text-center text-[0.875rem] text-(--color-text-secondary)'
 				}>
-				{foldersError}
+				<span>{foldersError}</span>
+				<button
+					type={'button'}
+					className={
+						'cursor-pointer rounded-md border px-3 py-1 text-[0.8125rem] transition-colors hover:bg-(--color-hover)'
+					}
+					onClick={() => void loadFolderTreeAction()}>
+					{'Retry'}
+				</button>
 			</div>
 		);
 	}

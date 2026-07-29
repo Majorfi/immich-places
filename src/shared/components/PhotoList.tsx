@@ -227,7 +227,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				onDateRangeAction={onDateRangeAction}
 				selectedTagID={selectedTagID}
 				onTagAction={onTagAction}
-				tagFilterDisabled={shouldShowAlbumList || viewMode === 'folders'}
+				tagFilterDisabled={shouldShowAlbumList}
 				isSyncing={isSyncing}
 				syncError={syncError}
 				onSyncAction={onRetrySyncAction}

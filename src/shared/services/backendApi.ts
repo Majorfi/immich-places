@@ -193,11 +193,12 @@ export async function fetchAlbums(
 export async function getFolders(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	tagID: string | undefined,
 	startDate: string | undefined,
 	endDate: string | undefined,
 	opts: TRequestOptions = {}
 ): Promise<TFolderTree> {
-	const params = buildSearchParams({gpsFilter, hiddenFilter, startDate, endDate});
+	const params = buildSearchParams({gpsFilter, hiddenFilter, tagID, startDate, endDate});
 	const response = await backendFetch(`${BASE}/folders?${params.toString()}`, {}, opts);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch folders: ${response.status}`);
@@ -209,6 +210,7 @@ export async function getFolderAssets(
 	path: string,
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	tagID: string | undefined,
 	startDate: string | undefined,
 	endDate: string | undefined,
 	page: number,
@@ -221,6 +223,7 @@ export async function getFolderAssets(
 		pageSize: String(normalizePageSize(pageSize)),
 		gpsFilter,
 		hiddenFilter,
+		tagID,
 		startDate,
 		endDate
 	});
