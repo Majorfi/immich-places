@@ -33,10 +33,17 @@ func escapeLikePattern(s string) string {
 	return s
 }
 
-func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, startDate, endDate string) (*FolderTree, error) {
-	f := buildAssetFilter(userID, "", "", withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error) {
+	f := buildAssetFilter(userID, "", tagID, withGPS, hiddenFilter, startDate, endDate)
+	col := "originalPath"
+	if f.aliased {
+		col = "a.originalPath"
+	}
 
-	rows, err := d.db.QueryContext(ctx, "SELECT originalPath "+f.fromClause, f.args...)
+	// Loads every matching originalPath and builds the tree in memory. The
+	// (userID, originalPath) index keeps the scan cheap; adequate for typical
+	// libraries and reloaded on view/filter change without caching for v1.
+	rows, err := d.db.QueryContext(ctx, "SELECT "+col+" "+f.fromClause, f.args...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +68,20 @@ func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS boo
 	return buildFolderTree(dirCounts), nil
 }
 
-func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error) {
-	f := buildAssetFilter(userID, "", "", withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error) {
+	f := buildAssetFilter(userID, "", tagID, withGPS, hiddenFilter, startDate, endDate)
+	cols := assetColumns
+	pathCol := "originalPath"
+	orderBy := " ORDER BY fileCreatedAt DESC, immichID DESC"
+	if f.aliased {
+		cols = assetColumnsAliased
+		pathCol = "a.originalPath"
+		orderBy = " ORDER BY a.fileCreatedAt DESC, a.immichID DESC"
+	}
 
 	// Recursive prefix match: everything under folderPath (files directly inside it
 	// and in any subfolder). The trailing "/" avoids /Photos/2 matching /Photos/2023.
-	f.fromClause += ` AND originalPath LIKE ? ESCAPE '\'`
+	f.fromClause += ` AND ` + pathCol + ` LIKE ? ESCAPE '\'`
 	f.args = append(f.args, escapeLikePattern(folderPath)+`/%`)
 
 	var total int
@@ -75,7 +90,7 @@ func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath strin
 	}
 
 	offset := (page - 1) * pageSize
-	query := "SELECT " + assetColumns + " " + f.fromClause + " ORDER BY fileCreatedAt DESC, immichID DESC LIMIT ? OFFSET ?"
+	query := "SELECT " + cols + " " + f.fromClause + orderBy + " LIMIT ? OFFSET ?"
 	rows, err := d.db.QueryContext(ctx, query, append(f.args, pageSize, offset)...)
 	if err != nil {
 		return nil, 0, err

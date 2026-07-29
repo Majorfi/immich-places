@@ -93,6 +93,24 @@ func requireImmichClient(r *http.Request, factory *ImmichClientFactory) (*Immich
 	return factory.forUser(*user.ImmichAPIKey), user, nil
 }
 
+// parseDateRangeParams reads and validates the optional startDate/endDate query
+// params (YYYY-MM-DD). Empty values are allowed (no bound).
+func parseDateRangeParams(r *http.Request) (string, string, error) {
+	startDate := r.URL.Query().Get("startDate")
+	endDate := r.URL.Query().Get("endDate")
+	if startDate != "" {
+		if _, err := time.Parse("2006-01-02", startDate); err != nil {
+			return "", "", errors.New("startDate must be a valid date (YYYY-MM-DD)")
+		}
+	}
+	if endDate != "" {
+		if _, err := time.Parse("2006-01-02", endDate); err != nil {
+			return "", "", errors.New("endDate must be a valid date (YYYY-MM-DD)")
+		}
+	}
+	return startDate, endDate, nil
+}
+
 func (h *Handlers) ensureAssetVisible(ctx context.Context, userID, assetID string) error {
 	asset, err := h.db.getAssetByID(ctx, userID, assetID)
 	if err != nil {
@@ -198,19 +216,10 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	startDate := r.URL.Query().Get("startDate")
-	endDate := r.URL.Query().Get("endDate")
-	if startDate != "" {
-		if _, err := time.Parse("2006-01-02", startDate); err != nil {
-			writeError(w, http.StatusBadRequest, "startDate must be a valid date (YYYY-MM-DD)")
-			return
-		}
-	}
-	if endDate != "" {
-		if _, err := time.Parse("2006-01-02", endDate); err != nil {
-			writeError(w, http.StatusBadRequest, "endDate must be a valid date (YYYY-MM-DD)")
-			return
-		}
+	startDate, endDate, err := parseDateRangeParams(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	if page < 1 {

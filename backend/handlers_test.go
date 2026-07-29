@@ -30,7 +30,7 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 		baseURL:    "http://fake:2283",
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
+	syncService := newSyncService(db, factory, newNominatimClient(10*time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db, testNeighborWindow)
 	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil, newNominatimClient(10*time.Second))
@@ -40,6 +40,8 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 	mux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	mux.HandleFunc("GET /albums", handlers.handleGetAlbums)
 	mux.HandleFunc("GET /tags", handlers.handleGetTags)
+	mux.HandleFunc("GET /folders", handlers.handleGetFolders)
+	mux.HandleFunc("GET /folders/assets", handlers.handleGetFolderAssets)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
@@ -109,6 +111,75 @@ func TestHandleGetTags(t *testing.T) {
 	mux.ServeHTTP(unauthRec, httptest.NewRequest("GET", "/tags", nil))
 	if unauthRec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401 without auth, got %d", unauthRec.Code)
+	}
+}
+
+func TestHandleGetFolders(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{extAsset("a", "/mnt/photos/2023/a.jpg")})
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/folders", nil)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var tree FolderTree
+	if err := json.NewDecoder(rec.Body).Decode(&tree); err != nil {
+		t.Fatalf("decode tree: %v", err)
+	}
+	if findNode(tree.Children, "/mnt/photos") == nil {
+		t.Errorf("expected /mnt/photos node, got %+v", tree.Children)
+	}
+
+	unauth := httptest.NewRecorder()
+	mux.ServeHTTP(unauth, httptest.NewRequest("GET", "/folders", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauth.Code)
+	}
+
+	badDate := httptest.NewRecorder()
+	mux.ServeHTTP(badDate, withTestUser(httptest.NewRequest("GET", "/folders?startDate=nope", nil)))
+	if badDate.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid startDate, got %d", badDate.Code)
+	}
+}
+
+func TestHandleGetFolderAssets(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		extAsset("a", "/mnt/photos/2023/a.jpg"),
+		extAsset("b", "/mnt/photos/2023/b.jpg"),
+	})
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/folders/assets?path=/mnt/photos/2023", nil)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var page PaginatedAssets
+	if err := json.NewDecoder(rec.Body).Decode(&page); err != nil {
+		t.Fatalf("decode assets: %v", err)
+	}
+	if page.Total != 2 {
+		t.Errorf("expected total 2, got %d", page.Total)
+	}
+
+	noPath := httptest.NewRecorder()
+	mux.ServeHTTP(noPath, withTestUser(httptest.NewRequest("GET", "/folders/assets", nil)))
+	if noPath.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 without path, got %d", noPath.Code)
+	}
+
+	unauth := httptest.NewRecorder()
+	mux.ServeHTTP(unauth, httptest.NewRequest("GET", "/folders/assets?path=/mnt/photos/2023", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauth.Code)
 	}
 }
 
@@ -378,7 +449,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 		baseURL:    server.URL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
+	syncService := newSyncService(db, factory, newNominatimClient(10*time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db, testNeighborWindow)
 	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil, newNominatimClient(10*time.Second))
@@ -388,6 +459,8 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 	mux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	mux.HandleFunc("GET /albums", handlers.handleGetAlbums)
 	mux.HandleFunc("GET /tags", handlers.handleGetTags)
+	mux.HandleFunc("GET /folders", handlers.handleGetFolders)
+	mux.HandleFunc("GET /folders/assets", handlers.handleGetFolderAssets)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)

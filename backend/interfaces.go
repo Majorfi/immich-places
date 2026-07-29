@@ -54,8 +54,8 @@ type HandlerStore interface {
 	addFavoritePlace(ctx context.Context, userID string, latitude, longitude float64, displayName string) error
 	removeFavoritePlace(ctx context.Context, userID string, latitude, longitude float64) error
 	getTags(ctx context.Context, userID string) ([]TagRow, error)
-	getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, startDate, endDate string) (*FolderTree, error)
-	getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error)
+	getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error)
+	getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error)
 }
 
 type SuggestionStore interface {

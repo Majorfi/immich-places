@@ -3,24 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 )
-
-func parseFolderDateRange(r *http.Request) (string, string, error) {
-	startDate := r.URL.Query().Get("startDate")
-	endDate := r.URL.Query().Get("endDate")
-	if startDate != "" {
-		if _, err := time.Parse("2006-01-02", startDate); err != nil {
-			return "", "", fmt.Errorf("startDate must be a valid date (YYYY-MM-DD)")
-		}
-	}
-	if endDate != "" {
-		if _, err := time.Parse("2006-01-02", endDate); err != nil {
-			return "", "", fmt.Errorf("endDate must be a valid date (YYYY-MM-DD)")
-		}
-	}
-	return startDate, endDate, nil
-}
 
 func (h *Handlers) handleGetFolders(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
@@ -29,6 +12,7 @@ func (h *Handlers) handleGetFolders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tagID := r.URL.Query().Get("tagID")
 	withGPS := r.URL.Query().Get("gpsFilter") == "with-gps"
 	hiddenFilter := r.URL.Query().Get("hiddenFilter")
 	if hiddenFilter == "" {
@@ -39,13 +23,13 @@ func (h *Handlers) handleGetFolders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	startDate, endDate, err := parseFolderDateRange(r)
+	startDate, endDate, err := parseDateRangeParams(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	tree, err := h.db.getFolderTree(r.Context(), user.ID, withGPS, hiddenFilter, startDate, endDate)
+	tree, err := h.db.getFolderTree(r.Context(), user.ID, withGPS, hiddenFilter, tagID, startDate, endDate)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load folders")
 		return
@@ -67,6 +51,7 @@ func (h *Handlers) handleGetFolderAssets(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	tagID := r.URL.Query().Get("tagID")
 	withGPS := r.URL.Query().Get("gpsFilter") == "with-gps"
 	hiddenFilter := r.URL.Query().Get("hiddenFilter")
 	if hiddenFilter == "" {
@@ -77,7 +62,7 @@ func (h *Handlers) handleGetFolderAssets(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	startDate, endDate, err := parseFolderDateRange(r)
+	startDate, endDate, err := parseDateRangeParams(r)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -102,7 +87,7 @@ func (h *Handlers) handleGetFolderAssets(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	assets, total, err := h.db.getFolderAssets(r.Context(), user.ID, folderPath, withGPS, hiddenFilter, startDate, endDate, page, pageSize)
+	assets, total, err := h.db.getFolderAssets(r.Context(), user.ID, folderPath, withGPS, hiddenFilter, tagID, startDate, endDate, page, pageSize)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query folder assets")
 		return

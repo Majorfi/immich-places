@@ -59,7 +59,7 @@ func TestGetFolderTreeIncludesUploadsAndExternal(t *testing.T) {
 		},
 	})
 
-	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible, "", "")
+	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible, "", "", "")
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestGetFolderAssetsLikeWildcardEscaped(t *testing.T) {
 		extAsset("sibling", "/lib/myXphotos/sibling.jpg"),
 	})
 
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", false, hiddenFilterVisible, "", "", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", false, hiddenFilterVisible, "", "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	})
 
 	// Recursive: /lib/trip returns the direct file plus both subfolder files, not /lib/elsewhere.
-	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", 1, 50)
+	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -135,19 +135,54 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	}
 
 	// Pagination: page 1 of size 2 returns 2 items with hasNextPage semantics via total.
-	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", 1, 2)
+	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", "", 1, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page1: %v", err)
 	}
 	if len(page1) != 2 || total != 3 {
 		t.Errorf("expected 2 items and total 3, got len=%d total=%d", len(page1), total)
 	}
-	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", 2, 2)
+	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", "", 2, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page2: %v", err)
 	}
 	if len(page2) != 1 {
 		t.Errorf("expected 1 item on page 2, got %d", len(page2))
+	}
+}
+
+func TestGetFolderTagFilter(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		extAsset("tagged", "/lib/trip/tagged.jpg"),
+		extAsset("untagged", "/lib/trip/untagged.jpg"),
+	})
+	if err := db.upsertTag(ctx, testUserID, "tag1", "Trip", "Trip", nil, nil); err != nil {
+		t.Fatalf("upsertTag: %v", err)
+	}
+	if err := db.replaceTagAssets(ctx, testUserID, "tag1", []string{"tagged"}); err != nil {
+		t.Fatalf("replaceTagAssets: %v", err)
+	}
+
+	// Folder assets honor the tag filter (exercises the aliased JOIN path).
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "tag1", "", "", 1, 50)
+	if err != nil {
+		t.Fatalf("getFolderAssets: %v", err)
+	}
+	if total != 1 || len(assets) != 1 || assets[0].ImmichID != "tagged" {
+		t.Fatalf("expected only the tagged asset, got total=%d assets=%v", total, assets)
+	}
+
+	// The tree honors it too.
+	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible, "tag1", "", "")
+	if err != nil {
+		t.Fatalf("getFolderTree: %v", err)
+	}
+	node := findNode(tree.Children, "/lib/trip")
+	if node == nil || node.AssetCount != 1 {
+		t.Errorf("expected /lib/trip count 1 with tag filter, got %+v", node)
 	}
 }
 
