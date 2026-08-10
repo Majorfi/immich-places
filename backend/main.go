@@ -68,6 +68,8 @@ func main() {
 	protectedMux.HandleFunc("GET /folders/assets", handlers.handleGetFolderAssets)
 	protectedMux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	protectedMux.HandleFunc("GET /assets/day-counts", handlers.handleGetAssetDayCounts)
+	protectedMux.HandleFunc("GET /assets/missing-location-count", handlers.handleGetMissingLocationCount)
+	protectedMux.HandleFunc("GET /assets/{assetID}/folder", handlers.handleGetAssetFolder)
 	protectedMux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	protectedMux.HandleFunc("GET /assets/{assetID}/thumbnail", handlers.handleGetThumbnail)
 	protectedMux.HandleFunc("GET /assets/{assetID}/preview", handlers.handleGetPreview)

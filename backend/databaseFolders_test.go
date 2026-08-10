@@ -59,7 +59,7 @@ func TestGetFolderTreeIncludesUploadsAndExternal(t *testing.T) {
 		},
 	})
 
-	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible, "", "", "")
+	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "")
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}
@@ -91,9 +91,41 @@ func TestGetFolderTreeIncludesUploadsAndExternal(t *testing.T) {
 	}
 }
 
-// A folder named "my_photos" must not match sibling "myXphotos": the '_' is a LIKE
-// wildcard and must be escaped.
-func TestGetFolderAssetsLikeWildcardEscaped(t *testing.T) {
+// Folder counts are scoped to the active GPS filter, so the same folder reports a
+// different number under "Missing location" and "With location".
+func TestGetFolderTreeGPSFilter(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	lat, lon := 48.85, 2.35
+	located := extAsset("g1", "/mnt/photos/Trip/g1.jpg")
+	located.Latitude, located.Longitude = &lat, &lon
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		located,
+		extAsset("n1", "/mnt/photos/Trip/n1.jpg"),
+		extAsset("n2", "/mnt/photos/Trip/n2.jpg"),
+	})
+
+	withGPS, err := db.getFolderTree(ctx, testUserID, gpsFilterWithGPS, hiddenFilterVisible, "", "", "")
+	if err != nil {
+		t.Fatalf("getFolderTree with-gps: %v", err)
+	}
+	if node := findNode(withGPS.Children, "/mnt/photos/Trip"); node == nil || node.AssetCount != 1 {
+		t.Errorf("expected with-gps count 1, got %+v", node)
+	}
+
+	noGPS, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "")
+	if err != nil {
+		t.Fatalf("getFolderTree no-gps: %v", err)
+	}
+	if node := findNode(noGPS.Children, "/mnt/photos/Trip"); node == nil || node.AssetCount != 2 {
+		t.Errorf("expected no-gps count 2, got %+v", node)
+	}
+}
+
+// A folder named "my_photos" must not leak its sibling "myXphotos". '_' is a LIKE
+// wildcard, so this pins that the prefix match never treats it as one.
+func TestGetFolderAssetsSiblingNotMatched(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
 
@@ -102,7 +134,7 @@ func TestGetFolderAssetsLikeWildcardEscaped(t *testing.T) {
 		extAsset("sibling", "/lib/myXphotos/sibling.jpg"),
 	})
 
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", false, hiddenFilterVisible, "", "", "", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -110,7 +142,7 @@ func TestGetFolderAssetsLikeWildcardEscaped(t *testing.T) {
 		t.Fatalf("expected exactly 1 asset in /lib/my_photos, got total=%d len=%d", total, len(assets))
 	}
 	if assets[0].ImmichID != "inside" {
-		t.Errorf("expected 'inside', got %q (LIKE wildcard '_' was not escaped)", assets[0].ImmichID)
+		t.Errorf("expected 'inside', got %q ('_' was treated as a wildcard)", assets[0].ImmichID)
 	}
 }
 
@@ -126,7 +158,7 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	})
 
 	// Recursive: /lib/trip returns the direct file plus both subfolder files, not /lib/elsewhere.
-	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", "", 1, 50)
+	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -135,14 +167,14 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	}
 
 	// Pagination: page 1 of size 2 returns 2 items with hasNextPage semantics via total.
-	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", "", 1, 2)
+	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page1: %v", err)
 	}
 	if len(page1) != 2 || total != 3 {
 		t.Errorf("expected 2 items and total 3, got len=%d total=%d", len(page1), total)
 	}
-	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "", "", "", 2, 2)
+	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 2, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page2: %v", err)
 	}
@@ -167,7 +199,7 @@ func TestGetFolderTagFilter(t *testing.T) {
 	}
 
 	// Folder assets honor the tag filter (exercises the aliased JOIN path).
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", false, hiddenFilterVisible, "tag1", "", "", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "tag1", "", "", 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -176,7 +208,7 @@ func TestGetFolderTagFilter(t *testing.T) {
 	}
 
 	// The tree honors it too.
-	tree, err := db.getFolderTree(ctx, testUserID, false, hiddenFilterVisible, "tag1", "", "")
+	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "tag1", "", "")
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}

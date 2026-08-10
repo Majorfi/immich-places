@@ -22,6 +22,10 @@ const (
 	hiddenFilterVisible = "visible"
 	hiddenFilterHidden  = "hidden"
 	hiddenFilterAll     = "all"
+
+	gpsFilterNoGPS   = "no-gps"
+	gpsFilterWithGPS = "with-gps"
+	gpsFilterAll     = "all"
 )
 
 const assetColumns = `immichID, type, originalFileName, fileCreatedAt, latitude, longitude,
@@ -138,7 +142,7 @@ type assetFilter struct {
 	aliased    bool
 }
 
-func buildAssetFilter(userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) assetFilter {
+func buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) assetFilter {
 	var f assetFilter
 	if albumID != "" || tagID != "" {
 		f.aliased = true
@@ -161,9 +165,12 @@ func buildAssetFilter(userID, albumID, tagID string, withGPS bool, hiddenFilter,
 			f.fromClause += ` AND at.tagID = ?`
 			f.args = append(f.args, tagID)
 		}
-		if withGPS {
+		switch gpsFilter {
+		case gpsFilterWithGPS:
 			f.fromClause += ` AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL`
-		} else {
+		case gpsFilterAll:
+			// no filter
+		default:
 			f.fromClause += ` AND (a.latitude IS NULL OR a.longitude IS NULL)`
 		}
 		f.fromClause += ` AND a.stackPrimaryAssetID IS NULL`
@@ -185,12 +192,15 @@ func buildAssetFilter(userID, albumID, tagID string, withGPS bool, hiddenFilter,
 			f.args = append(f.args, endDate+"T99")
 		}
 	} else {
-		f.fromClause = `FROM assets WHERE userID = ? AND`
+		f.fromClause = `FROM assets WHERE userID = ?`
 		f.args = append(f.args, userID)
-		if withGPS {
-			f.fromClause += ` latitude IS NOT NULL AND longitude IS NOT NULL`
-		} else {
-			f.fromClause += ` (latitude IS NULL OR longitude IS NULL)`
+		switch gpsFilter {
+		case gpsFilterWithGPS:
+			f.fromClause += ` AND latitude IS NOT NULL AND longitude IS NOT NULL`
+		case gpsFilterAll:
+			// no filter
+		default:
+			f.fromClause += ` AND (latitude IS NULL OR longitude IS NULL)`
 		}
 		f.fromClause += ` AND stackPrimaryAssetID IS NULL`
 		f.fromClause += hiddenLibraryFilter
@@ -214,8 +224,8 @@ func buildAssetFilter(userID, albumID, tagID string, withGPS bool, hiddenFilter,
 	return f
 }
 
-func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error) {
-	f := buildAssetFilter(userID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error) {
+	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
 
 	cols := assetColumns
 	orderPrefix := ""
@@ -237,8 +247,8 @@ func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID
 	return scanAssetRows(rows)
 }
 
-func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) (int, error) {
-	f := buildAssetFilter(userID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) (int, error) {
+	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
 	query := `SELECT COUNT(*) ` + f.fromClause
 
 	var count int
@@ -246,8 +256,8 @@ func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tag
 	return count, err
 }
 
-func (d *Database) countAssetsByDay(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) (map[string]int, error) {
-	f := buildAssetFilter(userID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) countAssetsByDay(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) (map[string]int, error) {
+	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
 
 	dateCol := "dateTimeOriginal"
 	if f.aliased {

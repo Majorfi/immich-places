@@ -24,17 +24,8 @@ func normalizeOriginalPath(rawPath string, libraryID *string) string {
 	return uploadLibraryPrefixRE.ReplaceAllString(rawPath, "")
 }
 
-// escapeLikePattern escapes LIKE wildcards so a folder name containing '_' or '%'
-// (e.g. "my_photos") does not accidentally match sibling folders.
-func escapeLikePattern(s string) string {
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	s = strings.ReplaceAll(s, "%", `\%`)
-	s = strings.ReplaceAll(s, "_", `\_`)
-	return s
-}
-
-func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error) {
-	f := buildAssetFilter(userID, "", tagID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) getFolderTree(ctx context.Context, userID, gpsFilter, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error) {
+	f := buildAssetFilter(userID, "", tagID, gpsFilter, hiddenFilter, startDate, endDate)
 	col := "originalPath"
 	if f.aliased {
 		col = "a.originalPath"
@@ -68,8 +59,16 @@ func (d *Database) getFolderTree(ctx context.Context, userID string, withGPS boo
 	return buildFolderTree(dirCounts), nil
 }
 
-func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error) {
-	f := buildAssetFilter(userID, "", tagID, withGPS, hiddenFilter, startDate, endDate)
+func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath, gpsFilter, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error) {
+	// Guarded here rather than only in the handler: an empty path would build the range
+	// [ "/", "0" ), matching every absolute path in the library. A trailing slash would
+	// build [ "//", "0" ) and silently match nothing.
+	folderPath = strings.TrimRight(folderPath, "/")
+	if folderPath == "" {
+		return []AssetRow{}, 0, nil
+	}
+
+	f := buildAssetFilter(userID, "", tagID, gpsFilter, hiddenFilter, startDate, endDate)
 	cols := assetColumns
 	pathCol := "originalPath"
 	orderBy := " ORDER BY fileCreatedAt DESC, immichID DESC"
@@ -79,10 +78,14 @@ func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath strin
 		orderBy = " ORDER BY a.fileCreatedAt DESC, a.immichID DESC"
 	}
 
-	// Recursive prefix match: everything under folderPath (files directly inside it
-	// and in any subfolder). The trailing "/" avoids /Photos/2 matching /Photos/2023.
-	f.fromClause += ` AND ` + pathCol + ` LIKE ? ESCAPE '\'`
-	f.args = append(f.args, escapeLikePattern(folderPath)+`/%`)
+	// Recursive prefix match: everything under folderPath (files directly inside it and
+	// in any subfolder). A half-open range on the raw path stays case-sensitive, unlike
+	// LIKE, whose ASCII case-insensitivity would make /lib/Trip also return /lib/trip
+	// while the tree counts them as two folders. It needs no wildcard escaping, and it
+	// can use the (userID, originalPath) index. '/' + 1 == '0', so the upper bound
+	// excludes exactly the paths that do not continue with "/".
+	f.fromClause += ` AND ` + pathCol + ` >= ? AND ` + pathCol + ` < ?`
+	f.args = append(f.args, folderPath+"/", folderPath+"0")
 
 	var total int
 	if err := d.db.QueryRowContext(ctx, "SELECT COUNT(*) "+f.fromClause, f.args...).Scan(&total); err != nil {
@@ -119,6 +122,18 @@ type folderBuilder struct {
 	ownCount int
 }
 
+// toNode renders the builder as a FolderNode, rolling every descendant's count up
+// into the parent's AssetCount.
+func (b *folderBuilder) toNode() FolderNode {
+	node := FolderNode{Name: b.name, Path: b.path, AssetCount: b.ownCount, Children: make([]FolderNode, 0, len(b.children))}
+	for _, child := range b.children {
+		childNode := child.toNode()
+		node.AssetCount += childNode.AssetCount
+		node.Children = append(node.Children, childNode)
+	}
+	return node
+}
+
 // buildFolderTree turns a map of directory -> direct-asset-count into a nested tree.
 // Intermediate directories are synthesised even when they hold no direct assets, and
 // each node's AssetCount is the sum of its own assets plus all descendants'.
@@ -136,14 +151,9 @@ func buildFolderTree(dirCounts map[string]int) *FolderTree {
 	}
 	sort.Strings(sorted)
 
-	builders := make(map[string]*folderBuilder)
+	builders := make(map[string]*folderBuilder, len(sorted))
 	for _, d := range sorted {
-		builders[d] = &folderBuilder{name: path.Base(d), path: d}
-	}
-	for dir, count := range dirCounts {
-		if b, ok := builders[dir]; ok {
-			b.ownCount = count
-		}
+		builders[d] = &folderBuilder{name: path.Base(d), path: d, ownCount: dirCounts[d]}
 	}
 	for _, d := range sorted {
 		if parent, ok := builders[path.Dir(d)]; ok {
@@ -151,21 +161,10 @@ func buildFolderTree(dirCounts map[string]int) *FolderTree {
 		}
 	}
 
-	var toNode func(b *folderBuilder) FolderNode
-	toNode = func(b *folderBuilder) FolderNode {
-		node := FolderNode{Name: b.name, Path: b.path, AssetCount: b.ownCount, Children: make([]FolderNode, 0, len(b.children))}
-		for _, child := range b.children {
-			childNode := toNode(child)
-			node.AssetCount += childNode.AssetCount
-			node.Children = append(node.Children, childNode)
-		}
-		return node
-	}
-
 	tree := &FolderTree{Children: []FolderNode{}}
 	for _, d := range sorted {
 		if _, hasParent := builders[path.Dir(d)]; !hasParent {
-			tree.Children = append(tree.Children, toNode(builders[d]))
+			tree.Children = append(tree.Children, builders[d].toNode())
 		}
 	}
 	return tree

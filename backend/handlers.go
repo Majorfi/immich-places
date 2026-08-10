@@ -111,6 +111,32 @@ func parseDateRangeParams(r *http.Request) (string, string, error) {
 	return startDate, endDate, nil
 }
 
+// parseGPSFilterParam reads the optional gpsFilter query param. An absent param keeps
+// the historical meaning, "no-gps", so callers that never sent it are unaffected.
+func parseGPSFilterParam(r *http.Request) (string, error) {
+	gpsFilter := r.URL.Query().Get("gpsFilter")
+	if gpsFilter == "" {
+		return gpsFilterNoGPS, nil
+	}
+	if gpsFilter != gpsFilterNoGPS && gpsFilter != gpsFilterWithGPS && gpsFilter != gpsFilterAll {
+		return "", errors.New("gpsFilter must be one of: no-gps, with-gps, all")
+	}
+	return gpsFilter, nil
+}
+
+// parseHiddenFilterParam reads the optional hiddenFilter query param, defaulting to
+// "visible" when absent.
+func parseHiddenFilterParam(r *http.Request) (string, error) {
+	hiddenFilter := r.URL.Query().Get("hiddenFilter")
+	if hiddenFilter == "" {
+		return hiddenFilterVisible, nil
+	}
+	if hiddenFilter != hiddenFilterVisible && hiddenFilter != hiddenFilterHidden && hiddenFilter != hiddenFilterAll {
+		return "", errors.New("hiddenFilter must be one of: visible, hidden, all")
+	}
+	return hiddenFilter, nil
+}
+
 func (h *Handlers) ensureAssetVisible(ctx context.Context, userID, assetID string) error {
 	asset, err := h.db.getAssetByID(ctx, userID, assetID)
 	if err != nil {
@@ -206,13 +232,14 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 	}
 	albumID := r.URL.Query().Get("albumID")
 	tagID := r.URL.Query().Get("tagID")
-	withGPS := r.URL.Query().Get("gpsFilter") == "with-gps"
-	hiddenFilter := r.URL.Query().Get("hiddenFilter")
-	if hiddenFilter == "" {
-		hiddenFilter = hiddenFilterVisible
+	gpsFilter, err := parseGPSFilterParam(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
-	if hiddenFilter != hiddenFilterVisible && hiddenFilter != hiddenFilterHidden && hiddenFilter != hiddenFilterAll {
-		writeError(w, http.StatusBadRequest, "hiddenFilter must be one of: visible, hidden, all")
+	hiddenFilter, err := parseHiddenFilterParam(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -231,13 +258,13 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assets, err := h.db.getFilteredAssets(ctx, user.ID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate, page, pageSize)
+	assets, err := h.db.getFilteredAssets(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, page, pageSize)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query assets")
 		return
 	}
 
-	total, err := h.db.countFilteredAssets(ctx, user.ID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
+	total, err := h.db.countFilteredAssets(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets")
 		return
@@ -266,28 +293,27 @@ func (h *Handlers) handleGetAssetDayCounts(w http.ResponseWriter, r *http.Reques
 
 	albumID := r.URL.Query().Get("albumID")
 	tagID := r.URL.Query().Get("tagID")
-	withGPS := r.URL.Query().Get("gpsFilter") == "with-gps"
-	hiddenFilter := r.URL.Query().Get("hiddenFilter")
-	if hiddenFilter == "" {
-		hiddenFilter = hiddenFilterVisible
+	gpsFilter, err := parseGPSFilterParam(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
-	startDate := r.URL.Query().Get("startDate")
-	endDate := r.URL.Query().Get("endDate")
-
-	if startDate == "" || endDate == "" {
+	hiddenFilter, err := parseHiddenFilterParam(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if r.URL.Query().Get("startDate") == "" || r.URL.Query().Get("endDate") == "" {
 		writeError(w, http.StatusBadRequest, "startDate and endDate are required")
 		return
 	}
-	if _, err := time.Parse("2006-01-02", startDate); err != nil {
-		writeError(w, http.StatusBadRequest, "startDate must be a valid date (YYYY-MM-DD)")
-		return
-	}
-	if _, err := time.Parse("2006-01-02", endDate); err != nil {
-		writeError(w, http.StatusBadRequest, "endDate must be a valid date (YYYY-MM-DD)")
+	startDate, endDate, err := parseDateRangeParams(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	counts, err := h.db.countAssetsByDay(ctx, user.ID, albumID, tagID, withGPS, hiddenFilter, startDate, endDate)
+	counts, err := h.db.countAssetsByDay(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets by day")
 		return
@@ -303,30 +329,25 @@ func (h *Handlers) handleGetAlbums(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
-	gpsFilter := r.URL.Query().Get("gpsFilter")
-	startDate := r.URL.Query().Get("startDate")
-	endDate := r.URL.Query().Get("endDate")
-
-	if startDate != "" {
-		if _, err := time.Parse("2006-01-02", startDate); err != nil {
-			writeError(w, http.StatusBadRequest, "startDate must be a valid date (YYYY-MM-DD)")
-			return
-		}
+	gpsFilter, err := parseGPSFilterParam(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
-	if endDate != "" {
-		if _, err := time.Parse("2006-01-02", endDate); err != nil {
-			writeError(w, http.StatusBadRequest, "endDate must be a valid date (YYYY-MM-DD)")
-			return
-		}
+	startDate, endDate, err := parseDateRangeParams(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	var albums []AlbumRow
-	var err error
 
-	if gpsFilter == "with-gps" {
+	// "with-gps" keeps its own query: it is the only mode that drops albums holding no
+	// matching asset, so an album with nothing geotagged stays out of the list.
+	if gpsFilter == gpsFilterWithGPS {
 		albums, err = h.db.getAlbumsWithGPSCount(ctx, user.ID, startDate, endDate)
 	} else {
-		albums, err = h.db.getAlbumsWithNoGPSCount(ctx, user.ID, startDate, endDate)
+		albums, err = h.db.getAlbumsByGPSFilter(ctx, user.ID, gpsFilter, startDate, endDate)
 	}
 
 	if err != nil {

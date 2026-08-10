@@ -35,6 +35,14 @@ type PaginatedAssets struct {
 	HasNextPage bool       `json:"hasNextPage"`
 }
 
+type MissingLocationCount struct {
+	Count int `json:"count"`
+}
+
+type AssetFolder struct {
+	Path string `json:"path"`
+}
+
 type MapMarker struct {
 	ImmichID  string  `json:"immichID"`
 	Latitude  float64 `json:"latitude"`

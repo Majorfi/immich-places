@@ -35,9 +35,9 @@ type HandlerStore interface {
 	getSyncState(ctx context.Context, userID, key string) (*string, error)
 	countAssets(ctx context.Context, userID string) (int, error)
 	countNoGPSAssets(ctx context.Context, userID string) (int, error)
-	getFilteredAssets(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error)
-	countFilteredAssets(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) (int, error)
-	countAssetsByDay(ctx context.Context, userID, albumID, tagID string, withGPS bool, hiddenFilter, startDate, endDate string) (map[string]int, error)
+	getFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error)
+	countFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) (int, error)
+	countAssetsByDay(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) (map[string]int, error)
 	updateAssetHidden(ctx context.Context, userID, immichID string, isHidden bool) error
 	bulkUpdateAssetHidden(ctx context.Context, userID string, immichIDs []string, isHidden bool) error
 	getMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, limit int) ([]MapMarker, error)
@@ -47,15 +47,15 @@ type HandlerStore interface {
 	getFrequentLocations(ctx context.Context, userID string, limit int) ([]FrequentLocationRow, error)
 	getAssetPageInfo(ctx context.Context, userID, assetID string, albumID, tagID string, pageSize int) (*AssetPageInfo, error)
 	getAssetByID(ctx context.Context, userID, immichID string) (*AssetRow, error)
-	getAlbumsWithNoGPSCount(ctx context.Context, userID, startDate, endDate string) ([]AlbumRow, error)
+	getAlbumsByGPSFilter(ctx context.Context, userID, gpsFilter, startDate, endDate string) ([]AlbumRow, error)
 	getAlbumsWithGPSCount(ctx context.Context, userID, startDate, endDate string) ([]AlbumRow, error)
 	getAssetsWithTimestamps(ctx context.Context, userID string, includeGeotagged bool, timeStart, timeEnd string) ([]AssetRow, error)
 	getFavoritePlaces(ctx context.Context, userID string) ([]FavoritePlaceRow, error)
 	addFavoritePlace(ctx context.Context, userID string, latitude, longitude float64, displayName string) error
 	removeFavoritePlace(ctx context.Context, userID string, latitude, longitude float64) error
 	getTags(ctx context.Context, userID string) ([]TagRow, error)
-	getFolderTree(ctx context.Context, userID string, withGPS bool, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error)
-	getFolderAssets(ctx context.Context, userID, folderPath string, withGPS bool, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error)
+	getFolderTree(ctx context.Context, userID, gpsFilter, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error)
+	getFolderAssets(ctx context.Context, userID, folderPath, gpsFilter, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error)
 }
 
 type SuggestionStore interface {
