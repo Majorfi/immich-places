@@ -95,6 +95,7 @@ export function useCatalogDomain({
 	} = useAlbums(gpsFilter, startDate, endDate);
 	const {
 		folderTree,
+		isStale: isFolderTreeStale,
 		isLoading: isLoadingFolders,
 		error: foldersError,
 		load: loadFolderTreeAction,
@@ -102,10 +103,10 @@ export function useCatalogDomain({
 	} = useFolders(gpsFilter, hiddenFilter, selectedTagID, startDate, endDate);
 
 	useEffect(() => {
-		if (isReady && viewMode === 'folders' && folderTree === null && !isLoadingFolders && foldersError === null) {
+		if (isReady && viewMode === 'folders' && isFolderTreeStale && !isLoadingFolders && foldersError === null) {
 			void loadFolderTreeAction();
 		}
-	}, [isReady, viewMode, folderTree, isLoadingFolders, foldersError, loadFolderTreeAction]);
+	}, [isReady, viewMode, isFolderTreeStale, isLoadingFolders, foldersError, loadFolderTreeAction]);
 
 	const clearCatalog = useCallback(() => {
 		clearAssets();
@@ -125,7 +126,11 @@ export function useCatalogDomain({
 		albumsError,
 		loadAlbumsAction,
 		folderTree,
-		isLoadingFolders,
+		// A stale tree counts as loading for consumers: the reload only starts in the
+		// effect above, so without this the view paints one "No folders found" frame
+		// before the request goes out. The guard above keeps using the raw flag, or it
+		// would never fire.
+		isLoadingFolders: isLoadingFolders || isFolderTreeStale,
 		foldersError,
 		loadFolderTreeAction,
 		assets,

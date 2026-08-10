@@ -7,6 +7,7 @@ export const VIEW_MODE_DEFAULT: TViewMode = 'album';
 export const GPS_FILTER_WITH_GPS: TGPSFilter = 'with-gps';
 export const GPS_FILTER_DEFAULT: TGPSFilter = GPS_FILTER_WITH_GPS;
 export const GPS_FILTER_NO_GPS: TGPSFilter = 'no-gps';
+export const GPS_FILTER_ALL: TGPSFilter = 'all';
 export const HIDDEN_FILTER_DEFAULT: THiddenFilter = 'visible';
 export const URL_PARAM_HIDDEN_FILTER = 'hidden';
 
@@ -38,6 +39,17 @@ export function isGPSFilterWithLocations(gpsFilter: TGPSFilter): boolean {
 
 export function isGPSFilterWithoutLocations(gpsFilter: TGPSFilter): boolean {
 	return gpsFilter === GPS_FILTER_NO_GPS;
+}
+
+/**
+ * Whether the filter lets geolocated photos through.
+ *
+ * Distinct from `isGPSFilterWithLocations`, which asks whether the filter is exactly
+ * "with-gps". Callers that decide how to render located photos — marker colour, map
+ * auto-fit — must use this one, or "all" would be treated as "no-gps".
+ */
+export function doesGPSFilterIncludeLocations(gpsFilter: TGPSFilter): boolean {
+	return gpsFilter === GPS_FILTER_WITH_GPS || gpsFilter === GPS_FILTER_ALL;
 }
 
 export function normalizePageSize(value: number, fallback: number): number {

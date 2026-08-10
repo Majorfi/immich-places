@@ -9,6 +9,7 @@ import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
 
 type TUseFoldersReturnProps = {
 	folderTree: TFolderTree | null;
+	isStale: boolean;
 	isLoading: boolean;
 	error: string | null;
 	load: () => Promise<void>;
@@ -23,6 +24,7 @@ export function useFolders(
 	endDate: string | null
 ): TUseFoldersReturnProps {
 	const [folderTree, setFolderTree] = useState<TFolderTree | null>(null);
+	const [isStale, setIsStale] = useState(true);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const requestIDRef = useRef(0);
@@ -35,6 +37,7 @@ export function useFolders(
 		const controller = new AbortController();
 		abortRef.current = controller;
 
+		setIsStale(false);
 		setIsLoading(true);
 		setError(null);
 		try {
@@ -82,7 +85,9 @@ export function useFolders(
 			prevFilterRef.current = {gpsFilter, hiddenFilter, tagID, startDate, endDate};
 			abortRef.current?.abort();
 			requestIDRef.current += 1;
-			setFolderTree(null);
+			// The previous tree stays on screen until the new one arrives: blanking it
+			// collapses the list, which resets both expansion state and scroll position.
+			setIsStale(true);
 			setIsLoading(false);
 			setError(null);
 		}
@@ -99,9 +104,10 @@ export function useFolders(
 		abortRef.current = null;
 		requestIDRef.current += 1;
 		setFolderTree(null);
+		setIsStale(true);
 		setIsLoading(false);
 		setError(null);
 	}, []);
 
-	return {folderTree, isLoading, error, load, clear};
+	return {folderTree, isStale, isLoading, error, load, clear};
 }

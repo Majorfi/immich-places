@@ -14,7 +14,7 @@ import {
 	MAP_FIT_SAME_SPOT_SPREAD_THRESHOLD,
 	MAP_FLY_DURATION_SECONDS
 } from '@/utils/map';
-import {isGPSFilterWithLocations} from '@/utils/view';
+import {doesGPSFilterIncludeLocations} from '@/utils/view';
 
 import type {TGPSFilter, TMapMarker} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
@@ -52,7 +52,7 @@ function resolveAutoFitKey(
 	if (viewMode === 'album' && !albumFilter) {
 		return null;
 	}
-	if (!isGPSFilterWithLocations(gpsFilter) && !albumFilter) {
+	if (!doesGPSFilterIncludeLocations(gpsFilter) && !albumFilter) {
 		return null;
 	}
 	if (mapMarkersLength === 0) {

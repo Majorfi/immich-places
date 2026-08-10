@@ -4,7 +4,7 @@ export type TMapMarker = {
 	longitude: number;
 };
 
-export type TGPSFilter = 'no-gps' | 'with-gps';
+export type TGPSFilter = 'all' | 'no-gps' | 'with-gps';
 
 export type THiddenFilter = 'all' | 'hidden' | 'visible';
 

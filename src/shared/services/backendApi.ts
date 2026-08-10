@@ -1,6 +1,7 @@
 import {backendFetch, parseJSON} from '@/shared/services/backendApi.fetch';
 import {
 	isAlbumRow,
+	isAssetFolder,
 	isAssetPageInfo,
 	isFavoritePlace,
 	isFolderTree,
@@ -8,6 +9,7 @@ import {
 	isHealthResponse,
 	isLibraryRow,
 	isMapMarker,
+	isMissingLocationCount,
 	isPaginatedAssets,
 	isSyncStatus,
 	isTLocationCluster,
@@ -158,6 +160,37 @@ export async function fetchAssetDayCounts(
 		throw new Error(`Failed to fetch day counts: ${response.status}`);
 	}
 	return parseJSON(response, isDayCounts, 'Invalid day counts response payload');
+}
+
+export async function fetchMissingLocationCount(
+	hiddenFilter: THiddenFilter,
+	albumID: string | undefined,
+	tagID: string | undefined,
+	startDate: string | undefined,
+	endDate: string | undefined,
+	opts: TRequestOptions = {}
+): Promise<number> {
+	const params = buildSearchParams({hiddenFilter, albumID, tagID, startDate, endDate});
+	const url = `${BASE}/assets/missing-location-count?${params.toString()}`;
+	const response = await backendFetch(url, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch missing location count: ${response.status}`);
+	}
+	const payload = await parseJSON(
+		response,
+		isMissingLocationCount,
+		'Invalid missing location count response payload'
+	);
+	return payload.count;
+}
+
+export async function fetchAssetFolder(assetID: string, opts: TRequestOptions = {}): Promise<string> {
+	const response = await backendFetch(`${BASE}/assets/${encodeURIComponent(assetID)}/folder`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch asset folder: ${response.status}`);
+	}
+	const payload = await parseJSON(response, isAssetFolder, 'Invalid asset folder response payload');
+	return payload.path;
 }
 
 export async function fetchTags(opts: TRequestOptions = {}): Promise<TTagRow[]> {

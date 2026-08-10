@@ -84,30 +84,6 @@ function staggerStyle(delayMs: number): CSSProperties {
 	};
 }
 
-function buildContentKey(
-	shouldShowAlbumList: boolean,
-	shouldShowAlbumDetail: boolean,
-	shouldShowFolderTree: boolean,
-	shouldShowFolderDetail: boolean,
-	viewMode: TViewMode,
-	selectedAlbumID: string | null,
-	selectedFolderPath: string | null
-): string {
-	if (shouldShowAlbumList) {
-		return 'album-list';
-	}
-	if (shouldShowFolderTree) {
-		return 'folder-tree';
-	}
-	if (shouldShowAlbumDetail) {
-		return `detail-${selectedAlbumID ?? ''}:${viewMode}`;
-	}
-	if (shouldShowFolderDetail) {
-		return `detail-${selectedFolderPath ?? ''}:${viewMode}`;
-	}
-	return 'timeline';
-}
-
 function folderDisplayName(folderPath: string): string {
 	const segments = folderPath.split('/').filter(segment => segment.length > 0);
 	if (segments.length === 0) {
@@ -169,15 +145,16 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 	const shouldShowList = shouldShowAlbumList || shouldShowFolderTree;
 
 	const totalPages = Math.max(1, Math.ceil(total / pageSize));
-	const contentKey = buildContentKey(
-		shouldShowAlbumList,
-		shouldShowAlbumDetail,
-		shouldShowFolderTree,
-		shouldShowFolderDetail,
-		viewMode,
-		selectedAlbumID,
-		selectedFolderPath
-	);
+	let contentKey = 'timeline';
+	if (shouldShowAlbumList) {
+		contentKey = 'album-list';
+	} else if (shouldShowFolderTree) {
+		contentKey = 'folder-tree';
+	} else if (shouldShowAlbumDetail) {
+		contentKey = `detail-${selectedAlbumID ?? ''}:${viewMode}`;
+	} else if (shouldShowFolderDetail) {
+		contentKey = `detail-${selectedFolderPath ?? ''}:${viewMode}`;
+	}
 	let scrollResetKey = `${viewMode}:${currentPage}`;
 	if (selectedAlbumID) {
 		scrollResetKey = `${viewMode}:${selectedAlbumID}:${currentPage}`;

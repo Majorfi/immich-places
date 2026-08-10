@@ -7,6 +7,7 @@ import {
 	DEFAULT_GRID_COLUMNS,
 	DEFAULT_PAGE_SIZE,
 	DEFAULT_VISIBLE_MARKER_LIMIT,
+	GPS_FILTER_ALL,
 	GPS_FILTER_DEFAULT,
 	GPS_FILTER_NO_GPS,
 	GPS_FILTER_WITH_GPS,
@@ -150,7 +151,7 @@ function normalizeVisibleMarkerLimitParam(value: string | null): number {
 }
 
 function parseGPSFilter(value: string | null): TGPSFilter {
-	if (value === GPS_FILTER_NO_GPS || value === GPS_FILTER_WITH_GPS) {
+	if (value === GPS_FILTER_NO_GPS || value === GPS_FILTER_WITH_GPS || value === GPS_FILTER_ALL) {
 		return value;
 	}
 	return GPS_FILTER_DEFAULT;

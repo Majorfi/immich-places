@@ -193,6 +193,32 @@ export function isHealthResponse(value: unknown): value is THealthResponse {
 }
 
 /**
+ * Type guard for missing-location count payloads.
+ *
+ * @param value - Unknown input value.
+ * @returns `true` when value carries a numeric `count`.
+ */
+export function isMissingLocationCount(value: unknown): value is {count: number} {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return isFiniteNumber(value.count);
+}
+
+/**
+ * Type guard for asset folder payloads.
+ *
+ * @param value - Unknown input value.
+ * @returns `true` when value carries a string `path`.
+ */
+export function isAssetFolder(value: unknown): value is {path: string} {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return isString(value.path);
+}
+
+/**
  * Type guard for asset page info payloads.
  *
  * @param value - Unknown input value.

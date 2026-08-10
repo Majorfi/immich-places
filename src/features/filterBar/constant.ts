@@ -9,9 +9,10 @@ export const ALLOWED_GRID_COLUMNS = new Set<number>(GRID_COLUMN_OPTIONS);
 
 export const GPS_LABEL: Record<TGPSFilter, string> = {
 	'no-gps': 'Missing location',
-	'with-gps': 'With location' //eslint-disable-line
+	'with-gps': 'With location', //eslint-disable-line
+	all: 'All'
 };
-export const gpsOptions: readonly TGPSFilter[] = ['no-gps', 'with-gps'];
+export const gpsOptions: readonly TGPSFilter[] = ['no-gps', 'with-gps', 'all'];
 export const VIEW_MODE_LABEL: Record<TViewMode, string> = {timeline: 'Timeline', album: 'Albums', folders: 'Folders'};
 export const viewModeOptions: readonly TViewMode[] = ['timeline', 'album', 'folders'];
 export const HIDDEN_LABEL: Record<THiddenFilter, string> = {visible: 'Visible', hidden: 'Hidden', all: 'All'};
