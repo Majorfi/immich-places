@@ -81,14 +81,18 @@ export function AlbumList({onSelectAction, animation, isSyncing}: TAlbumListProp
 				</div>
 			);
 		}
+		let emptyMessage = 'No albums';
+		if (isGPSFilterWithLocations(gpsFilter)) {
+			emptyMessage = 'No albums with geolocated photos';
+		} else if (isGPSFilterWithoutLocations(gpsFilter)) {
+			emptyMessage = 'No albums with unlocated photos';
+		}
 		return (
 			<div
 				className={
 					'flex items-center justify-center px-4 py-12 text-center text-[0.875rem] text-(--color-text-secondary)'
 				}>
-				{isGPSFilterWithLocations(gpsFilter)
-					? 'No albums with geolocated photos'
-					: 'No albums with unlocated photos'}
+				{emptyMessage}
 			</div>
 		);
 	}

@@ -2,6 +2,7 @@
 
 import {AlbumList} from '@/features/albums/AlbumList';
 import {FilterBar} from '@/features/filterBar/FilterBar';
+import {FolderTree} from '@/features/folders/FolderTree';
 import {GPXImportPanel} from '@/features/gpxImport/GPXImportPanel';
 import {PhotoGrid} from '@/features/photoGrid/PhotoGrid';
 import {PaginationFooter} from '@/shared/components/PaginationFooter';
@@ -34,6 +35,7 @@ type TPhotoListProps = {
 		viewMode: TViewMode;
 		selectedAlbumID: string | null;
 		selectedAlbum: TAlbumRow | null;
+		selectedFolderPath: string | null;
 		missingCount: number | null;
 		onGPSFilterAction: (filter: TGPSFilter) => void;
 		onHiddenFilterAction: (filter: THiddenFilter) => void;
@@ -42,6 +44,7 @@ type TPhotoListProps = {
 		onVisibleMarkerLimitAction: (limit: number) => void;
 		onViewModeAction: (mode: TViewMode) => void;
 		onBackToAlbumsAction: () => void;
+		onBackToFoldersAction: () => void;
 		startDate: string | null;
 		endDate: string | null;
 		onDateRangeAction: (startDate: string | null, endDate: string | null) => void;
@@ -65,6 +68,7 @@ type TPhotoListProps = {
 		assetsError: string | null;
 		onLoadPageAction: (page: number) => Promise<void>;
 		onSelectAlbumAction: (albumID: string) => void;
+		onSelectFolderAction: (folderPath: string) => void;
 		onRetrySyncAction: () => Promise<void>;
 	};
 	selection: {
@@ -80,19 +84,12 @@ function staggerStyle(delayMs: number): CSSProperties {
 	};
 }
 
-function buildContentKey(
-	shouldShowAlbumList: boolean,
-	shouldShowAlbumDetail: boolean,
-	viewMode: TViewMode,
-	selectedAlbumID: string | null
-): string {
-	if (shouldShowAlbumList) {
-		return 'album-list';
+function folderDisplayName(folderPath: string): string {
+	const segments = folderPath.split('/').filter(segment => segment.length > 0);
+	if (segments.length === 0) {
+		return folderPath;
 	}
-	if (shouldShowAlbumDetail) {
-		return `detail-${selectedAlbumID ?? ''}:${viewMode}`;
-	}
-	return 'timeline';
+	return segments[segments.length - 1];
 }
 
 export function PhotoList({backend, view, catalog, selection}: TPhotoListProps): ReactElement {
@@ -107,6 +104,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		viewMode,
 		selectedAlbumID,
 		selectedAlbum,
+		selectedFolderPath,
 		onGPSFilterAction,
 		onHiddenFilterAction,
 		onPageSizeAction,
@@ -114,6 +112,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		onVisibleMarkerLimitAction,
 		onViewModeAction,
 		onBackToAlbumsAction,
+		onBackToFoldersAction,
 		startDate,
 		endDate,
 		onDateRangeAction,
@@ -134,27 +133,46 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 		assetsError,
 		onLoadPageAction,
 		onSelectAlbumAction,
+		onSelectFolderAction,
 		onRetrySyncAction
 	} = catalog;
 	const {selectedIDs, alreadyAppliedIDs} = selection;
 
 	const shouldShowAlbumList = viewMode === 'album' && !selectedAlbumID;
 	const shouldShowAlbumDetail = viewMode === 'album' && Boolean(selectedAlbumID) && selectedAlbum !== null;
+	const shouldShowFolderTree = viewMode === 'folders' && !selectedFolderPath;
+	const shouldShowFolderDetail = viewMode === 'folders' && Boolean(selectedFolderPath);
+	const shouldShowList = shouldShowAlbumList || shouldShowFolderTree;
 
 	const totalPages = Math.max(1, Math.ceil(total / pageSize));
-	const contentKey = buildContentKey(shouldShowAlbumList, shouldShowAlbumDetail, viewMode, selectedAlbumID);
+	let contentKey = 'timeline';
+	if (shouldShowAlbumList) {
+		contentKey = 'album-list';
+	} else if (shouldShowFolderTree) {
+		contentKey = 'folder-tree';
+	} else if (shouldShowAlbumDetail) {
+		contentKey = `detail-${selectedAlbumID ?? ''}:${viewMode}`;
+	} else if (shouldShowFolderDetail) {
+		contentKey = `detail-${selectedFolderPath ?? ''}:${viewMode}`;
+	}
 	let scrollResetKey = `${viewMode}:${currentPage}`;
 	if (selectedAlbumID) {
 		scrollResetKey = `${viewMode}:${selectedAlbumID}:${currentPage}`;
+	} else if (selectedFolderPath) {
+		scrollResetKey = `${viewMode}:${selectedFolderPath}:${currentPage}`;
 	}
 
 	const isGPXActive = gpxPreviews.length > 0;
 	let mobileMaxVisibleRows: number | null = null;
-	if (shouldShowAlbumDetail) {
+	if (shouldShowAlbumDetail || shouldShowFolderDetail) {
 		mobileMaxVisibleRows = 1.8;
 	}
 	let effectiveAlbumName = selectedAlbum?.albumName;
 	let effectiveBackAction = onBackToAlbumsAction;
+	if (shouldShowFolderDetail && selectedFolderPath) {
+		effectiveAlbumName = folderDisplayName(selectedFolderPath);
+		effectiveBackAction = onBackToFoldersAction;
+	}
 	if (isGPXActive) {
 		if (gpxPreviews.length > 1) {
 			effectiveAlbumName = `GPX Import (${gpxPreviews.length} tracks)`;
@@ -193,7 +211,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 				albumName={effectiveAlbumName}
 				onBackAction={effectiveBackAction}
 				trailingAction={view.trailingAction}
-				hideSettingsOnMobile={shouldShowAlbumDetail}
+				hideSettingsOnMobile={shouldShowAlbumDetail || shouldShowFolderDetail}
 				isGPXActive={isGPXActive}
 				gpxStatusFilter={gpxStatusFilter}
 				onGPXStatusFilterAction={onGPXStatusFilterAction}
@@ -218,7 +236,15 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 							/>
 						</div>
 					)}
-					{!shouldShowAlbumList && (
+					{shouldShowFolderTree && (
+						<div className={'flex-1 overflow-y-auto'}>
+							<FolderTree
+								onSelectAction={onSelectFolderAction}
+								isSyncing={isSyncing}
+							/>
+						</div>
+					)}
+					{!shouldShowList && (
 						<PhotoGrid
 							assets={assets}
 							selectedIDs={selectedIDs}
@@ -232,7 +258,7 @@ export function PhotoList({backend, view, catalog, selection}: TPhotoListProps):
 							mobileMaxVisibleRows={mobileMaxVisibleRows}
 						/>
 					)}
-					{!shouldShowAlbumList && total > 0 && (
+					{!shouldShowList && total > 0 && (
 						<div style={staggerStyle(150)}>
 							<PaginationFooter
 								currentPage={currentPage}

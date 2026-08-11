@@ -84,24 +84,45 @@ func (d *Database) replaceAlbumAssets(ctx context.Context, userID, albumID strin
 	return tx.Commit()
 }
 
-func (d *Database) getAlbumsWithNoGPSCount(ctx context.Context, userID, startDate, endDate string) ([]AlbumRow, error) {
+// albumGPSPredicate is the extra CASE condition that restricts an album's asset count
+// to what the given GPS filter keeps. "all" adds none, counting every asset.
+func albumGPSPredicate(gpsFilter string) string {
+	switch gpsFilter {
+	case gpsFilterWithGPS:
+		return ` AND ast.latitude IS NOT NULL AND ast.longitude IS NOT NULL`
+	case gpsFilterAll:
+		return ``
+	default:
+		return ` AND (ast.latitude IS NULL OR ast.longitude IS NULL)`
+	}
+}
+
+// getAlbumsByGPSFilter lists every album with its asset count under the given GPS
+// filter. Unlike getAlbumsWithGPSCount it keeps albums whose count is zero, which is
+// what the "missing location" and "all" views need.
+func (d *Database) getAlbumsByGPSFilter(ctx context.Context, userID, gpsFilter, startDate, endDate string) ([]AlbumRow, error) {
 	dateFilter := ""
-	var args []interface{}
+	var dateArgs []interface{}
 	if startDate != "" {
 		dateFilter += ` AND ast.dateTimeOriginal >= ?`
-		args = append(args, startDate)
+		dateArgs = append(dateArgs, startDate)
 	}
 	if endDate != "" {
 		dateFilter += ` AND ast.dateTimeOriginal < ?`
-		args = append(args, endDate+"T99")
+		dateArgs = append(dateArgs, endDate+"T99")
 	}
+	var args []interface{}
+	args = append(args, dateArgs...)
+	args = append(args, dateArgs...)
 	args = append(args, userID)
 
 	rows, err := d.db.QueryContext(ctx,
 		`SELECT a.immichID, a.albumName, a.thumbnailAssetID, a.assetCount, a.updatedAt, a.startDate,
+			COUNT(CASE WHEN ast.immichID IS NOT NULL`+albumGPSPredicate(gpsFilter)+`
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as filteredCount,
 			COUNT(CASE WHEN ast.immichID IS NOT NULL
 				AND (ast.latitude IS NULL OR ast.longitude IS NULL)
-				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as filteredCount
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as noGPSCount
 		FROM albums a
 		LEFT JOIN albumAssets aa ON aa.userID = a.userID AND aa.albumID = a.immichID
 		LEFT JOIN assets ast ON ast.userID = a.userID AND ast.immichID = aa.assetID
@@ -118,10 +139,9 @@ func (d *Database) getAlbumsWithNoGPSCount(ctx context.Context, userID, startDat
 	var albums []AlbumRow
 	for rows.Next() {
 		var a AlbumRow
-		if err := rows.Scan(&a.ImmichID, &a.AlbumName, &a.ThumbnailAssetID, &a.AssetCount, &a.UpdatedAt, &a.StartDate, &a.FilteredCount); err != nil {
+		if err := rows.Scan(&a.ImmichID, &a.AlbumName, &a.ThumbnailAssetID, &a.AssetCount, &a.UpdatedAt, &a.StartDate, &a.FilteredCount, &a.NoGPSCount); err != nil {
 			return nil, err
 		}
-		a.NoGPSCount = a.FilteredCount
 		albums = append(albums, a)
 	}
 	return albums, rows.Err()

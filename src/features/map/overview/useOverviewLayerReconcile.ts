@@ -12,7 +12,7 @@ import {
 } from '@/features/map/overview/overviewLayerClusterSync';
 import {syncMarkers} from '@/features/map/overview/overviewLayerMarkerSync';
 import {thumbnailURL} from '@/utils/backendUrls';
-import {isGPSFilterWithLocations} from '@/utils/view';
+import {doesGPSFilterIncludeLocations} from '@/utils/view';
 
 import type {TUseOverviewLayerReconcileArgs} from '@/shared/types/mapLayer';
 
@@ -58,7 +58,7 @@ export function useOverviewLayerReconcile({
 	pendingSelectionMarkerRef,
 	openContextMenuRef
 }: TUseOverviewLayerReconcileArgs): void {
-	const isGreyscale = albumFilter !== 'gpx-import' && !isGPSFilterWithLocations(gpsFilter);
+	const isGreyscale = albumFilter !== 'gpx-import' && !doesGPSFilterIncludeLocations(gpsFilter);
 
 	useEffect(() => {
 		if (!mapInstanceRef.current) {

@@ -3,8 +3,11 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {useCallback, useEffect} from 'react';
 
-import {useBackend} from '@/shared/context/AppContext';
+import {useAssetFolderPath} from '@/features/map/hooks/useAssetFolderPath';
+import {useDiscardPendingLocations} from '@/features/selection/useDiscardPendingLocations';
+import {useBackend, useView} from '@/shared/context/AppContext';
 import {immichPhotoURL} from '@/utils/backendUrls';
+import {GPS_FILTER_ALL} from '@/utils/view';
 
 import type {TMapContextMenuState} from '@/shared/types/map';
 import type {ReactElement} from 'react';
@@ -31,7 +34,16 @@ export function MapMarkerContextMenu({
 	onRemoveLocationAction
 }: TMapMarkerContextMenuProps): ReactElement | null {
 	const {health} = useBackend();
+	const {setGPSFilterAction, setViewModeAction, selectAlbumAction, selectFolderAction} = useView();
+	const discardPendingLocationsAction = useDiscardPendingLocations();
 	const immichURL = health?.immichURL ?? '';
+
+	// Resolved before the early returns below, so the hook order stays stable.
+	let markerAssetID: string | null = null;
+	if (menu?.type === 'marker') {
+		markerAssetID = menu.assetID;
+	}
+	const folderPath = useAssetFolderPath(markerAssetID);
 
 	const handleOpenChange = useCallback(
 		(open: boolean) => {
@@ -135,6 +147,29 @@ export function MapMarkerContextMenu({
 						}}>
 						{'Preview'}
 					</DropdownMenu.Item>
+					{folderPath && (
+						<DropdownMenu.Item
+							className={MENU_ITEM_CLASS}
+							onSelect={() => {
+								// Leaving the current asset context, like every other view-mode
+								// switch, so pending location edits must be confirmed first.
+								discardPendingLocationsAction(() => {
+									// Markers show regardless of the GPS filter, so switch to
+									// "all": under "no-gps" the folder would open without the
+									// photo that was just clicked.
+									setGPSFilterAction(GPS_FILTER_ALL);
+									setViewModeAction('folders');
+									// The folders view ignores a selected album, and
+									// applyURLToState drops it on reload: leaving it set would
+									// desync live state from the URL.
+									selectAlbumAction(null);
+									selectFolderAction(folderPath);
+								});
+								onCloseAction();
+							}}>
+							{'Go to folder'}
+						</DropdownMenu.Item>
+					)}
 					{safeImmichPhotoURL && (
 						<DropdownMenu.Item
 							className={MENU_ITEM_CLASS}

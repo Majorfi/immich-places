@@ -106,8 +106,11 @@ function AppShell({
 
 function AuthenticatedAppRoutes(): ReactElement {
 	const {isReady, backendError, retryBackendAction} = useBackend();
-	const {viewMode, selectedAlbumID} = useView();
-	const isMainCatalogView = viewMode === 'timeline' || (viewMode === 'album' && !selectedAlbumID);
+	const {viewMode, selectedAlbumID, selectedFolderPath} = useView();
+	const isMainCatalogView =
+		viewMode === 'timeline' ||
+		(viewMode === 'album' && !selectedAlbumID) ||
+		(viewMode === 'folders' && !selectedFolderPath);
 
 	if (backendError) {
 		return (

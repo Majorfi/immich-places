@@ -1,5 +1,6 @@
 import type {TAlbumRow} from '@/shared/types/album';
 import type {TAssetRow} from '@/shared/types/asset';
+import type {TFolderTree} from '@/shared/types/folder';
 import type {THealthResponse} from '@/shared/types/health';
 import type {
 	TGPSFilter,
@@ -40,6 +41,8 @@ export type TViewContextValue = {
 	setViewModeAction: (mode: TViewMode) => void;
 	selectedAlbumID: string | null;
 	selectAlbumAction: (albumID: string | null) => void;
+	selectedFolderPath: string | null;
+	selectFolderAction: (folderPath: string | null) => void;
 	selectedTagID: string | null;
 	selectTagAction: (tagID: string | null) => void;
 	startDate: string | null;
@@ -52,6 +55,11 @@ export type TCatalogContextValue = {
 	isLoadingAlbums: boolean;
 	albumsError: string | null;
 	loadAlbumsAction: () => Promise<void>;
+
+	folderTree: TFolderTree | null;
+	isLoadingFolders: boolean;
+	foldersError: string | null;
+	loadFolderTreeAction: () => Promise<void>;
 
 	assets: TAssetRow[];
 	total: number;

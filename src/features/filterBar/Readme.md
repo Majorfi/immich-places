@@ -6,7 +6,7 @@ The `filterBar` feature contains the photo browser toolbar used to control catal
 
 - Synchronizes filter and view state with the URL so the browser state can be shared/restored.
 - Provides controls for:
-    - GPS coverage filter (`with-gps`, `no-gps`),
+    - GPS coverage filter (`with-gps`, `no-gps`, `all`),
     - page size,
     - grid column count,
     - timeline/album mode toggle,
@@ -23,6 +23,9 @@ The `filterBar` feature contains the photo browser toolbar used to control catal
     - Renders either app title or album-focused back button title.
 - `GPSFilterGroup.tsx`
     - Renders GPS filter options and optional badge for missing-location count.
+- `useMissingLocationCount.ts`
+    - Hook backing that badge; counts assets without coordinates under the active
+      album, tag, hidden and date filters.
 - `NumericOptionGroup.tsx`
     - Generic number option row used by page-size and grid-column controls.
 - `FilterIcon.tsx`

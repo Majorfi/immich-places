@@ -28,6 +28,10 @@ export function PhotoGridStatePanels({
 	gpsFilter
 }: TPhotoGridStatePanelsProps): ReactElement {
 	const hasNoAssets = !isLoading && assetsCount === 0 && !error;
+	let emptyMessage = 'No photos';
+	if (isGPSFilterWithLocations(gpsFilter)) {
+		emptyMessage = 'No geolocated photos';
+	}
 
 	return (
 		<>
@@ -60,13 +64,13 @@ export function PhotoGridStatePanels({
 				</div>
 			)}
 
-			{hasNoAssets && !isSyncing && isGPSFilterWithLocations(gpsFilter) && (
+			{hasNoAssets && !isSyncing && !isGPSFilterWithoutLocations(gpsFilter) && (
 				<div
 					className={
 						'flex flex-1 items-center justify-center px-4 py-12 text-center text-[0.875rem] text-(--color-text-secondary)'
 					}
 					style={{animation: 'elFadeIn 300ms ease-out both', animationDelay: '60ms'}}>
-					{'No geolocated photos'}
+					{emptyMessage}
 				</div>
 			)}
 		</>

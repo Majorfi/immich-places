@@ -30,7 +30,7 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 		baseURL:    "http://fake:2283",
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
+	syncService := newSyncService(db, factory, newNominatimClient(10*time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db, testNeighborWindow)
 	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil, newNominatimClient(10*time.Second))
@@ -38,8 +38,12 @@ func newTestHandlers(t *testing.T) (*Handlers, *http.ServeMux) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handlers.handleHealth)
 	mux.HandleFunc("GET /assets", handlers.handleGetAssets)
+	mux.HandleFunc("GET /assets/missing-location-count", handlers.handleGetMissingLocationCount)
+	mux.HandleFunc("GET /assets/{assetID}/folder", handlers.handleGetAssetFolder)
 	mux.HandleFunc("GET /albums", handlers.handleGetAlbums)
 	mux.HandleFunc("GET /tags", handlers.handleGetTags)
+	mux.HandleFunc("GET /folders", handlers.handleGetFolders)
+	mux.HandleFunc("GET /folders/assets", handlers.handleGetFolderAssets)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
@@ -109,6 +113,75 @@ func TestHandleGetTags(t *testing.T) {
 	mux.ServeHTTP(unauthRec, httptest.NewRequest("GET", "/tags", nil))
 	if unauthRec.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401 without auth, got %d", unauthRec.Code)
+	}
+}
+
+func TestHandleGetFolders(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{extAsset("a", "/mnt/photos/2023/a.jpg")})
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/folders", nil)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var tree FolderTree
+	if err := json.NewDecoder(rec.Body).Decode(&tree); err != nil {
+		t.Fatalf("decode tree: %v", err)
+	}
+	if findNode(tree.Children, "/mnt/photos") == nil {
+		t.Errorf("expected /mnt/photos node, got %+v", tree.Children)
+	}
+
+	unauth := httptest.NewRecorder()
+	mux.ServeHTTP(unauth, httptest.NewRequest("GET", "/folders", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauth.Code)
+	}
+
+	badDate := httptest.NewRecorder()
+	mux.ServeHTTP(badDate, withTestUser(httptest.NewRequest("GET", "/folders?startDate=nope", nil)))
+	if badDate.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid startDate, got %d", badDate.Code)
+	}
+}
+
+func TestHandleGetFolderAssets(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		extAsset("a", "/mnt/photos/2023/a.jpg"),
+		extAsset("b", "/mnt/photos/2023/b.jpg"),
+	})
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/folders/assets?path=/mnt/photos/2023", nil)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var page PaginatedAssets
+	if err := json.NewDecoder(rec.Body).Decode(&page); err != nil {
+		t.Fatalf("decode assets: %v", err)
+	}
+	if page.Total != 2 {
+		t.Errorf("expected total 2, got %d", page.Total)
+	}
+
+	noPath := httptest.NewRecorder()
+	mux.ServeHTTP(noPath, withTestUser(httptest.NewRequest("GET", "/folders/assets", nil)))
+	if noPath.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 without path, got %d", noPath.Code)
+	}
+
+	unauth := httptest.NewRecorder()
+	mux.ServeHTTP(unauth, httptest.NewRequest("GET", "/folders/assets?path=/mnt/photos/2023", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauth.Code)
 	}
 }
 
@@ -378,7 +451,7 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 		baseURL:    server.URL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
-	syncService := newSyncService(db, factory, newNominatimClient(10 * time.Second))
+	syncService := newSyncService(db, factory, newNominatimClient(10*time.Second))
 	syncService.shutdownCtx = context.Background()
 	suggestions := newSuggestionService(db, testNeighborWindow)
 	handlers := newHandlers(db, factory, "http://external:2283", syncService, suggestions, nil, newNominatimClient(10*time.Second))
@@ -388,6 +461,8 @@ func newTestHandlersWithMockImmich(t *testing.T, immichHandler http.HandlerFunc)
 	mux.HandleFunc("GET /assets", handlers.handleGetAssets)
 	mux.HandleFunc("GET /albums", handlers.handleGetAlbums)
 	mux.HandleFunc("GET /tags", handlers.handleGetTags)
+	mux.HandleFunc("GET /folders", handlers.handleGetFolders)
+	mux.HandleFunc("GET /folders/assets", handlers.handleGetFolderAssets)
 	mux.HandleFunc("GET /map-markers", handlers.handleGetMapMarkers)
 	mux.HandleFunc("PUT /assets/{assetID}/location", handlers.handleUpdateLocation)
 	mux.HandleFunc("PUT /assets/{assetID}/hidden", handlers.handleUpdateHidden)
@@ -900,7 +975,7 @@ func TestHandleUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, err := d.countFilteredAssets(ctx, testUserID, "", "", true, "hidden", "", "")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -969,7 +1044,7 @@ func TestHandleBulkUpdateHiddenSuccess(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	hidden, err := d.countFilteredAssets(ctx, testUserID, "", "", true, "hidden", "", "")
+	hidden, err := d.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "")
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -1163,5 +1238,136 @@ func TestGeocodeSearchProviderError(t *testing.T) {
 	}
 	if mock.callCount != 2 {
 		t.Errorf("expected 2 calls (initial + retry), got %d", mock.callCount)
+	}
+}
+
+func missingLocationCountFor(t *testing.T, mux http.Handler, query string) int {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/assets/missing-location-count"+query, nil)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for %q, got %d", query, rec.Code)
+	}
+	var payload MissingLocationCount
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode count: %v", err)
+	}
+	return payload.Count
+}
+
+func TestHandleGetMissingLocationCount(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	lat, lon := 48.85, 2.35
+	located := extAsset("g1", "/mnt/photos/g1.jpg")
+	located.Latitude, located.Longitude = &lat, &lon
+	located.DateTimeOriginal = ptr("2023-06-15T10:00:00Z")
+	old := extAsset("n1", "/mnt/photos/n1.jpg")
+	old.DateTimeOriginal = ptr("2023-06-15T10:00:00Z")
+	recent := extAsset("n2", "/mnt/photos/n2.jpg")
+	recent.DateTimeOriginal = ptr("2024-06-15T10:00:00Z")
+	db.upsertAssets(ctx, testUserID, []AssetRow{located, old, recent})
+
+	// Only the two assets without coordinates count, and the with-gps query param
+	// must not change the answer: the badge always reports missing locations.
+	if got := missingLocationCountFor(t, mux, ""); got != 2 {
+		t.Errorf("expected 2 assets missing location, got %d", got)
+	}
+	if got := missingLocationCountFor(t, mux, "?gpsFilter=with-gps"); got != 2 {
+		t.Errorf("gpsFilter must not affect the count, got %d", got)
+	}
+
+	// The active date range narrows the count.
+	if got := missingLocationCountFor(t, mux, "?startDate=2024-01-01&endDate=2024-12-31"); got != 1 {
+		t.Errorf("expected 1 asset missing location in 2024, got %d", got)
+	}
+	if got := missingLocationCountFor(t, mux, "?startDate=2025-01-01&endDate=2025-12-31"); got != 0 {
+		t.Errorf("expected 0 assets missing location in 2025, got %d", got)
+	}
+
+	badHidden := httptest.NewRecorder()
+	mux.ServeHTTP(badHidden, withTestUser(httptest.NewRequest("GET", "/assets/missing-location-count?hiddenFilter=nope", nil)))
+	if badHidden.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid hiddenFilter, got %d", badHidden.Code)
+	}
+
+	unauth := httptest.NewRecorder()
+	mux.ServeHTTP(unauth, httptest.NewRequest("GET", "/assets/missing-location-count", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauth.Code)
+	}
+}
+
+func TestHandleGetAssetFolder(t *testing.T) {
+	handlers, mux := newTestHandlers(t)
+	db := handlers.db.(*Database)
+	ctx := context.Background()
+
+	const withPath = "00000000-0000-0000-0000-000000000001"
+	const withoutPath = "00000000-0000-0000-0000-000000000002"
+	db.upsertAssets(ctx, testUserID, []AssetRow{
+		extAsset(withPath, "/mnt/photos/2023/Trip/a.jpg"),
+		extAsset(withoutPath, ""),
+	})
+
+	decodeFolder := func(t *testing.T, assetID string) string {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/assets/"+assetID+"/folder", nil)))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s, got %d", assetID, rec.Code)
+		}
+		var payload AssetFolder
+		if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode folder: %v", err)
+		}
+		return payload.Path
+	}
+
+	if got := decodeFolder(t, withPath); got != "/mnt/photos/2023/Trip" {
+		t.Errorf("expected /mnt/photos/2023/Trip, got %q", got)
+	}
+	// Assets predating the originalPath backfill resolve to no folder, not to ".".
+	if got := decodeFolder(t, withoutPath); got != "" {
+		t.Errorf("expected an empty folder for a pathless asset, got %q", got)
+	}
+
+	missing := httptest.NewRecorder()
+	mux.ServeHTTP(missing, withTestUser(httptest.NewRequest("GET", "/assets/00000000-0000-0000-0000-0000000000ff/folder", nil)))
+	if missing.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for an unknown asset, got %d", missing.Code)
+	}
+
+	badID := httptest.NewRecorder()
+	mux.ServeHTTP(badID, withTestUser(httptest.NewRequest("GET", "/assets/not-a-uuid/folder", nil)))
+	if badID.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for a non-UUID asset ID, got %d", badID.Code)
+	}
+
+	unauth := httptest.NewRecorder()
+	mux.ServeHTTP(unauth, httptest.NewRequest("GET", "/assets/"+withPath+"/folder", nil))
+	if unauth.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 without auth, got %d", unauth.Code)
+	}
+}
+
+func TestGPSFilterParamValidation(t *testing.T) {
+	_, mux := newTestHandlers(t)
+
+	// An absent gpsFilter keeps its historical meaning, so old callers still work.
+	for _, query := range []string{"", "?gpsFilter=no-gps", "?gpsFilter=with-gps", "?gpsFilter=all"} {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/folders"+query, nil)))
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200 for %q, got %d", query, rec.Code)
+		}
+	}
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, withTestUser(httptest.NewRequest("GET", "/folders?gpsFilter=nope", nil)))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for an unknown gpsFilter, got %d", rec.Code)
 	}
 }

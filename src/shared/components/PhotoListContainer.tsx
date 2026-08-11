@@ -4,8 +4,10 @@ import {useCallback, useMemo} from 'react';
 
 import {useAuth} from '@/features/auth/AuthContext';
 import {UserMenu} from '@/features/auth/UserMenu';
+import {useMissingLocationCount} from '@/features/filterBar/useMissingLocationCount';
 import {useGPXImportContext} from '@/features/gpxImport/GPXImportContext';
 import {deriveAlreadyAppliedIDs} from '@/features/selection/selectionStateHelpers';
+import {useDiscardPendingLocations} from '@/features/selection/useDiscardPendingLocations';
 import {PhotoList} from '@/shared/components/PhotoList';
 import {useBackend, useCatalog, useSelection, useUIMap, useView} from '@/shared/context/AppContext';
 
@@ -14,7 +16,7 @@ import type {TViewMode} from '@/shared/types/view';
 import type {ReactElement} from 'react';
 
 export function PhotoListContainer(): ReactElement {
-	const {health, isSyncing, syncError, resyncAction} = useBackend();
+	const {isSyncing, syncError, resyncAction} = useBackend();
 	const {
 		gpsFilter,
 		setGPSFilterAction,
@@ -30,6 +32,8 @@ export function PhotoListContainer(): ReactElement {
 		setViewModeAction,
 		selectedAlbumID,
 		selectAlbumAction,
+		selectedFolderPath,
+		selectFolderAction,
 		selectedTagID,
 		selectTagAction,
 		startDate,
@@ -48,14 +52,8 @@ export function PhotoListContainer(): ReactElement {
 		loadPageAction
 	} = useCatalog();
 	const {mapMarkerCount} = useAuth();
-	const {
-		clearSelectionAction,
-		selectedAssets,
-		pendingLocation,
-		pendingLocationsByAssetID,
-		gpxStatusFilter,
-		setGPXStatusFilterAction
-	} = useSelection();
+	const {clearSelectionAction, selectedAssets, pendingLocationsByAssetID, gpxStatusFilter, setGPXStatusFilterAction} =
+		useSelection();
 	const {closeLightboxAction} = useUIMap();
 
 	const {
@@ -75,54 +73,23 @@ export function PhotoListContainer(): ReactElement {
 		[albums, selectedAlbumID]
 	);
 
-	const albumMissingCount = albums.reduce((totalMissing, album) => totalMissing + album.noGPSCount, 0);
-
-	let missingCount: number | null;
-	if (selectedAlbum) {
-		missingCount = selectedAlbum.noGPSCount;
-	} else if (albums.length > 0) {
-		missingCount = albumMissingCount;
-	} else {
-		missingCount = health?.noGPSAssets ?? null;
-	}
+	const missingCount = useMissingLocationCount();
 	const selectedIDs = useMemo(() => new Set(selectedAssets.map(a => a.immichID)), [selectedAssets]);
 	const alreadyAppliedIDs = useMemo(
 		() => deriveAlreadyAppliedIDs(pendingLocationsByAssetID),
 		[pendingLocationsByAssetID]
 	);
-	const pendingImageCount = useMemo(() => Object.keys(pendingLocationsByAssetID).length, [pendingLocationsByAssetID]);
-
-	const hasPendingLocationChanges = pendingImageCount > 0 || (selectedAssets.length > 0 && pendingLocation !== null);
-	const confirmCloseAlbum = useCallback(() => {
-		if (!hasPendingLocationChanges) {
-			return true;
-		}
-		return window.confirm('You have unsaved location edits. Do you want to discard them and continue?');
-	}, [hasPendingLocationChanges]);
-
-	const clearPendingState = useCallback(() => {
-		clearSelectionAction();
-	}, [clearSelectionAction]);
-
-	const closeAlbumAndClearPending = useCallback(
-		(nextModeAction: () => void): void => {
-			if (!confirmCloseAlbum()) {
-				return;
-			}
-			clearPendingState();
-			nextModeAction();
-		},
-		[clearPendingState, confirmCloseAlbum]
-	);
+	const closeAlbumAndClearPending = useDiscardPendingLocations();
 
 	const handleToggleViewMode = (mode: TViewMode): void => {
 		if (mode === viewMode) {
 			return;
 		}
-		if (selectedAlbumID) {
+		if (selectedAlbumID || selectedFolderPath) {
 			closeAlbumAndClearPending(() => {
 				closeLightboxAction();
 				selectAlbumAction(null);
+				selectFolderAction(null);
 				setViewModeAction(mode);
 			});
 			return;
@@ -144,6 +111,16 @@ export function PhotoListContainer(): ReactElement {
 		});
 	};
 
+	const handleBackToFolders = (): void => {
+		if (!selectedFolderPath) {
+			return;
+		}
+		closeAlbumAndClearPending(() => {
+			closeLightboxAction();
+			selectFolderAction(null);
+		});
+	};
+
 	const handleSelectAlbum = (albumID: string): void => {
 		if (selectedAlbumID === albumID) {
 			return;
@@ -159,23 +136,34 @@ export function PhotoListContainer(): ReactElement {
 		selectAlbumAction(albumID);
 	};
 
+	const handleSelectFolder = (folderPath: string): void => {
+		if (selectedFolderPath === folderPath) {
+			return;
+		}
+		if (selectedFolderPath) {
+			closeAlbumAndClearPending(() => {
+				closeLightboxAction();
+				selectFolderAction(folderPath);
+			});
+			return;
+		}
+		closeLightboxAction();
+		selectFolderAction(folderPath);
+	};
+
 	const handleLoadPageAction = async (page: number): Promise<void> => {
 		clearSelectionAction();
 		return loadPageAction(page);
 	};
 
 	const handleGPXCancel = useCallback((): void => {
-		if (!confirmCloseAlbum()) {
-			return;
-		}
-		clearPendingState();
-		gpxReset();
-	}, [confirmCloseAlbum, clearPendingState, gpxReset]);
+		closeAlbumAndClearPending(gpxReset);
+	}, [closeAlbumAndClearPending, gpxReset]);
 
 	const handleGPXAutoReset = useCallback((): void => {
-		clearPendingState();
+		clearSelectionAction();
 		gpxReset();
-	}, [clearPendingState, gpxReset]);
+	}, [clearSelectionAction, gpxReset]);
 
 	let activeGPXPreviews: typeof gpxPreviews = [];
 	if (isGPXPanelActive) {
@@ -216,6 +204,7 @@ export function PhotoListContainer(): ReactElement {
 				viewMode,
 				selectedAlbumID,
 				selectedAlbum,
+				selectedFolderPath,
 				missingCount,
 				onGPSFilterAction: setGPSFilterAction,
 				onHiddenFilterAction: setHiddenFilterAction,
@@ -224,6 +213,7 @@ export function PhotoListContainer(): ReactElement {
 				onVisibleMarkerLimitAction: setVisibleMarkerLimitAction,
 				onViewModeAction: handleToggleViewMode,
 				onBackToAlbumsAction: handleBackToAlbums,
+				onBackToFoldersAction: handleBackToFolders,
 				gpxPreviews: activeGPXPreviews,
 				gpxError,
 				startDate,
@@ -247,6 +237,7 @@ export function PhotoListContainer(): ReactElement {
 				assetsError,
 				onLoadPageAction: handleLoadPageAction,
 				onSelectAlbumAction: handleSelectAlbum,
+				onSelectFolderAction: handleSelectFolder,
 				onRetrySyncAction: resyncAction
 			}}
 			selection={{

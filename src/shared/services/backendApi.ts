@@ -1,12 +1,15 @@
 import {backendFetch, parseJSON} from '@/shared/services/backendApi.fetch';
 import {
 	isAlbumRow,
+	isAssetFolder,
 	isAssetPageInfo,
 	isFavoritePlace,
+	isFolderTree,
 	isGPXPreviewResponse,
 	isHealthResponse,
 	isLibraryRow,
 	isMapMarker,
+	isMissingLocationCount,
 	isPaginatedAssets,
 	isSyncStatus,
 	isTLocationCluster,
@@ -24,6 +27,7 @@ import type {TRequestOptions, TViewportBounds} from '@/shared/types/api';
 import type {TAssetPageInfo, TPaginatedAssets} from '@/shared/types/asset';
 import type {TAuthErrorCode} from '@/shared/types/auth';
 import type {TFavoritePlace} from '@/shared/types/favoritePlace';
+import type {TFolderTree} from '@/shared/types/folder';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
 import type {TGPSFilter, THiddenFilter, TMapMarker} from '@/shared/types/map';
@@ -158,6 +162,37 @@ export async function fetchAssetDayCounts(
 	return parseJSON(response, isDayCounts, 'Invalid day counts response payload');
 }
 
+export async function fetchMissingLocationCount(
+	hiddenFilter: THiddenFilter,
+	albumID: string | undefined,
+	tagID: string | undefined,
+	startDate: string | undefined,
+	endDate: string | undefined,
+	opts: TRequestOptions = {}
+): Promise<number> {
+	const params = buildSearchParams({hiddenFilter, albumID, tagID, startDate, endDate});
+	const url = `${BASE}/assets/missing-location-count?${params.toString()}`;
+	const response = await backendFetch(url, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch missing location count: ${response.status}`);
+	}
+	const payload = await parseJSON(
+		response,
+		isMissingLocationCount,
+		'Invalid missing location count response payload'
+	);
+	return payload.count;
+}
+
+export async function fetchAssetFolder(assetID: string, opts: TRequestOptions = {}): Promise<string> {
+	const response = await backendFetch(`${BASE}/assets/${encodeURIComponent(assetID)}/folder`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch asset folder: ${response.status}`);
+	}
+	const payload = await parseJSON(response, isAssetFolder, 'Invalid asset folder response payload');
+	return payload.path;
+}
+
 export async function fetchTags(opts: TRequestOptions = {}): Promise<TTagRow[]> {
 	const response = await backendFetch(`${BASE}/tags`, {}, opts);
 	if (!response.ok) {
@@ -186,6 +221,51 @@ export async function fetchAlbums(
 		(value): value is TAlbumRow[] => Array.isArray(value) && value.every(isAlbumRow),
 		'Invalid albums response payload'
 	);
+}
+
+export async function getFolders(
+	gpsFilter: TGPSFilter,
+	hiddenFilter: THiddenFilter,
+	tagID: string | undefined,
+	startDate: string | undefined,
+	endDate: string | undefined,
+	opts: TRequestOptions = {}
+): Promise<TFolderTree> {
+	const params = buildSearchParams({gpsFilter, hiddenFilter, tagID, startDate, endDate});
+	const response = await backendFetch(`${BASE}/folders?${params.toString()}`, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch folders: ${response.status}`);
+	}
+	return parseJSON(response, isFolderTree, 'Invalid folders response payload');
+}
+
+export async function getFolderAssets(
+	path: string,
+	gpsFilter: TGPSFilter,
+	hiddenFilter: THiddenFilter,
+	tagID: string | undefined,
+	startDate: string | undefined,
+	endDate: string | undefined,
+	page: number,
+	pageSize: number,
+	opts: TRequestOptions = {}
+): Promise<TPaginatedAssets> {
+	const params = buildSearchParams({
+		path,
+		page: String(normalizeAssetPage(page)),
+		pageSize: String(normalizePageSize(pageSize)),
+		gpsFilter,
+		hiddenFilter,
+		tagID,
+		startDate,
+		endDate
+	});
+	const url = `${BASE}/folders/assets?${params.toString()}`;
+	const response = await backendFetch(url, {}, opts);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch folder assets: ${response.status}`);
+	}
+	return parseJSON(response, isPaginatedAssets, 'Invalid folder assets response payload');
 }
 
 export async function fetchMapMarkers(

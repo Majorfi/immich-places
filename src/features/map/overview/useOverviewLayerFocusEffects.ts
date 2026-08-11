@@ -3,7 +3,7 @@
 import {useEffect} from 'react';
 
 import {overviewIcon} from '@/features/map/icons';
-import {isGPSFilterWithLocations} from '@/utils/view';
+import {doesGPSFilterIncludeLocations} from '@/utils/view';
 
 import type {TUseOverviewLayerArgs} from '@/shared/types/mapLayer';
 
@@ -39,7 +39,7 @@ export function useOverviewLayerFocusEffects({
 		}
 		const prev = overviewMarkersRef.current.get(focusedOverviewIDRef.current);
 		if (prev) {
-			const isGreyscale = !isGPSFilterWithLocations(gpsFilter);
+			const isGreyscale = !doesGPSFilterIncludeLocations(gpsFilter);
 			prev.setIcon(overviewIcon(focusedOverviewIDRef.current, false, isGreyscale));
 		}
 		focusedOverviewIDRef.current = null;
@@ -57,7 +57,7 @@ export function useOverviewLayerFocusEffects({
 		}
 		const prev = overviewMarkersRef.current.get(focusedID);
 		if (prev) {
-			const isGreyscale = !isGPSFilterWithLocations(gpsFilter);
+			const isGreyscale = !doesGPSFilterIncludeLocations(gpsFilter);
 			prev.setIcon(overviewIcon(focusedID, false, isGreyscale));
 		}
 		focusedOverviewIDRef.current = null;
