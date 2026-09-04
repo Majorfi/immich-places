@@ -8,7 +8,7 @@ import {TileConfigProvider} from '@/features/map/TileConfigContext';
 import './globals.css';
 
 import type {Metadata} from 'next';
-import type {ReactElement} from 'react';
+import type {ReactElement, ReactNode} from 'react';
 
 /**
  * Rendered per request so `CARTO_API_KEY` is read at runtime instead of being inlined at build time.
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
 	children
 }: Readonly<{
-	children: React.ReactNode;
+	children: ReactNode;
 }>): ReactElement {
 	return (
 		<html lang={'en'}>
