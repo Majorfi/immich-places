@@ -3,10 +3,17 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
+import {TileConfigProvider} from '@/features/map/TileConfigContext';
+
 import './globals.css';
 
 import type {Metadata} from 'next';
-import type {ReactElement} from 'react';
+import type {ReactElement, ReactNode} from 'react';
+
+/**
+ * Rendered per request so `CARTO_API_KEY` is read at runtime instead of being inlined at build time.
+ */
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
 	title: 'Immich Places',
@@ -25,11 +32,13 @@ export const metadata: Metadata = {
 export default function RootLayout({
 	children
 }: Readonly<{
-	children: React.ReactNode;
+	children: ReactNode;
 }>): ReactElement {
 	return (
 		<html lang={'en'}>
-			<body className={`${GeistSans.variable} ${GeistSans.className}`}>{children}</body>
+			<body className={`${GeistSans.variable} ${GeistSans.className}`}>
+				<TileConfigProvider cartoAPIKey={process.env.CARTO_API_KEY ?? ''}>{children}</TileConfigProvider>
+			</body>
 		</html>
 	);
 }

@@ -9,8 +9,7 @@ import {
 	GEOLOCATION_UNAVAILABLE_ERROR,
 	SATELLITE_TILE_ATTRIBUTION,
 	SATELLITE_TILE_URL,
-	TILE_ATTRIBUTION,
-	TILE_URL
+	TILE_ATTRIBUTION
 } from '@/features/map/constant';
 import {useMapDropHandlers} from '@/features/map/hooks/useMapDropHandlers';
 import {useMapBootstrap} from '@/features/map/hooks/useMapViewBootstrap';
@@ -18,6 +17,7 @@ import {useMapClickHandler} from '@/features/map/hooks/useMapViewClickHandler';
 import {useMapViewRefs} from '@/features/map/hooks/useMapViewRefs';
 import {usePendingSelectionMarker} from '@/features/map/hooks/usePendingSelectionMarker';
 import {useOverviewLayer} from '@/features/map/overview/useOverviewLayer';
+import {useStreetTileURL} from '@/features/map/TileConfigContext';
 import {
 	MAP_LOCATE_ME_ZOOM,
 	MAP_LOCATION_SOURCE_DRAG_DROP,
@@ -102,6 +102,7 @@ export function useMapViewController({
 	const [mapInteractionError, setMapInteractionError] = useState<string | null>(null);
 	const [activeTileLayer, setActiveTileLayer] = useState<TMapTileLayer>('street');
 	const [mapContextMenu, setMapContextMenu] = useState<TMapContextMenuState>(null);
+	const streetTileURL = useStreetTileURL();
 
 	const {
 		mapInstanceRef,
@@ -176,13 +177,13 @@ export function useMapViewController({
 		}
 		tileLayerRef.current.remove();
 		const isSatellite = activeTileLayer === 'street';
-		const url = isSatellite ? SATELLITE_TILE_URL : TILE_URL;
+		const url = isSatellite ? SATELLITE_TILE_URL : streetTileURL;
 		const attribution = isSatellite ? SATELLITE_TILE_ATTRIBUTION : TILE_ATTRIBUTION;
 		const maxZoom = isSatellite ? MAP_SATELLITE_TILE_MAX_ZOOM : MAP_TILE_MAX_ZOOM;
 		const newTiles = L.tileLayer(url, {attribution, maxZoom}).addTo(map);
 		tileLayerRef.current = newTiles;
 		setActiveTileLayer(isSatellite ? 'satellite' : 'street');
-	}, [activeTileLayer, mapInstanceRef, tileLayerRef]);
+	}, [activeTileLayer, mapInstanceRef, streetTileURL, tileLayerRef]);
 
 	useMapBootstrap({
 		containerRef,
