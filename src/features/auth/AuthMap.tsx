@@ -3,7 +3,8 @@
 import L from 'leaflet';
 import {useEffect, useRef} from 'react';
 
-import {TILE_ATTRIBUTION, TILE_URL} from '@/features/map/constant';
+import {TILE_ATTRIBUTION} from '@/features/map/constant';
+import {useStreetTileURL} from '@/features/map/TileConfigContext';
 import {MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM, MAP_TILE_MAX_ZOOM} from '@/utils/map';
 
 import type {ReactElement} from 'react';
@@ -17,6 +18,7 @@ import type {ReactElement} from 'react';
 export function AuthMap(): ReactElement {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const mapRef = useRef<L.Map | null>(null);
+	const streetTileURL = useStreetTileURL();
 
 	useEffect(() => {
 		if (!containerRef.current || mapRef.current) {
@@ -29,7 +31,7 @@ export function AuthMap(): ReactElement {
 		}).setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
 
 		L.control.attribution({prefix: false}).addTo(map);
-		L.tileLayer(TILE_URL, {attribution: TILE_ATTRIBUTION, maxZoom: MAP_TILE_MAX_ZOOM}).addTo(map);
+		L.tileLayer(streetTileURL, {attribution: TILE_ATTRIBUTION, maxZoom: MAP_TILE_MAX_ZOOM}).addTo(map);
 		mapRef.current = map;
 
 		const frame = requestAnimationFrame(() => {
@@ -49,7 +51,7 @@ export function AuthMap(): ReactElement {
 			currentMap.remove();
 			mapRef.current = null;
 		};
-	}, []);
+	}, [streetTileURL]);
 
 	return (
 		<div

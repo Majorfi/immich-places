@@ -92,6 +92,8 @@ docker run -d --name immich-places-backend --network immich-places-net --env-fil
 docker run -d --name immich-places --network immich-places-net -p 3032:3032 -e PORT=3032 -e BACKEND_URL=http://immich-places-backend:8082 ghcr.io/majorfi/immich-places
 ```
 
+The frontend command takes its configuration from `-e` flags rather than `.env`. To set a CARTO basemap key, add `-e CARTO_API_KEY=<your-key>` to it.
+
 Then open:
 
 ```text
@@ -143,6 +145,7 @@ The following Immich permissions are required:
 - `PORT` (default `8082`): Backend listen port inside container.
 - `BACKEND_URL` (frontend): Backend service URL used by the Next.js rewrite, default is `http://backend:8082`.
 - `NEXT_PUBLIC_BACKEND_BASE` (frontend): Client API base path, default `/api/backend`.
+- `CARTO_API_KEY` (frontend): CARTO basemap API key. Without it, CARTO serves the map tiles with an "API KEY REQUIRED" watermark. Keys are free within CARTO's fair use limit — request one at [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/).
 - `DEFAULT_TIMEZONE`: IANA timezone fallback for GPX import when auto-detection fails (e.g. `Europe/Vienna`).
 - `DAWARICH_URL`: URL for Dawarich location history import integration.
 - `DAWARICH_SYNC_INTERVAL_MS` (default `86400000`): Dawarich sync frequency in milliseconds (default: 24 hours).
@@ -190,6 +193,7 @@ Configure with `GEOCODE_PROVIDER` as a comma-separated list:
 - Frontend logs: `docker compose logs -f frontend`
 - Backend logs: `docker compose logs -f backend`
 - If startup fails on `ENCRYPTION_KEY`, confirm `.env` is in the project root and contains the key.
+- If the map shows an "API KEY REQUIRED" watermark, set `CARTO_API_KEY` and recreate the frontend container: in `.env` with Docker Compose, or with `-e CARTO_API_KEY=<your-key>` on the Option B `docker run` command.
 
 ## Security usage note
 

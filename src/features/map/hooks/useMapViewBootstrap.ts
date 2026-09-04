@@ -3,7 +3,8 @@
 import L from 'leaflet';
 import {useEffect} from 'react';
 
-import {TILE_ATTRIBUTION, TILE_URL} from '@/features/map/constant';
+import {TILE_ATTRIBUTION} from '@/features/map/constant';
+import {useStreetTileURL} from '@/features/map/TileConfigContext';
 import {
 	MAP_BOUNDS_DEBOUNCE_MS,
 	MAP_BOUNDS_KEY_DECIMALS,
@@ -62,6 +63,8 @@ export function useMapBootstrap({
 	setMapBoundsAction,
 	clearLocationAction
 }: TUseMapBootstrapArgs): void {
+	const streetTileURL = useStreetTileURL();
+
 	useEffect(() => {
 		if (!containerRef.current || mapInstanceRef.current) {
 			return;
@@ -72,7 +75,10 @@ export function useMapBootstrap({
 			MAP_DEFAULT_ZOOM
 		);
 		L.control.attribution({prefix: false}).addTo(map);
-		const tiles = L.tileLayer(TILE_URL, {attribution: TILE_ATTRIBUTION, maxZoom: MAP_TILE_MAX_ZOOM}).addTo(map);
+		const tiles = L.tileLayer(streetTileURL, {
+			attribution: TILE_ATTRIBUTION,
+			maxZoom: MAP_TILE_MAX_ZOOM
+		}).addTo(map);
 		tileLayerRef.current = tiles;
 		mapInstanceRef.current = map;
 
@@ -100,7 +106,15 @@ export function useMapBootstrap({
 			tileLayerRef.current = null;
 			mapInstanceRef.current = null;
 		};
-	}, [boundsDebounceRef, boundsKeyRef, containerRef, mapInstanceRef, tileLayerRef, setMapBoundsAction]);
+	}, [
+		boundsDebounceRef,
+		boundsKeyRef,
+		containerRef,
+		mapInstanceRef,
+		tileLayerRef,
+		setMapBoundsAction,
+		streetTileURL
+	]);
 
 	useEffect(() => {
 		if (!mapInstanceRef.current) {

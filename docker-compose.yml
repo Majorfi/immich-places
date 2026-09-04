@@ -6,6 +6,7 @@ services:
         environment:
             - PORT=${FRONTEND_PORT:-3032}
             - BACKEND_URL=http://backend:8082
+            - CARTO_API_KEY=${CARTO_API_KEY:-}
         depends_on:
             - backend
         restart: unless-stopped
