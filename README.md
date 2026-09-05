@@ -62,6 +62,7 @@ Then edit `.env`:
 - `ENCRYPTION_KEY`: Random key used to encrypt stored Immich API keys in the local DB.
 - `TRUST_PROXY_TLS`: Set to `true` when behind HTTPS reverse proxy (default behavior).
 - `IMMICH_EXTERNAL_URL`: Optional, only when browser-facing Immich links differ from backend-to-Immich calls.
+- `CARTO_API_KEY`: Optional. Free CARTO basemap key. Without it the map works but every tile is stamped "API KEY REQUIRED" — see [CARTO basemap](#carto-basemap).
 
 Example:
 
@@ -92,7 +93,7 @@ docker run -d --name immich-places-backend --network immich-places-net --env-fil
 docker run -d --name immich-places --network immich-places-net -p 3032:3032 -e PORT=3032 -e BACKEND_URL=http://immich-places-backend:8082 ghcr.io/majorfi/immich-places
 ```
 
-The frontend command takes its configuration from `-e` flags rather than `.env`. To set a CARTO basemap key, add `-e CARTO_API_KEY=<your-key>` to it.
+The frontend command takes its configuration from `-e` flags rather than `.env`. See [CARTO basemap](#carto-basemap) to add a basemap key.
 
 Then open:
 
@@ -145,7 +146,7 @@ The following Immich permissions are required:
 - `PORT` (default `8082`): Backend listen port inside container.
 - `BACKEND_URL` (frontend): Backend service URL used by the Next.js rewrite, default is `http://backend:8082`.
 - `NEXT_PUBLIC_BACKEND_BASE` (frontend): Client API base path, default `/api/backend`.
-- `CARTO_API_KEY` (frontend): CARTO basemap API key. Without it, CARTO serves the map tiles with an "API KEY REQUIRED" watermark. Keys are free within CARTO's fair use limit — request one at [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/).
+- `CARTO_API_KEY` (frontend): CARTO basemap API key. Without it the map tiles carry an "API KEY REQUIRED" watermark. See [CARTO basemap](#carto-basemap).
 - `DEFAULT_TIMEZONE`: IANA timezone fallback for GPX import when auto-detection fails (e.g. `Europe/Vienna`).
 - `DAWARICH_URL`: URL for Dawarich location history import integration.
 - `DAWARICH_SYNC_INTERVAL_MS` (default `86400000`): Dawarich sync frequency in milliseconds (default: 24 hours).
@@ -181,6 +182,31 @@ Configure with `GEOCODE_PROVIDER` as a comma-separated list:
 - **HERE Maps**: Sign up at [developer.here.com](https://developer.here.com). Free tier includes 250,000 requests/month.
 - **Google Maps**: Enable the [Geocoding API](https://console.cloud.google.com/apis/library/geocoding-backend.googleapis.com) in Google Cloud Console. Free tier includes roughly 10,000 requests/month.
 
+## CARTO basemap
+
+The map tiles come from CARTO. Since August 2026 CARTO requires an API key for its raster basemaps and stamps an "API KEY REQUIRED" watermark across tiles served without one. The app works without a key — the watermark is the only difference — but a key is free and removes it.
+
+**Getting a key:**
+
+Request one at [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/). The form asks for your email, the domain the maps will be served from, and a one-line description of the project. No CARTO account is needed and there is no approval queue — the key is emailed back immediately.
+
+The free allowance is 5 million tile requests per calendar month, counted across raster and vector. Past that CARTO gets in touch rather than cutting access off.
+
+**Setting it:**
+
+| Deployment                  | How                                                                   |
+| --------------------------- | --------------------------------------------------------------------- |
+| Option A (Docker Compose)   | Add `CARTO_API_KEY=<your-key>` to `.env`, then `docker compose up -d`  |
+| Option B (pre-built images) | Add `-e CARTO_API_KEY=<your-key>` to the frontend `docker run` command |
+
+The key belongs to the **frontend** container, not the backend. Unlike `HERE_API_KEY` and `GOOGLE_API_KEY`, which the backend uses for geocoding, this one is used by the browser when it requests tiles. It is read at startup, so recreate the container after changing it.
+
+**Notes:**
+
+- The key is visible in the browser's tile requests. That is inherent to CARTO's raster basemaps, which are keyed client-side. Use a key issued for this instance and do not reuse it across unrelated projects.
+- A wrong key looks exactly like no key: CARTO returns the watermarked tile with HTTP 200 and no error. If the watermark persists after setting the variable, check the value before suspecting anything else.
+- Keep the CARTO and OpenStreetMap attribution visible on the map. It is on by default and is a condition of the free tier.
+
 ## Existing Immich user tips
 
 - For a containerized Immich stack, point `IMMICH_URL` at the Immich service name.
@@ -193,7 +219,7 @@ Configure with `GEOCODE_PROVIDER` as a comma-separated list:
 - Frontend logs: `docker compose logs -f frontend`
 - Backend logs: `docker compose logs -f backend`
 - If startup fails on `ENCRYPTION_KEY`, confirm `.env` is in the project root and contains the key.
-- If the map shows an "API KEY REQUIRED" watermark, set `CARTO_API_KEY` and recreate the frontend container: in `.env` with Docker Compose, or with `-e CARTO_API_KEY=<your-key>` on the Option B `docker run` command.
+- If the map shows an "API KEY REQUIRED" watermark, set `CARTO_API_KEY` and recreate the frontend container — see [CARTO basemap](#carto-basemap).
 
 ## Security usage note
 
