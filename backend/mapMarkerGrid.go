@@ -16,7 +16,7 @@ func newMarkerGrid(bounds *TViewportBounds, limit int) markerGrid {
 			lngSpan += 360
 		}
 	}
-	side := max(1, int(math.Sqrt(float64(limit)))-1)
+	side := max(1, int(math.Sqrt(float64(limit)))-2)
 	return markerGrid{
 		cellLat: markerCellSize(latSpan, side),
 		cellLng: markerCellSize(min(lngSpan, 360), side),

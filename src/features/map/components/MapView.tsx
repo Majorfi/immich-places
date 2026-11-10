@@ -24,7 +24,11 @@ import type {ReactElement} from 'react';
  */
 export function MapView(): ReactElement {
 	const mapModel = useMapViewModel();
-	const {mapMarkersError, setLocationAction} = mapModel;
+	const {mapMarkersError, visibleMarkerLimit, isMarkerLimitReached, albumFilter, setLocationAction} = mapModel;
+	let markerLimitNotice = `Showing ${visibleMarkerLimit.toLocaleString()} markers spread across the map.`;
+	if (!albumFilter) {
+		markerLimitNotice = `${markerLimitNotice} Zoom in for more.`;
+	}
 
 	const handleResetPosition = useCallback(
 		(assetID: string, originalLatitude: number, originalLongitude: number) => {
@@ -87,10 +91,18 @@ export function MapView(): ReactElement {
 				onLocateMeAction={handleLocateMe}
 				onToggleTileLayerAction={handleToggleTileLayer}
 			/>
-			{(mapMarkersError || mapInteractionError) && (
+			{(mapMarkersError || mapInteractionError || isMarkerLimitReached) && (
 				<div
 					className={'pointer-events-none absolute right-4 bottom-16 flex max-w-[280px] flex-col gap-1'}
 					style={{zIndex: MAP_CONTROL_Z_INDEX}}>
+					{isMarkerLimitReached && (
+						<div
+							className={
+								'rounded-md bg-white/85 px-2 py-1 text-[0.6875rem] text-(--color-text-secondary) shadow-sm backdrop-blur-sm'
+							}>
+							{markerLimitNotice}
+						</div>
+					)}
 					{mapMarkersError && (
 						<div
 							className={

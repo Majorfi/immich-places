@@ -22,6 +22,8 @@ export type TUseMapViewModelReturn = {
 	setMapBoundsAction: (bounds: TViewportBounds | null) => void;
 	mapMarkers: ReturnType<typeof useMapMarkers>['mapMarkers'];
 	mapMarkersError: ReturnType<typeof useMapMarkers>['error'];
+	visibleMarkerLimit: number;
+	isMarkerLimitReached: boolean;
 	selectedAssets: TAssetRow[];
 	isAssetSelected: (assetID: string) => boolean;
 	pendingLocation: TMapSceneValue['pendingLocation'];
@@ -104,6 +106,7 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 	}, [mapMarkers, pendingLocationsByAssetID]);
 
 	const isGPXMode = useMemo(() => hasGPXPendingEntries(pendingLocationsByAssetID), [pendingLocationsByAssetID]);
+	const isMarkerLimitReached = !isGPXMode && !mapMarkersError && mapMarkers.length >= visibleMarkerLimit;
 	let effectiveAlbumFilter = albumFilter;
 	let effectiveMapMarkers = mapMarkers;
 	if (isGPXMode) {
@@ -151,6 +154,8 @@ export function useMapViewModel(): TUseMapViewModelReturn {
 		setMapBoundsAction: setMapBounds,
 		mapMarkers: effectiveMapMarkers,
 		mapMarkersError,
+		visibleMarkerLimit,
+		isMarkerLimitReached,
 		selectedAssets,
 		isAssetSelected,
 		pendingLocation,
