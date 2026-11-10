@@ -238,6 +238,7 @@ func (s *SyncService) doUserFullSync(ctx context.Context, userID string, immich 
 	tagErr := s.syncTags(ctx, userID, immich, true)
 
 	if syncErr := errors.Join(albumErr, tagErr); syncErr != nil {
+		log.Printf("[Sync] Full sync album/tag error for user %s: %v", userID, syncErr)
 		s.recordSyncError(ctx, userID, fmt.Sprintf("full sync: %v", syncErr))
 	} else {
 		s.clearSyncError(ctx, userID)
@@ -317,6 +318,7 @@ func (s *SyncService) doUserIncrementalSync(ctx context.Context, userID string, 
 	tagErr := s.syncTags(ctx, userID, immich, false)
 
 	if syncErr := errors.Join(albumErr, tagErr); syncErr != nil {
+		log.Printf("[Sync] Incremental sync album/tag error for user %s: %v", userID, syncErr)
 		s.recordSyncError(ctx, userID, fmt.Sprintf("incremental sync: %v", syncErr))
 	} else {
 		s.clearSyncError(ctx, userID)
