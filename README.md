@@ -112,10 +112,12 @@ http://localhost:3032
 
 Immich Places validates the key with `GET /api/users/me` and then calls:
 
-- `GET /api/search/metadata` (read assets for sync/search)
-- `GET /api/albums` and `GET /api/albums/{id}` (album listing and album contents)
+- `POST /api/search/metadata` (read assets for sync, and album/tag contents)
+- `GET /api/albums` (album listing)
+- `GET /api/tags` (tag listing)
 - `GET /api/stacks` (stack synchronization)
-- `PUT /api/assets` (bulk write updates when saving coordinates)
+- `GET /api/libraries` (external library listing)
+- `PATCH /api/assets` (bulk write updates when saving coordinates)
 - `GET /api/assets/{id}/thumbnail` (asset preview thumbnails)
 
 The following Immich permissions are required:
@@ -125,6 +127,7 @@ The following Immich permissions are required:
 - `asset.update`
 - `asset.view`
 - `album.read`
+- `tag.read`
 - `library.read` (if External Library is used)
 - `stack.read`
 
