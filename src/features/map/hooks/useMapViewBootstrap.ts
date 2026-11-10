@@ -70,10 +70,11 @@ export function useMapBootstrap({
 			return;
 		}
 
-		const map = L.map(containerRef.current, {attributionControl: false, zoomControl: false}).setView(
-			MAP_DEFAULT_CENTER,
-			MAP_DEFAULT_ZOOM
-		);
+		const map = L.map(containerRef.current, {
+			attributionControl: false,
+			zoomControl: false,
+			worldCopyJump: true
+		}).setView(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
 		L.control.attribution({prefix: false}).addTo(map);
 		const tiles = L.tileLayer(streetTileURL, {
 			attribution: TILE_ATTRIBUTION,

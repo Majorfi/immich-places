@@ -465,7 +465,8 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "invalid bounds: latitude must be between -90 and 90, south must be <= north")
 			return
 		}
-		bounds = &TViewportBounds{North: n, South: s, East: boundsReq.East, West: boundsReq.West}
+		normalizedWest, normalizedEast := normalizeViewportLongitudes(boundsReq.West, boundsReq.East)
+		bounds = &TViewportBounds{North: n, South: s, East: normalizedEast, West: normalizedWest}
 	}
 
 	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, tagID, startDate, endDate, bounds, limit, mediaType)
