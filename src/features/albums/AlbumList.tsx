@@ -5,7 +5,7 @@ import Image from 'next/image';
 import {useCatalog, useView} from '@/shared/context/AppContext';
 import {thumbnailURL} from '@/utils/backendUrls';
 import {PHOTO_GRID_STAGGER_ANIMATION_MAX_OFFSET, PHOTO_GRID_STAGGER_ANIMATION_STEP_MS} from '@/utils/photoGrid';
-import {isGPSFilterWithLocations, isGPSFilterWithoutLocations} from '@/utils/view';
+import {MEDIA_FILTER_DEFAULT, isGPSFilterWithLocations, isGPSFilterWithoutLocations} from '@/utils/view';
 
 import type {CSSProperties, ReactElement} from 'react';
 
@@ -36,7 +36,7 @@ type TAlbumListProps = {
  */
 export function AlbumList({onSelectAction, animation, isSyncing}: TAlbumListProps): ReactElement {
 	const {albums, isLoadingAlbums, albumsError} = useCatalog();
-	const {gpsFilter} = useView();
+	const {gpsFilter, mediaFilter} = useView();
 
 	if (isLoadingAlbums) {
 		return (
@@ -60,7 +60,14 @@ export function AlbumList({onSelectAction, animation, isSyncing}: TAlbumListProp
 		);
 	}
 
-	const visibleAlbums = isGPSFilterWithoutLocations(gpsFilter) ? albums.filter(a => a.filteredCount > 0) : albums;
+	let visibleAlbums = albums;
+	if (isGPSFilterWithoutLocations(gpsFilter) || mediaFilter !== MEDIA_FILTER_DEFAULT) {
+		visibleAlbums = albums.filter(a => a.filteredCount > 0);
+	}
+	let countLabel = 'photos';
+	if (mediaFilter === 'video') {
+		countLabel = 'videos';
+	}
 
 	if (visibleAlbums.length === 0) {
 		if (isSyncing) {
@@ -139,7 +146,7 @@ export function AlbumList({onSelectAction, animation, isSyncing}: TAlbumListProp
 					<div className={'px-1 py-1.5'}>
 						<div className={'truncate text-[0.75rem] font-semibold'}>{album.albumName}</div>
 						<div className={'mt-px text-[0.625rem] text-(--color-text-secondary)'}>
-							{album.filteredCount} {'photos'}
+							{album.filteredCount} {countLabel}
 						</div>
 					</div>
 				</div>

@@ -74,6 +74,8 @@ export function useAppProviderState(): TAppProviderState {
 		setGPSFilterRawAction,
 		hiddenFilter,
 		setHiddenFilterAction,
+		mediaFilter,
+		setMediaFilterAction,
 		pageSize,
 		setPageSizeAction,
 		gridColumns,
@@ -97,6 +99,7 @@ export function useAppProviderState(): TAppProviderState {
 	const catalogDomain = useCatalogDomain({
 		gpsFilter,
 		hiddenFilter,
+		mediaFilter,
 		pageSize,
 		viewMode,
 		selectedAlbumID,
@@ -211,6 +214,8 @@ export function useAppProviderState(): TAppProviderState {
 		setGPSFilterAction,
 		hiddenFilter,
 		setHiddenFilterAction,
+		mediaFilter,
+		setMediaFilterAction,
 		pageSize,
 		setPageSizeAction,
 		gridColumns,
@@ -288,6 +293,7 @@ export function useAppProviderState(): TAppProviderState {
 
 	const mapSceneValue = useMapSceneValue({
 		gpsFilter,
+		mediaFilter,
 		viewMode,
 		selectedAlbumID,
 		selectedTagID,

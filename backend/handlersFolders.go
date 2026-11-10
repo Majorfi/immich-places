@@ -12,6 +12,11 @@ func (h *Handlers) handleGetFolders(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
+		return
+	}
 
 	tagID := r.URL.Query().Get("tagID")
 	gpsFilter, err := parseGPSFilterParam(r)
@@ -31,7 +36,7 @@ func (h *Handlers) handleGetFolders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tree, err := h.db.getFolderTree(r.Context(), user.ID, gpsFilter, hiddenFilter, tagID, startDate, endDate)
+	tree, err := h.db.getFolderTree(r.Context(), user.ID, gpsFilter, hiddenFilter, tagID, startDate, endDate, mediaType)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load folders")
 		return
@@ -85,6 +90,11 @@ func (h *Handlers) handleGetFolderAssets(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
+		return
+	}
 
 	folderPath := r.URL.Query().Get("path")
 	if folderPath == "" {
@@ -129,7 +139,7 @@ func (h *Handlers) handleGetFolderAssets(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	assets, total, err := h.db.getFolderAssets(r.Context(), user.ID, folderPath, gpsFilter, hiddenFilter, tagID, startDate, endDate, page, pageSize)
+	assets, total, err := h.db.getFolderAssets(r.Context(), user.ID, folderPath, gpsFilter, hiddenFilter, tagID, startDate, endDate, mediaType, page, pageSize)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query folder assets")
 		return

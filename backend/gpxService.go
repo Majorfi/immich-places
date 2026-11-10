@@ -146,6 +146,7 @@ func buildMatchResult(asset AssetRow, lat, lon, ele float64, gap int, alreadyApp
 	result := GPXMatchResult{
 		AssetID:             asset.ImmichID,
 		FileName:            asset.OriginalFileName,
+		Type:                asset.Type,
 		Latitude:            lat,
 		Longitude:           lon,
 		Elevation:           ele,

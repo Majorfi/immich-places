@@ -142,7 +142,7 @@ type assetFilter struct {
 	aliased    bool
 }
 
-func buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) assetFilter {
+func buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType string) assetFilter {
 	var f assetFilter
 	if albumID != "" || tagID != "" {
 		f.aliased = true
@@ -174,6 +174,7 @@ func buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate
 			f.fromClause += ` AND (a.latitude IS NULL OR a.longitude IS NULL)`
 		}
 		f.fromClause += ` AND a.stackPrimaryAssetID IS NULL`
+		f.fromClause += mediaTypePredicate("a.type", mediaType)
 		f.fromClause += hiddenLibraryFilterAliased
 		switch hiddenFilter {
 		case hiddenFilterHidden:
@@ -203,6 +204,7 @@ func buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate
 			f.fromClause += ` AND (latitude IS NULL OR longitude IS NULL)`
 		}
 		f.fromClause += ` AND stackPrimaryAssetID IS NULL`
+		f.fromClause += mediaTypePredicate("type", mediaType)
 		f.fromClause += hiddenLibraryFilter
 		switch hiddenFilter {
 		case hiddenFilterHidden:
@@ -224,8 +226,8 @@ func buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate
 	return f
 }
 
-func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string, page, pageSize int) ([]AssetRow, error) {
-	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
+func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType string, page, pageSize int) ([]AssetRow, error) {
+	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 
 	cols := assetColumns
 	orderPrefix := ""
@@ -247,8 +249,8 @@ func (d *Database) getFilteredAssets(ctx context.Context, userID, albumID, tagID
 	return scanAssetRows(rows)
 }
 
-func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) (int, error) {
-	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
+func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType string) (int, error) {
+	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 	query := `SELECT COUNT(*) ` + f.fromClause
 
 	var count int
@@ -256,8 +258,8 @@ func (d *Database) countFilteredAssets(ctx context.Context, userID, albumID, tag
 	return count, err
 }
 
-func (d *Database) countAssetsByDay(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate string) (map[string]int, error) {
-	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
+func (d *Database) countAssetsByDay(ctx context.Context, userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType string) (map[string]int, error) {
+	f := buildAssetFilter(userID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 
 	dateCol := "dateTimeOriginal"
 	if f.aliased {
@@ -290,7 +292,7 @@ type markerFilter struct {
 	prefix     string
 }
 
-func buildMarkerFilter(userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds) markerFilter {
+func buildMarkerFilter(userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, mediaType string) markerFilter {
 	var f markerFilter
 	if albumID != "" || tagID != "" {
 		f.prefix = "a."
@@ -315,10 +317,11 @@ func buildMarkerFilter(userID, albumID, tagID, startDate, endDate string, bounds
 		}
 		f.fromClause += ` AND a.latitude IS NOT NULL AND a.longitude IS NOT NULL
 				AND a.stackPrimaryAssetID IS NULL` + hiddenLibraryFilterAliased
+		f.fromClause += mediaTypePredicate("a.type", mediaType)
 	} else {
 		f.fromClause = `FROM assets
 			WHERE userID = ? AND latitude IS NOT NULL AND longitude IS NOT NULL
-				AND stackPrimaryAssetID IS NULL` + hiddenLibraryFilter
+				AND stackPrimaryAssetID IS NULL` + hiddenLibraryFilter + mediaTypePredicate("type", mediaType)
 		f.args = append(f.args, userID)
 	}
 
@@ -344,8 +347,8 @@ func buildMarkerFilter(userID, albumID, tagID, startDate, endDate string, bounds
 	return f
 }
 
-func (d *Database) getMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, limit int) ([]MapMarker, error) {
-	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds)
+func (d *Database) getMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, limit int, mediaType string) ([]MapMarker, error) {
+	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds, mediaType)
 	grid := newMarkerGrid(bounds, limit)
 
 	query := fmt.Sprintf(`SELECT immichID, latitude, longitude FROM (
@@ -378,8 +381,8 @@ func (d *Database) getMapMarkers(ctx context.Context, userID, albumID, tagID, st
 	return markers, rows.Err()
 }
 
-func (d *Database) countMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds) (int, error) {
-	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds)
+func (d *Database) countMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, mediaType string) (int, error) {
+	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds, mediaType)
 	query := "SELECT COUNT(*) " + f.fromClause
 
 	var count int

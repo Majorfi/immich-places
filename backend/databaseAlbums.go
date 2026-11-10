@@ -100,7 +100,7 @@ func albumGPSPredicate(gpsFilter string) string {
 // getAlbumsByGPSFilter lists every album with its asset count under the given GPS
 // filter. Unlike getAlbumsWithGPSCount it keeps albums whose count is zero, which is
 // what the "missing location" and "all" views need.
-func (d *Database) getAlbumsByGPSFilter(ctx context.Context, userID, gpsFilter, startDate, endDate string) ([]AlbumRow, error) {
+func (d *Database) getAlbumsByGPSFilter(ctx context.Context, userID, gpsFilter, startDate, endDate, mediaType string) ([]AlbumRow, error) {
 	dateFilter := ""
 	var dateArgs []interface{}
 	if startDate != "" {
@@ -119,10 +119,10 @@ func (d *Database) getAlbumsByGPSFilter(ctx context.Context, userID, gpsFilter, 
 	rows, err := d.db.QueryContext(ctx,
 		`SELECT a.immichID, a.albumName, a.thumbnailAssetID, a.assetCount, a.updatedAt, a.startDate,
 			COUNT(CASE WHEN ast.immichID IS NOT NULL`+albumGPSPredicate(gpsFilter)+`
-				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as filteredCount,
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+mediaTypePredicate("ast.type", mediaType)+` THEN 1 END) as filteredCount,
 			COUNT(CASE WHEN ast.immichID IS NOT NULL
 				AND (ast.latitude IS NULL OR ast.longitude IS NULL)
-				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as noGPSCount
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+mediaTypePredicate("ast.type", mediaType)+` THEN 1 END) as noGPSCount
 		FROM albums a
 		LEFT JOIN albumAssets aa ON aa.userID = a.userID AND aa.albumID = a.immichID
 		LEFT JOIN assets ast ON ast.userID = a.userID AND ast.immichID = aa.assetID
@@ -147,7 +147,7 @@ func (d *Database) getAlbumsByGPSFilter(ctx context.Context, userID, gpsFilter, 
 	return albums, rows.Err()
 }
 
-func (d *Database) getAlbumsWithGPSCount(ctx context.Context, userID, startDate, endDate string) ([]AlbumRow, error) {
+func (d *Database) getAlbumsWithGPSCount(ctx context.Context, userID, startDate, endDate, mediaType string) ([]AlbumRow, error) {
 	dateFilter := ""
 	var dateArgs []interface{}
 	if startDate != "" {
@@ -166,9 +166,9 @@ func (d *Database) getAlbumsWithGPSCount(ctx context.Context, userID, startDate,
 	rows, err := d.db.QueryContext(ctx,
 		`SELECT a.immichID, a.albumName, a.thumbnailAssetID, a.assetCount, a.updatedAt, a.startDate,
 			COUNT(CASE WHEN ast.latitude IS NOT NULL AND ast.longitude IS NOT NULL
-				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as filteredCount,
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+mediaTypePredicate("ast.type", mediaType)+` THEN 1 END) as filteredCount,
 			COUNT(CASE WHEN (ast.latitude IS NULL OR ast.longitude IS NULL)
-				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+` THEN 1 END) as noGPSCount
+				AND ast.stackPrimaryAssetID IS NULL`+hiddenLibraryFilterAliasedAST+dateFilter+mediaTypePredicate("ast.type", mediaType)+` THEN 1 END) as noGPSCount
 		FROM albums a
 		JOIN albumAssets aa ON aa.userID = a.userID AND aa.albumID = a.immichID
 		JOIN assets ast ON ast.userID = a.userID AND ast.immichID = aa.assetID

@@ -40,6 +40,7 @@ type TUseMapViewControllerArgs = {
 		| 'viewMode'
 		| 'albumFilter'
 		| 'tagFilter'
+		| 'mediaFilter'
 		| 'startDate'
 		| 'endDate'
 		| 'setMapBoundsAction'
@@ -80,6 +81,7 @@ export function useMapViewController({
 		viewMode,
 		albumFilter,
 		tagFilter,
+		mediaFilter,
 		startDate,
 		endDate,
 		setMapBoundsAction,
@@ -229,6 +231,7 @@ export function useMapViewController({
 		viewMode,
 		albumFilter,
 		tagFilter,
+		mediaFilter,
 		startDate,
 		endDate,
 		mapMarkers,

@@ -59,7 +59,7 @@ func TestGetFolderTreeIncludesUploadsAndExternal(t *testing.T) {
 		},
 	})
 
-	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "")
+	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestGetFolderTreeGPSFilter(t *testing.T) {
 		extAsset("n2", "/mnt/photos/Trip/n2.jpg"),
 	})
 
-	withGPS, err := db.getFolderTree(ctx, testUserID, gpsFilterWithGPS, hiddenFilterVisible, "", "", "")
+	withGPS, err := db.getFolderTree(ctx, testUserID, gpsFilterWithGPS, hiddenFilterVisible, "", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getFolderTree with-gps: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestGetFolderTreeGPSFilter(t *testing.T) {
 		t.Errorf("expected with-gps count 1, got %+v", node)
 	}
 
-	noGPS, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "")
+	noGPS, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getFolderTree no-gps: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestGetFolderAssetsSiblingNotMatched(t *testing.T) {
 		extAsset("sibling", "/lib/myXphotos/sibling.jpg"),
 	})
 
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/my_photos", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	})
 
 	// Recursive: /lib/trip returns the direct file plus both subfolder files, not /lib/elsewhere.
-	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
+	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -167,14 +167,14 @@ func TestGetFolderAssetsRecursiveAndPagination(t *testing.T) {
 	}
 
 	// Pagination: page 1 of size 2 returns 2 items with hasNextPage semantics via total.
-	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 2)
+	page1, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page1: %v", err)
 	}
 	if len(page1) != 2 || total != 3 {
 		t.Errorf("expected 2 items and total 3, got len=%d total=%d", len(page1), total)
 	}
-	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 2, 2)
+	page2, _, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 2, 2)
 	if err != nil {
 		t.Fatalf("getFolderAssets page2: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestGetFolderTagFilter(t *testing.T) {
 	}
 
 	// Folder assets honor the tag filter (exercises the aliased JOIN path).
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "tag1", "", "", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "tag1", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestGetFolderTagFilter(t *testing.T) {
 	}
 
 	// The tree honors it too.
-	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "tag1", "", "")
+	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "tag1", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}

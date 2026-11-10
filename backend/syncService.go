@@ -345,6 +345,9 @@ func (s *SyncService) syncAssets(ctx context.Context, userID string, immich Sync
 
 		assets := make([]AssetRow, 0, len(items))
 		for _, item := range items {
+			if !isSupportedAssetType(item.Type) {
+				continue
+			}
 			assets = append(assets, mapImmichToAssetRow(item))
 			allIDs = append(allIDs, item.ID)
 		}

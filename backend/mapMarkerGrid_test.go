@@ -92,7 +92,7 @@ func TestGetMapMarkersKeepsSparsePlacesUnderLimit(t *testing.T) {
 				db.replaceAlbumAssets(ctx, testUserID, albumID, assetIDs)
 			}
 
-			markers, err := db.getMapMarkers(ctx, testUserID, albumID, "", "", "", tt.bounds, tt.limit)
+			markers, err := db.getMapMarkers(ctx, testUserID, albumID, "", "", "", tt.bounds, tt.limit, mediaTypeAll)
 			if err != nil {
 				t.Fatalf("getMapMarkers: %v", err)
 			}

@@ -54,7 +54,7 @@ func TestUpsertAndCountAssets(t *testing.T) {
 		t.Errorf("expected 3 total, got %d", total)
 	}
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestUpsertOverwritesExisting(t *testing.T) {
 	if total != 1 {
 		t.Errorf("expected 1 after upsert, got %d", total)
 	}
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 
-	visible, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "")
+	visible, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	visible, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "")
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Errorf("expected 1 visible after hiding, got %d", visible)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Errorf("expected 1 hidden, got %d", hidden)
 	}
 
-	all, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	all, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets all: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("updateAssetHidden unhide: %v", err)
 	}
 
-	visible, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "")
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestHiddenFilterDoesNotAffectMapMarkers(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", nil, maxMapMarkers)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", nil, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestIsHiddenSurvivesUpsert(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestIsHiddenSurvivesUpsert(t *testing.T) {
 		t.Fatalf("upsertAssets: %v", err)
 	}
 
-	hidden, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "")
+	hidden, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestGetMapMarkersNoBounds(t *testing.T) {
 	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 	seedAsset(t, db, "a3", nil, nil, "2024-01-03T12:00:00Z")
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", nil, maxMapMarkers)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", nil, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers: %v", err)
 	}
@@ -233,7 +233,7 @@ func TestGetMapMarkersRespectsLimit(t *testing.T) {
 	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", nil, 1)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", nil, 1, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers with limit: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestCountMapMarkers(t *testing.T) {
 	seedAsset(t, db, "a2", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 	seedAsset(t, db, "a3", nil, nil, "2024-01-03T12:00:00Z")
 
-	count, err := db.countMapMarkers(ctx, testUserID, "", "", "", "", nil)
+	count, err := db.countMapMarkers(ctx, testUserID, "", "", "", "", nil, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countMapMarkers: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestGetMapMarkersWithBounds(t *testing.T) {
 	seedAsset(t, db, "nyc", ptr(40.71), ptr(-74.0), "2024-01-02T12:00:00Z")
 
 	bounds := &TViewportBounds{North: 50, South: 45, East: 10, West: -5}
-	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", bounds, maxMapMarkers)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", bounds, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers with bounds: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestGetMapMarkersDatelineCrossing(t *testing.T) {
 	seedAsset(t, db, "paris", ptr(48.85), ptr(2.35), "2024-01-03T12:00:00Z")
 
 	bounds := &TViewportBounds{North: -10, South: -20, East: -170, West: 170}
-	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", bounds, maxMapMarkers)
+	markers, err := db.getMapMarkers(ctx, testUserID, "", "", "", "", bounds, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers dateline: %v", err)
 	}
@@ -320,7 +320,7 @@ func TestBulkUpdateAssetLocation(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetLocation: %v", err)
 	}
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestBulkUpdateAssetLocationNullIsland(t *testing.T) {
 
 	seedAsset(t, db, "a1", ptr(48.85), ptr(2.35), "2024-01-01T12:00:00Z")
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets before: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestBulkUpdateAssetLocationNullIsland(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetLocation: %v", err)
 	}
 
-	withGPS, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	withGPS, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets after: %v", err)
 	}
@@ -370,7 +370,7 @@ func TestBulkUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetHidden: %v", err)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "hidden", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -378,7 +378,7 @@ func TestBulkUpdateAssetHidden(t *testing.T) {
 		t.Errorf("expected 2 hidden after bulk hide, got %d", hidden)
 	}
 
-	visible, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "")
+	visible, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -391,7 +391,7 @@ func TestBulkUpdateAssetHidden(t *testing.T) {
 		t.Fatalf("bulkUpdateAssetHidden unhide: %v", err)
 	}
 
-	visible, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "")
+	visible, err = db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible after unhide: %v", err)
 	}
@@ -745,7 +745,7 @@ func TestGetAlbumsWithGPSCount(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	albums, err := db.getAlbumsWithGPSCount(ctx, testUserID, "", "")
+	albums, err := db.getAlbumsWithGPSCount(ctx, testUserID, "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getAlbumsWithGPSCount: %v", err)
 	}
@@ -791,7 +791,7 @@ func TestGetAlbumsWithNoGPSCount(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	albums, err := db.getAlbumsByGPSFilter(ctx, testUserID, gpsFilterNoGPS, "", "")
+	albums, err := db.getAlbumsByGPSFilter(ctx, testUserID, gpsFilterNoGPS, "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getAlbumsByGPSFilter: %v", err)
 	}
@@ -855,7 +855,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Fatalf("updateAssetHidden: %v", err)
 	}
 
-	visible, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "visible", "", "")
+	visible, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets visible: %v", err)
 	}
@@ -863,7 +863,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 1 visible in album, got %d", visible)
 	}
 
-	hidden, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "hidden", "", "")
+	hidden, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "hidden", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets hidden: %v", err)
 	}
@@ -871,7 +871,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 1 hidden in album, got %d", hidden)
 	}
 
-	all, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "all", "", "")
+	all, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets all: %v", err)
 	}
@@ -879,7 +879,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 2 total in album, got %d", all)
 	}
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "visible", "", "", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "visible", "", "", mediaTypeAll, 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets visible: %v", err)
 	}
@@ -887,7 +887,7 @@ func TestHiddenFilterAlbumPath(t *testing.T) {
 		t.Errorf("expected 1 visible asset in album, got %d", len(assets))
 	}
 
-	assets, err = db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "hidden", "", "", 1, 10)
+	assets, err = db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "hidden", "", "", mediaTypeAll, 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets hidden: %v", err)
 	}
@@ -905,7 +905,7 @@ func TestBuildAssetFilterAlbumNoGPS(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterNoGPS, "all", "", "", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterNoGPS, "all", "", "", mediaTypeAll, 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets album no GPS: %v", err)
 	}
@@ -913,7 +913,7 @@ func TestBuildAssetFilterAlbumNoGPS(t *testing.T) {
 		t.Errorf("expected 1 no-GPS asset in album, got %d", len(assets))
 	}
 
-	count, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterNoGPS, "all", "", "")
+	count, err := db.countFilteredAssets(ctx, testUserID, "album1", "", gpsFilterNoGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}
@@ -931,7 +931,7 @@ func TestBuildAssetFilterAlbumWithGPS(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 2, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
-	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "all", "", "", 1, 10)
+	assets, err := db.getFilteredAssets(ctx, testUserID, "album1", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll, 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets album with GPS: %v", err)
 	}
@@ -989,7 +989,7 @@ func TestGetMapMarkersWithAlbum(t *testing.T) {
 	db.upsertAlbum(ctx, testUserID, "album1", "Test", nil, 1, "2024-01-01T00:00:00Z", nil)
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1"})
 
-	markers, err := db.getMapMarkers(ctx, testUserID, "album1", "", "", "", nil, maxMapMarkers)
+	markers, err := db.getMapMarkers(ctx, testUserID, "album1", "", "", "", nil, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers with album: %v", err)
 	}
@@ -1008,7 +1008,7 @@ func TestGetMapMarkersWithAlbumAndBounds(t *testing.T) {
 	db.replaceAlbumAssets(ctx, testUserID, "album1", []string{"a1", "a2"})
 
 	bounds := &TViewportBounds{North: 50, South: 45, East: 10, West: -5}
-	markers, err := db.getMapMarkers(ctx, testUserID, "album1", "", "", "", bounds, maxMapMarkers)
+	markers, err := db.getMapMarkers(ctx, testUserID, "album1", "", "", "", bounds, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers album+bounds: %v", err)
 	}
@@ -1032,7 +1032,7 @@ func TestFilteredAssetsByTag(t *testing.T) {
 		t.Fatalf("replaceTagAssets: %v", err)
 	}
 
-	noGPSTagged, err := db.countFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterNoGPS, "all", "", "")
+	noGPSTagged, err := db.countFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterNoGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets tag1 no-gps: %v", err)
 	}
@@ -1040,7 +1040,7 @@ func TestFilteredAssetsByTag(t *testing.T) {
 		t.Errorf("expected 1 no-gps tagged (a2), got %d", noGPSTagged)
 	}
 
-	withGPSTagged, err := db.countFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterWithGPS, "all", "", "")
+	withGPSTagged, err := db.countFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets tag1 with-gps: %v", err)
 	}
@@ -1048,7 +1048,7 @@ func TestFilteredAssetsByTag(t *testing.T) {
 		t.Errorf("expected 1 with-gps tagged (a1), got %d", withGPSTagged)
 	}
 
-	pageWithGPS, err := db.getFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterWithGPS, "all", "", "", 1, 10)
+	pageWithGPS, err := db.getFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterWithGPS, "all", "", "", mediaTypeAll, 1, 10)
 	if err != nil {
 		t.Fatalf("getFilteredAssets tag1: %v", err)
 	}
@@ -1056,7 +1056,7 @@ func TestFilteredAssetsByTag(t *testing.T) {
 		t.Errorf("expected only a1 in tagged with-gps page, got %v", pageWithGPS)
 	}
 
-	markersTagged, err := db.getMapMarkers(ctx, testUserID, "", "tag1", "", "", nil, maxMapMarkers)
+	markersTagged, err := db.getMapMarkers(ctx, testUserID, "", "tag1", "", "", nil, maxMapMarkers, mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getMapMarkers tag1: %v", err)
 	}
@@ -1067,7 +1067,7 @@ func TestFilteredAssetsByTag(t *testing.T) {
 	if err := db.deleteTagsNotIn(ctx, testUserID, []string{}); err != nil {
 		t.Fatalf("deleteTagsNotIn: %v", err)
 	}
-	staleCount, err := db.countFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterWithGPS, "all", "", "")
+	staleCount, err := db.countFilteredAssets(ctx, testUserID, "", "tag1", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets after delete: %v", err)
 	}

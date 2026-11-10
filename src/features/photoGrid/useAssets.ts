@@ -7,7 +7,7 @@ import {normalizePositiveInteger} from '@/utils/math';
 import {DEFAULT_PAGE_SIZE} from '@/utils/view';
 
 import type {TAssetRow, TPaginatedAssets} from '@/shared/types/asset';
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 import type {MutableRefObject} from 'react';
 
 type TUseAssetsReturn = {
@@ -24,6 +24,7 @@ type TUseAssetsReturn = {
 export function useAssets(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	pageSize: number,
 	albumID?: string | null,
 	tagID?: string | null,
@@ -59,6 +60,7 @@ export function useAssets(
 						folderPath,
 						gpsFilter,
 						hiddenFilter,
+						mediaFilter,
 						tagID ?? undefined,
 						startDate ?? undefined,
 						endDate ?? undefined,
@@ -74,6 +76,7 @@ export function useAssets(
 						normalizedPageSizeValue,
 						gpsFilter,
 						hiddenFilter,
+						mediaFilter,
 						albumID ?? undefined,
 						tagID ?? undefined,
 						startDate ?? undefined,
@@ -107,13 +110,14 @@ export function useAssets(
 				}
 			}
 		},
-		[albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, folderPath, pageSize]
+		[albumID, tagID, gpsFilter, hiddenFilter, mediaFilter, startDate, endDate, folderPath, pageSize]
 	);
 
 	const prevAlbumID = useRef(albumID);
 	const prevTagID = useRef(tagID);
 	const prevGPSFilter = useRef(gpsFilter);
 	const prevHiddenFilter = useRef(hiddenFilter);
+	const prevMediaFilter = useRef(mediaFilter);
 	const prevPageSize = useRef(pageSize);
 	const prevStartDate = useRef(startDate);
 	const prevEndDate = useRef(endDate);
@@ -124,6 +128,7 @@ export function useAssets(
 			prevTagID.current !== tagID ||
 			prevGPSFilter.current !== gpsFilter ||
 			prevHiddenFilter.current !== hiddenFilter ||
+			prevMediaFilter.current !== mediaFilter ||
 			prevPageSize.current !== pageSize ||
 			prevStartDate.current !== startDate ||
 			prevEndDate.current !== endDate ||
@@ -133,6 +138,7 @@ export function useAssets(
 			prevTagID.current = tagID;
 			prevGPSFilter.current = gpsFilter;
 			prevHiddenFilter.current = hiddenFilter;
+			prevMediaFilter.current = mediaFilter;
 			prevPageSize.current = pageSize;
 			prevStartDate.current = startDate;
 			prevEndDate.current = endDate;
@@ -151,6 +157,7 @@ export function useAssets(
 		tagID,
 		gpsFilter,
 		hiddenFilter,
+		mediaFilter,
 		pageSize,
 		startDate,
 		endDate,

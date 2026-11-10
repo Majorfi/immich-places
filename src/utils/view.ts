@@ -1,6 +1,6 @@
 import {normalizePositiveInteger} from '@/utils/math';
 
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 
 export const VIEW_MODE_DEFAULT: TViewMode = 'album';
@@ -10,6 +10,8 @@ export const GPS_FILTER_NO_GPS: TGPSFilter = 'no-gps';
 export const GPS_FILTER_ALL: TGPSFilter = 'all';
 export const HIDDEN_FILTER_DEFAULT: THiddenFilter = 'visible';
 export const URL_PARAM_HIDDEN_FILTER = 'hidden';
+export const MEDIA_FILTER_DEFAULT: TMediaFilter = 'all';
+export const URL_PARAM_MEDIA_FILTER = 'media';
 
 export const DEFAULT_PAGE_SIZE = 90;
 export const DEFAULT_GRID_COLUMNS = 3;

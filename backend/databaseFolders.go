@@ -24,8 +24,8 @@ func normalizeOriginalPath(rawPath string, libraryID *string) string {
 	return uploadLibraryPrefixRE.ReplaceAllString(rawPath, "")
 }
 
-func (d *Database) getFolderTree(ctx context.Context, userID, gpsFilter, hiddenFilter, tagID, startDate, endDate string) (*FolderTree, error) {
-	f := buildAssetFilter(userID, "", tagID, gpsFilter, hiddenFilter, startDate, endDate)
+func (d *Database) getFolderTree(ctx context.Context, userID, gpsFilter, hiddenFilter, tagID, startDate, endDate, mediaType string) (*FolderTree, error) {
+	f := buildAssetFilter(userID, "", tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 	col := "originalPath"
 	if f.aliased {
 		col = "a.originalPath"
@@ -59,7 +59,7 @@ func (d *Database) getFolderTree(ctx context.Context, userID, gpsFilter, hiddenF
 	return buildFolderTree(dirCounts), nil
 }
 
-func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath, gpsFilter, hiddenFilter, tagID, startDate, endDate string, page, pageSize int) ([]AssetRow, int, error) {
+func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath, gpsFilter, hiddenFilter, tagID, startDate, endDate, mediaType string, page, pageSize int) ([]AssetRow, int, error) {
 	// Guarded here rather than only in the handler: an empty path would build the range
 	// [ "/", "0" ), matching every absolute path in the library. A trailing slash would
 	// build [ "//", "0" ) and silently match nothing.
@@ -68,7 +68,7 @@ func (d *Database) getFolderAssets(ctx context.Context, userID, folderPath, gpsF
 		return []AssetRow{}, 0, nil
 	}
 
-	f := buildAssetFilter(userID, "", tagID, gpsFilter, hiddenFilter, startDate, endDate)
+	f := buildAssetFilter(userID, "", tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 	cols := assetColumns
 	pathCol := "originalPath"
 	orderBy := " ORDER BY fileCreatedAt DESC, immichID DESC"

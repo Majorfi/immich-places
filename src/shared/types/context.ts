@@ -6,6 +6,7 @@ import type {
 	TGPSFilter,
 	TGPXStatusFilter,
 	THiddenFilter,
+	TMediaFilter,
 	TPendingLocation,
 	TPendingLocationsByAssetID,
 	TSetLocationOptions
@@ -31,6 +32,8 @@ export type TViewContextValue = {
 	setGPSFilterAction: (filter: TGPSFilter) => void;
 	hiddenFilter: THiddenFilter;
 	setHiddenFilterAction: (filter: THiddenFilter) => void;
+	mediaFilter: TMediaFilter;
+	setMediaFilterAction: (filter: TMediaFilter) => void;
 	pageSize: number;
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;
@@ -126,6 +129,7 @@ export type TUIMapContextValue = {
 
 export type TMapSceneValue = {
 	gpsFilter: TViewContextValue['gpsFilter'];
+	mediaFilter: TViewContextValue['mediaFilter'];
 	viewMode: TViewContextValue['viewMode'];
 	selectedAlbumID: string | null;
 	selectedTagID: string | null;

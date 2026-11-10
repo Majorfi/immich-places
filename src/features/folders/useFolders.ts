@@ -5,7 +5,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {getFolders} from '@/shared/services/backendApi';
 
 import type {TFolderTree} from '@/shared/types/folder';
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 
 type TUseFoldersReturnProps = {
 	folderTree: TFolderTree | null;
@@ -19,6 +19,7 @@ type TUseFoldersReturnProps = {
 export function useFolders(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	tagID: string | null,
 	startDate: string | null,
 	endDate: string | null
@@ -44,6 +45,7 @@ export function useFolders(
 			const result = await getFolders(
 				gpsFilter,
 				hiddenFilter,
+				mediaFilter,
 				tagID ?? undefined,
 				startDate ?? undefined,
 				endDate ?? undefined,
@@ -70,19 +72,20 @@ export function useFolders(
 				setIsLoading(false);
 			}
 		}
-	}, [gpsFilter, hiddenFilter, tagID, startDate, endDate]);
+	}, [gpsFilter, hiddenFilter, mediaFilter, tagID, startDate, endDate]);
 
-	const prevFilterRef = useRef({gpsFilter, hiddenFilter, tagID, startDate, endDate});
+	const prevFilterRef = useRef({gpsFilter, hiddenFilter, mediaFilter, tagID, startDate, endDate});
 	useEffect(() => {
 		const prev = prevFilterRef.current;
 		if (
 			prev.gpsFilter !== gpsFilter ||
 			prev.hiddenFilter !== hiddenFilter ||
+			prev.mediaFilter !== mediaFilter ||
 			prev.tagID !== tagID ||
 			prev.startDate !== startDate ||
 			prev.endDate !== endDate
 		) {
-			prevFilterRef.current = {gpsFilter, hiddenFilter, tagID, startDate, endDate};
+			prevFilterRef.current = {gpsFilter, hiddenFilter, mediaFilter, tagID, startDate, endDate};
 			abortRef.current?.abort();
 			requestIDRef.current += 1;
 			// The previous tree stays on screen until the new one arrives: blanking it
@@ -91,7 +94,7 @@ export function useFolders(
 			setIsLoading(false);
 			setError(null);
 		}
-	}, [gpsFilter, hiddenFilter, tagID, startDate, endDate]);
+	}, [gpsFilter, hiddenFilter, mediaFilter, tagID, startDate, endDate]);
 
 	useEffect(() => {
 		return () => {

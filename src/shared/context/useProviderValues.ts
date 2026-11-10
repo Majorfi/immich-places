@@ -47,6 +47,8 @@ export function useViewValue(input: TViewContextValue): TViewContextValue {
 			setGPSFilterAction: input.setGPSFilterAction,
 			hiddenFilter: input.hiddenFilter,
 			setHiddenFilterAction: input.setHiddenFilterAction,
+			mediaFilter: input.mediaFilter,
+			setMediaFilterAction: input.setMediaFilterAction,
 			pageSize: input.pageSize,
 			setPageSizeAction: input.setPageSizeAction,
 			gridColumns: input.gridColumns,
@@ -70,6 +72,8 @@ export function useViewValue(input: TViewContextValue): TViewContextValue {
 			input.setGPSFilterAction,
 			input.hiddenFilter,
 			input.setHiddenFilterAction,
+			input.mediaFilter,
+			input.setMediaFilterAction,
 			input.pageSize,
 			input.setPageSizeAction,
 			input.gridColumns,
@@ -216,6 +220,7 @@ export function useMapSceneValue(input: TMapSceneValue): TMapSceneValue {
 	return useMemo<TMapSceneValue>(
 		() => ({
 			gpsFilter: input.gpsFilter,
+			mediaFilter: input.mediaFilter,
 			viewMode: input.viewMode,
 			selectedAlbumID: input.selectedAlbumID,
 			selectedTagID: input.selectedTagID,
@@ -237,6 +242,7 @@ export function useMapSceneValue(input: TMapSceneValue): TMapSceneValue {
 		}),
 		[
 			input.gpsFilter,
+			input.mediaFilter,
 			input.viewMode,
 			input.selectedAlbumID,
 			input.selectedTagID,
