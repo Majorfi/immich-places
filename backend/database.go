@@ -346,15 +346,20 @@ func buildMarkerFilter(userID, albumID, tagID, startDate, endDate string, bounds
 
 func (d *Database) getMapMarkers(ctx context.Context, userID, albumID, tagID, startDate, endDate string, bounds *TViewportBounds, limit int) ([]MapMarker, error) {
 	f := buildMarkerFilter(userID, albumID, tagID, startDate, endDate, bounds)
+	grid := newMarkerGrid(bounds, limit)
 
-	selectCols := "immichID, latitude, longitude"
-	if f.prefix != "" {
-		selectCols = "a.immichID, a.latitude, a.longitude"
-	}
-
-	query := fmt.Sprintf("SELECT %s %s ORDER BY %sfileCreatedAt DESC, %simmichID DESC LIMIT ?",
-		selectCols, f.fromClause, f.prefix, f.prefix)
-	args := append(f.args, limit)
+	query := fmt.Sprintf(`SELECT immichID, latitude, longitude FROM (
+			SELECT %[1]simmichID AS immichID, %[1]slatitude AS latitude, %[1]slongitude AS longitude,
+				%[1]sfileCreatedAt AS fileCreatedAt,
+				ROW_NUMBER() OVER (
+					PARTITION BY CAST((%[1]slatitude + 90) / ? AS INTEGER), CAST((%[1]slongitude + 180) / ? AS INTEGER)
+					ORDER BY %[1]sfileCreatedAt DESC, %[1]simmichID DESC
+				) AS cellRank
+			%[2]s
+		) ORDER BY cellRank, fileCreatedAt DESC, immichID DESC LIMIT ?`, f.prefix, f.fromClause)
+	args := []interface{}{grid.cellLat, grid.cellLng}
+	args = append(args, f.args...)
+	args = append(args, limit)
 
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
