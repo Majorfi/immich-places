@@ -16,7 +16,7 @@ import {fetchMissingLocationCount} from '@/shared/services/backendApi';
  */
 export function useMissingLocationCount(): number | null {
 	const {health} = useBackend();
-	const {hiddenFilter, selectedAlbumID, selectedTagID, startDate, endDate} = useView();
+	const {hiddenFilter, mediaFilter, selectedAlbumID, selectedTagID, startDate, endDate} = useView();
 	const [count, setCount] = useState<number | null>(null);
 
 	useEffect(() => {
@@ -27,6 +27,7 @@ export function useMissingLocationCount(): number | null {
 		const controller = new AbortController();
 		fetchMissingLocationCount(
 			hiddenFilter,
+			mediaFilter,
 			selectedAlbumID ?? undefined,
 			selectedTagID ?? undefined,
 			startDate ?? undefined,
@@ -47,7 +48,7 @@ export function useMissingLocationCount(): number | null {
 		return () => {
 			controller.abort();
 		};
-	}, [health, hiddenFilter, selectedAlbumID, selectedTagID, startDate, endDate]);
+	}, [health, hiddenFilter, mediaFilter, selectedAlbumID, selectedTagID, startDate, endDate]);
 
 	return count;
 }

@@ -107,7 +107,6 @@ func (c *ImmichClient) doRequest(ctx context.Context, method, path string, body 
 
 func (c *ImmichClient) searchAssets(ctx context.Context, page int, pageSize int, updatedAfter *string) (*ImmichSearchResponse, error) {
 	payload := map[string]interface{}{
-		"type":       "IMAGE",
 		"visibility": "timeline",
 		"withExif":   true,
 		"size":       pageSize,
@@ -257,7 +256,6 @@ func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID s
 
 	payload := map[string]interface{}{
 		filterKey:    []string{filterID},
-		"type":       "IMAGE",
 		"visibility": "timeline",
 		"size":       searchPageSize,
 	}
@@ -288,6 +286,9 @@ func (c *ImmichClient) searchAssetIDs(ctx context.Context, filterKey, filterID s
 			return ids, nil
 		}
 		for _, item := range result.Assets.Items {
+			if !isSupportedAssetType(item.Type) {
+				continue
+			}
 			ids = append(ids, item.ID)
 		}
 

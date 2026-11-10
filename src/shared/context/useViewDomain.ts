@@ -6,12 +6,13 @@ import {useURLState} from '@/features/filterBar/useURLState';
 import {clampVisibleMarkerLimit} from '@/utils/view';
 
 import type {TViewContextValue} from '@/shared/types/context';
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 
 type TViewDomain = {
 	gpsFilter: TGPSFilter;
 	hiddenFilter: THiddenFilter;
+	mediaFilter: TMediaFilter;
 	pageSize: number;
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;
@@ -27,11 +28,13 @@ type TViewDomain = {
 	endDate: string | null;
 	setGPSFilterRawAction: (filter: TGPSFilter) => void;
 	setHiddenFilterRawAction: (filter: THiddenFilter) => void;
+	setMediaFilterRawAction: (filter: TMediaFilter) => void;
 	setSelectedAlbumIDAction: (albumID: string | null) => void;
 	setSelectedFolderPathAction: (folderPath: string | null) => void;
 	setSelectedTagIDAction: (tagID: string | null) => void;
 	setGPSFilterAction: TViewContextValue['setGPSFilterAction'];
 	setHiddenFilterAction: TViewContextValue['setHiddenFilterAction'];
+	setMediaFilterAction: TViewContextValue['setMediaFilterAction'];
 	selectAlbumAction: TViewContextValue['selectAlbumAction'];
 	selectFolderAction: TViewContextValue['selectFolderAction'];
 	selectTagAction: TViewContextValue['selectTagAction'];
@@ -44,6 +47,8 @@ export function useViewDomain(): TViewDomain {
 		setGPSFilterRawAction,
 		hiddenFilter,
 		setHiddenFilterRawAction,
+		mediaFilter,
+		setMediaFilterRawAction,
 		pageSize,
 		setPageSizeAction,
 		gridColumns,
@@ -85,6 +90,17 @@ export function useViewDomain(): TViewDomain {
 			syncURLAction({hiddenFilter: filter});
 		},
 		[hiddenFilter, setHiddenFilterRawAction, syncURLAction]
+	);
+
+	const setMediaFilter = useCallback(
+		(filter: TMediaFilter) => {
+			if (filter === mediaFilter) {
+				return;
+			}
+			setMediaFilterRawAction(filter);
+			syncURLAction({mediaFilter: filter});
+		},
+		[mediaFilter, setMediaFilterRawAction, syncURLAction]
 	);
 
 	const handleSetPageSize = useCallback(
@@ -174,8 +190,10 @@ export function useViewDomain(): TViewDomain {
 	return {
 		gpsFilter,
 		hiddenFilter,
+		mediaFilter,
 		setGPSFilterRawAction,
 		setHiddenFilterRawAction,
+		setMediaFilterRawAction,
 		pageSize,
 		setPageSizeAction: handleSetPageSize,
 		gridColumns,
@@ -194,6 +212,7 @@ export function useViewDomain(): TViewDomain {
 		setSelectedTagIDAction,
 		setGPSFilterAction: setGPSFilter,
 		setHiddenFilterAction: setHiddenFilter,
+		setMediaFilterAction: setMediaFilter,
 		selectAlbumAction,
 		selectFolderAction,
 		selectTagAction,

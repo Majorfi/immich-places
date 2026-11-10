@@ -286,6 +286,7 @@ type GPXTrackSummary struct {
 type GPXMatchResult struct {
 	AssetID             string   `json:"assetID"`
 	FileName            string   `json:"fileName"`
+	Type                string   `json:"type"`
 	Latitude            float64  `json:"latitude"`
 	Longitude           float64  `json:"longitude"`
 	Elevation           float64  `json:"elevation"`

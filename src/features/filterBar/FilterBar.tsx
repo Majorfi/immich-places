@@ -8,6 +8,7 @@ import {FilterIcon} from '@/features/filterBar/FilterIcon';
 import {GPSFilterGroup} from '@/features/filterBar/GPSFilterGroup';
 import {GPXStatusFilterGroup} from '@/features/filterBar/GPXStatusFilterGroup';
 import {HeaderTitle} from '@/features/filterBar/HeaderTitle';
+import {MediaFilterGroup} from '@/features/filterBar/MediaFilterGroup';
 import {SettingsIcon} from '@/features/filterBar/SettingsIcon';
 import {SettingsPanel} from '@/features/filterBar/SettingsPanel';
 import {TagFilterGroup} from '@/features/filterBar/TagFilterGroup';
@@ -235,6 +236,7 @@ export function FilterBar({
 									onViewModeAction={onViewModeAction}
 								/>
 							</div>
+							<MediaFilterGroup />
 							<DateRangeFilterGroup
 								startDate={startDate}
 								endDate={endDate}

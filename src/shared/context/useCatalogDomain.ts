@@ -8,12 +8,13 @@ import {useFolders} from '@/features/folders/useFolders';
 import {useAssets} from '@/features/photoGrid/useAssets';
 
 import type {TCatalogContextValue} from '@/shared/types/context';
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 
 type TUseCatalogDomainArgs = {
 	gpsFilter: TGPSFilter;
 	hiddenFilter: THiddenFilter;
+	mediaFilter: TMediaFilter;
 	pageSize: number;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
@@ -47,6 +48,7 @@ type TUseCatalogDomainResult = {
 export function useCatalogDomain({
 	gpsFilter,
 	hiddenFilter,
+	mediaFilter,
 	pageSize,
 	viewMode,
 	selectedAlbumID,
@@ -78,6 +80,7 @@ export function useCatalogDomain({
 	} = useAssets(
 		gpsFilter,
 		hiddenFilter,
+		mediaFilter,
 		pageSize,
 		albumFilter,
 		selectedTagID,
@@ -92,7 +95,7 @@ export function useCatalogDomain({
 		error: albumsError,
 		load: loadAlbumsAction,
 		clear: clearAlbums
-	} = useAlbums(gpsFilter, startDate, endDate);
+	} = useAlbums(gpsFilter, mediaFilter, startDate, endDate);
 	const {
 		folderTree,
 		isStale: isFolderTreeStale,
@@ -100,7 +103,7 @@ export function useCatalogDomain({
 		error: foldersError,
 		load: loadFolderTreeAction,
 		clear: clearFolders
-	} = useFolders(gpsFilter, hiddenFilter, selectedTagID, startDate, endDate);
+	} = useFolders(gpsFilter, hiddenFilter, mediaFilter, selectedTagID, startDate, endDate);
 
 	useEffect(() => {
 		if (isReady && viewMode === 'folders' && isFolderTreeStale && !isLoadingFolders && foldersError === null) {

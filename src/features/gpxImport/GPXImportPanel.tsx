@@ -67,7 +67,7 @@ export function GPXImportPanel({previews, error, onReset}: TGPXImportPanelProps)
 		() =>
 			filteredMatches.map(match => ({
 				immichID: match.assetID,
-				type: 'IMAGE',
+				type: match.type,
 				originalFileName: match.fileName,
 				fileCreatedAt: '',
 				latitude: match.latitude,

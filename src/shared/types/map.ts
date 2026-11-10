@@ -7,6 +7,7 @@ export type TMapMarker = {
 export type TGPSFilter = 'all' | 'no-gps' | 'with-gps';
 
 export type THiddenFilter = 'all' | 'hidden' | 'visible';
+export type TMediaFilter = 'all' | 'image' | 'video';
 
 export type TGPXStatusFilter = 'all' | 'alreadySet' | 'new' | 'edited';
 

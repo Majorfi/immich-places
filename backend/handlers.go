@@ -219,6 +219,11 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
+		return
+	}
 
 	page, err := queryInt(r, "page", 1)
 	if err != nil {
@@ -258,13 +263,13 @@ func (h *Handlers) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assets, err := h.db.getFilteredAssets(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, page, pageSize)
+	assets, err := h.db.getFilteredAssets(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType, page, pageSize)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query assets")
 		return
 	}
 
-	total, err := h.db.countFilteredAssets(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
+	total, err := h.db.countFilteredAssets(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets")
 		return
@@ -290,6 +295,11 @@ func (h *Handlers) handleGetAssetDayCounts(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
+		return
+	}
 
 	albumID := r.URL.Query().Get("albumID")
 	tagID := r.URL.Query().Get("tagID")
@@ -313,7 +323,7 @@ func (h *Handlers) handleGetAssetDayCounts(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	counts, err := h.db.countAssetsByDay(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate)
+	counts, err := h.db.countAssetsByDay(ctx, user.ID, albumID, tagID, gpsFilter, hiddenFilter, startDate, endDate, mediaType)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets by day")
 		return
@@ -327,6 +337,11 @@ func (h *Handlers) handleGetAlbums(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
 	if user == nil {
 		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
 		return
 	}
 	gpsFilter, err := parseGPSFilterParam(r)
@@ -345,9 +360,9 @@ func (h *Handlers) handleGetAlbums(w http.ResponseWriter, r *http.Request) {
 	// "with-gps" keeps its own query: it is the only mode that drops albums holding no
 	// matching asset, so an album with nothing geotagged stays out of the list.
 	if gpsFilter == gpsFilterWithGPS {
-		albums, err = h.db.getAlbumsWithGPSCount(ctx, user.ID, startDate, endDate)
+		albums, err = h.db.getAlbumsWithGPSCount(ctx, user.ID, startDate, endDate, mediaType)
 	} else {
-		albums, err = h.db.getAlbumsByGPSFilter(ctx, user.ID, gpsFilter, startDate, endDate)
+		albums, err = h.db.getAlbumsByGPSFilter(ctx, user.ID, gpsFilter, startDate, endDate, mediaType)
 	}
 
 	if err != nil {
@@ -388,6 +403,11 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
 	if user == nil {
 		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
 		return
 	}
 	albumID := r.URL.Query().Get("albumID")
@@ -448,7 +468,7 @@ func (h *Handlers) handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		bounds = &TViewportBounds{North: n, South: s, East: boundsReq.East, West: boundsReq.West}
 	}
 
-	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, tagID, startDate, endDate, bounds, limit)
+	markers, err := h.db.getMapMarkers(ctx, user.ID, albumID, tagID, startDate, endDate, bounds, limit, mediaType)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to query map markers")
 		return

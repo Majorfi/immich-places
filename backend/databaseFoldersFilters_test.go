@@ -25,7 +25,7 @@ func TestGetFolderDateRangeFilter(t *testing.T) {
 		datedAsset("after", "/lib/trip/after.jpg", "2024-02-01T00:00:00Z"),
 	})
 
-	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "2024-01-01", "2024-01-31")
+	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "2024-01-01", "2024-01-31", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestGetFolderDateRangeFilter(t *testing.T) {
 		t.Errorf("expected /lib/trip count 2 inside the range, got %+v", node)
 	}
 
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "2024-01-01", "2024-01-31", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "2024-01-01", "2024-01-31", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestGetFolderDateRangeFilter(t *testing.T) {
 	}
 
 	// An unbounded range must not silently drop the assets that carry no date at all.
-	undated, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
+	undated, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets unbounded: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestGetFolderAssetsCaseSensitive(t *testing.T) {
 		extAsset("lower", "/lib/trip/lower.jpg"),
 	})
 
-	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "")
+	tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("getFolderTree: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestGetFolderAssetsCaseSensitive(t *testing.T) {
 	}
 
 	// The grid must agree with the count shown on the node it was opened from.
-	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/Trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
+	assets, total, err := db.getFolderAssets(ctx, testUserID, "/lib/Trip", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestGetFolderHiddenFilter(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, testCase.filter, "", "", "")
+		tree, err := db.getFolderTree(ctx, testUserID, gpsFilterNoGPS, testCase.filter, "", "", "", mediaTypeAll)
 		if err != nil {
 			t.Fatalf("getFolderTree %s: %v", testCase.filter, err)
 		}
@@ -127,7 +127,7 @@ func TestGetFolderHiddenFilter(t *testing.T) {
 			t.Errorf("tree %s: expected count %d, got %+v", testCase.filter, testCase.expectedCount, node)
 		}
 
-		_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, testCase.filter, "", "", "", 1, 50)
+		_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterNoGPS, testCase.filter, "", "", "", mediaTypeAll, 1, 50)
 		if err != nil {
 			t.Fatalf("getFolderAssets %s: %v", testCase.filter, err)
 		}
@@ -160,7 +160,7 @@ func TestGetFolderGPSFilterAll(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		tree, err := db.getFolderTree(ctx, testUserID, testCase.filter, hiddenFilterVisible, "", "", "")
+		tree, err := db.getFolderTree(ctx, testUserID, testCase.filter, hiddenFilterVisible, "", "", "", mediaTypeAll)
 		if err != nil {
 			t.Fatalf("getFolderTree %s: %v", testCase.filter, err)
 		}
@@ -169,7 +169,7 @@ func TestGetFolderGPSFilterAll(t *testing.T) {
 			t.Errorf("tree %s: expected count %d, got %+v", testCase.filter, testCase.expectedCount, node)
 		}
 
-		_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", testCase.filter, hiddenFilterVisible, "", "", "", 1, 50)
+		_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", testCase.filter, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 		if err != nil {
 			t.Fatalf("getFolderAssets %s: %v", testCase.filter, err)
 		}
@@ -186,7 +186,7 @@ func TestGetFolderGPSFilterAll(t *testing.T) {
 	if err := db.replaceTagAssets(ctx, testUserID, "tag1", []string{"located", "unlocated"}); err != nil {
 		t.Fatalf("replaceTagAssets: %v", err)
 	}
-	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterAll, hiddenFilterVisible, "tag1", "", "", 1, 50)
+	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip", gpsFilterAll, hiddenFilterVisible, "tag1", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets aliased: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestGetAlbumsByGPSFilter(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		albums, err := db.getAlbumsByGPSFilter(ctx, testUserID, testCase.filter, "", "")
+		albums, err := db.getAlbumsByGPSFilter(ctx, testUserID, testCase.filter, "", "", mediaTypeAll)
 		if err != nil {
 			t.Fatalf("getAlbumsByGPSFilter %s: %v", testCase.filter, err)
 		}
@@ -254,7 +254,7 @@ func TestGetFolderAssetsDegeneratePath(t *testing.T) {
 	})
 
 	for _, folderPath := range []string{"", "/"} {
-		assets, total, err := db.getFolderAssets(ctx, testUserID, folderPath, gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
+		assets, total, err := db.getFolderAssets(ctx, testUserID, folderPath, gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 		if err != nil {
 			t.Fatalf("getFolderAssets %q: %v", folderPath, err)
 		}
@@ -264,7 +264,7 @@ func TestGetFolderAssetsDegeneratePath(t *testing.T) {
 	}
 
 	// A trailing slash still resolves to the folder it names.
-	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip/", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", 1, 50)
+	_, total, err := db.getFolderAssets(ctx, testUserID, "/lib/trip/", gpsFilterNoGPS, hiddenFilterVisible, "", "", "", mediaTypeAll, 1, 50)
 	if err != nil {
 		t.Fatalf("getFolderAssets trailing slash: %v", err)
 	}

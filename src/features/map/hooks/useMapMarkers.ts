@@ -9,7 +9,7 @@ import {MAP_BOUNDS_KEY_DECIMALS} from '@/utils/map';
 import {DEFAULT_VISIBLE_MARKER_LIMIT} from '@/utils/view';
 
 import type {TViewportBounds} from '@/shared/types/api';
-import type {TMapMarker} from '@/shared/types/map';
+import type {TMapMarker, TMediaFilter} from '@/shared/types/map';
 
 type TUseMapMarkersReturn = {
 	mapMarkers: TMapMarker[];
@@ -38,6 +38,7 @@ function boundsKey(bounds?: TViewportBounds | null): string {
  * @returns Map marker list and any fetch error.
  */
 export function useMapMarkers(
+	mediaFilter: TMediaFilter,
 	albumID?: string | null,
 	tagID?: string | null,
 	startDate?: string | null,
@@ -59,6 +60,7 @@ export function useMapMarkers(
 
 	const load = useCallback(
 		async (
+			currentMediaFilter: TMediaFilter,
 			currentAlbumID?: string,
 			currentTagID?: string,
 			currentStartDate?: string,
@@ -73,6 +75,7 @@ export function useMapMarkers(
 			abortRef.current = controller;
 			try {
 				const markers = await fetchMapMarkers(
+					currentMediaFilter,
 					currentAlbumID,
 					currentTagID,
 					currentStartDate,
@@ -103,6 +106,7 @@ export function useMapMarkers(
 		[logout]
 	);
 
+	const prevMediaFilter = useRef(mediaFilter);
 	const prevAlbumID = useRef(albumID);
 	const prevTagID = useRef(tagID);
 	const prevStartDate = useRef(startDate);
@@ -113,6 +117,7 @@ export function useMapMarkers(
 	const hasLoadedRef = useRef(false);
 
 	useEffect(() => {
+		const isMediaFilterChanged = prevMediaFilter.current !== mediaFilter;
 		const isAlbumChanged = prevAlbumID.current !== albumID;
 		const isTagChanged = prevTagID.current !== tagID;
 		const isStartDateChanged = prevStartDate.current !== startDate;
@@ -121,6 +126,7 @@ export function useMapMarkers(
 		const isBoundsChanged = prevBoundsKey.current !== currentBoundsKey;
 		const isVisibleMarkerLimitChanged = prevVisibleMarkerLimit.current !== visibleMarkerLimit;
 
+		prevMediaFilter.current = mediaFilter;
 		prevAlbumID.current = albumID;
 		prevTagID.current = tagID;
 		prevStartDate.current = startDate;
@@ -134,6 +140,7 @@ export function useMapMarkers(
 		}
 
 		if (
+			isMediaFilterChanged ||
 			isAlbumChanged ||
 			isTagChanged ||
 			isStartDateChanged ||
@@ -144,10 +151,11 @@ export function useMapMarkers(
 			!hasLoadedRef.current
 		) {
 			hasLoadedRef.current = true;
-			if (isAlbumChanged || isTagChanged || isStartDateChanged || isEndDateChanged) {
+			if (isMediaFilterChanged || isAlbumChanged || isTagChanged || isStartDateChanged || isEndDateChanged) {
 				setMapMarkers([]);
 				setError(null);
 				load(
+					mediaFilter,
 					albumID ?? undefined,
 					tagID ?? undefined,
 					startDate ?? undefined,
@@ -158,6 +166,7 @@ export function useMapMarkers(
 				return;
 			}
 			load(
+				mediaFilter,
 				albumID ?? undefined,
 				tagID ?? undefined,
 				startDate ?? undefined,
@@ -166,7 +175,18 @@ export function useMapMarkers(
 				visibleMarkerLimit
 			);
 		}
-	}, [albumID, tagID, startDate, endDate, effectiveBounds, currentBoundsKey, load, version, visibleMarkerLimit]);
+	}, [
+		mediaFilter,
+		albumID,
+		tagID,
+		startDate,
+		endDate,
+		effectiveBounds,
+		currentBoundsKey,
+		load,
+		version,
+		visibleMarkerLimit
+	]);
 
 	useEffect(() => {
 		return () => {

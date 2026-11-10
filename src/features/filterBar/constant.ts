@@ -1,6 +1,6 @@
 import {GRID_COLUMN_OPTIONS, PAGE_SIZE_OPTIONS} from '@/utils/view';
 
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 
 export const FILTER_BAR_TRANSITION_CLASS = 'overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out';
@@ -17,6 +17,8 @@ export const VIEW_MODE_LABEL: Record<TViewMode, string> = {timeline: 'Timeline',
 export const viewModeOptions: readonly TViewMode[] = ['timeline', 'album', 'folders'];
 export const HIDDEN_LABEL: Record<THiddenFilter, string> = {visible: 'Visible', hidden: 'Hidden', all: 'All'};
 export const hiddenOptions: readonly THiddenFilter[] = ['visible', 'hidden', 'all'];
+export const MEDIA_LABEL: Record<TMediaFilter, string> = {all: 'All', image: 'Photos', video: 'Videos'};
+export const mediaOptions: readonly TMediaFilter[] = ['all', 'image', 'video'];
 
 export const toolButtonClass =
 	'flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-(--color-bg) text-(--color-text-secondary) transition-all duration-150 hover:text-(--color-text)';

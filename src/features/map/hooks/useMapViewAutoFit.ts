@@ -16,7 +16,7 @@ import {
 } from '@/utils/map';
 import {doesGPSFilterIncludeLocations} from '@/utils/view';
 
-import type {TGPSFilter, TMapMarker} from '@/shared/types/map';
+import type {TGPSFilter, TMapMarker, TMediaFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 import type {RefObject} from 'react';
 
@@ -27,6 +27,7 @@ type TUseMapAutoFitArgs = {
 	viewMode: TViewMode;
 	albumFilter: string | null;
 	tagFilter: string | null;
+	mediaFilter: TMediaFilter;
 	startDate: string | null;
 	endDate: string | null;
 	mapMarkers: TMapMarker[];
@@ -83,6 +84,7 @@ export function useMapAutoFit({
 	viewMode,
 	albumFilter,
 	tagFilter,
+	mediaFilter,
 	startDate,
 	endDate,
 	mapMarkers,
@@ -90,6 +92,7 @@ export function useMapAutoFit({
 	prevFitAlbumRef
 }: TUseMapAutoFitArgs): void {
 	const prevFitTagRef = useRef(tagFilter);
+	const prevFitMediaRef = useRef(mediaFilter);
 	const prevFitStartRef = useRef(startDate);
 	const prevFitEndRef = useRef(endDate);
 
@@ -101,15 +104,17 @@ export function useMapAutoFit({
 
 		const hasAlbumChanged = prevFitAlbumRef.current !== albumFilter;
 		const hasTagChanged = prevFitTagRef.current !== tagFilter;
+		const hasMediaChanged = prevFitMediaRef.current !== mediaFilter;
 		const hasDateChanged = prevFitStartRef.current !== startDate || prevFitEndRef.current !== endDate;
 		prevFitAlbumRef.current = albumFilter;
 		prevFitTagRef.current = tagFilter;
+		prevFitMediaRef.current = mediaFilter;
 		prevFitStartRef.current = startDate;
 		prevFitEndRef.current = endDate;
 
 		// On any filter change the marker set is reloading; defer the fit to the next
 		// render (when fresh markers have arrived) so we never fit against stale pins.
-		if (hasAlbumChanged || hasTagChanged || hasDateChanged) {
+		if (hasAlbumChanged || hasTagChanged || hasMediaChanged || hasDateChanged) {
 			fittedBoundsKeyRef.current = null;
 			if (hasAlbumChanged && !albumFilter) {
 				programmaticMoveRef.current = true;
@@ -139,6 +144,7 @@ export function useMapAutoFit({
 	}, [
 		albumFilter,
 		tagFilter,
+		mediaFilter,
 		startDate,
 		endDate,
 		fittedBoundsKeyRef,

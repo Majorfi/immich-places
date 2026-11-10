@@ -12,6 +12,7 @@ import {
 	GPS_FILTER_NO_GPS,
 	GPS_FILTER_WITH_GPS,
 	HIDDEN_FILTER_DEFAULT,
+	MEDIA_FILTER_DEFAULT,
 	URL_PARAM_ALBUM_ID,
 	URL_PARAM_END_DATE,
 	URL_PARAM_FOLDER_PATH,
@@ -19,6 +20,7 @@ import {
 	URL_PARAM_GRID_COLUMNS,
 	URL_PARAM_HIDDEN_FILTER,
 	URL_PARAM_MARKER_LIMIT,
+	URL_PARAM_MEDIA_FILTER,
 	URL_PARAM_PAGE_SIZE,
 	URL_PARAM_START_DATE,
 	URL_PARAM_TAG_ID,
@@ -27,12 +29,13 @@ import {
 	clampVisibleMarkerLimit
 } from '@/utils/view';
 
-import type {TGPSFilter, THiddenFilter} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMediaFilter} from '@/shared/types/map';
 import type {TViewMode} from '@/shared/types/view';
 
 type TURLSyncState = {
 	gpsFilter: TGPSFilter;
 	hiddenFilter: THiddenFilter;
+	mediaFilter: TMediaFilter;
 	viewMode: TViewMode;
 	selectedAlbumID: string | null;
 	selectedFolderPath: string | null;
@@ -49,6 +52,8 @@ type TURLState = {
 	setGPSFilterRawAction: (filter: TGPSFilter) => void;
 	hiddenFilter: THiddenFilter;
 	setHiddenFilterRawAction: (filter: THiddenFilter) => void;
+	mediaFilter: TMediaFilter;
+	setMediaFilterRawAction: (filter: TMediaFilter) => void;
 	pageSize: number;
 	setPageSizeAction: (size: number) => void;
 	gridColumns: number;
@@ -164,6 +169,13 @@ function parseHiddenFilter(value: string | null): THiddenFilter {
 	return HIDDEN_FILTER_DEFAULT;
 }
 
+function parseMediaFilter(value: string | null): TMediaFilter {
+	if (value === 'all' || value === 'image' || value === 'video') {
+		return value;
+	}
+	return MEDIA_FILTER_DEFAULT;
+}
+
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function parseURLDate(value: string | null): string | null {
@@ -191,6 +203,9 @@ function buildURLFromState(state: TURLSyncState): string {
 	}
 	if (state.hiddenFilter !== HIDDEN_FILTER_DEFAULT) {
 		params.set(URL_PARAM_HIDDEN_FILTER, state.hiddenFilter);
+	}
+	if (state.mediaFilter !== MEDIA_FILTER_DEFAULT) {
+		params.set(URL_PARAM_MEDIA_FILTER, state.mediaFilter);
 	}
 	if (state.viewMode !== VIEW_MODE_DEFAULT) {
 		params.set(URL_PARAM_VIEW_MODE, state.viewMode);
@@ -238,6 +253,7 @@ function buildURLFromState(state: TURLSyncState): string {
 type TURLStateSetters = {
 	setGPSFilter: (filter: TGPSFilter) => void;
 	setHiddenFilter: (filter: THiddenFilter) => void;
+	setMediaFilter: (filter: TMediaFilter) => void;
 	setViewMode: (mode: TViewMode) => void;
 	setSelectedAlbumID: (albumID: string | null) => void;
 	setSelectedFolderPath: (folderPath: string | null) => void;
@@ -257,6 +273,7 @@ function applyURLToState(search: string, setters: TURLStateSetters): void {
 	const params = new URLSearchParams(search);
 	setters.setGPSFilter(parseGPSFilter(params.get(URL_PARAM_GPS_FILTER)));
 	setters.setHiddenFilter(parseHiddenFilter(params.get(URL_PARAM_HIDDEN_FILTER)));
+	setters.setMediaFilter(parseMediaFilter(params.get(URL_PARAM_MEDIA_FILTER)));
 
 	const urlView = params.get(URL_PARAM_VIEW_MODE);
 	let resolvedView: TViewMode = VIEW_MODE_DEFAULT;
@@ -286,6 +303,7 @@ export function useURLState(): TURLState {
 	const urlSync = useMemo(() => createBrowserURLSync(), []);
 	const [gpsFilter, setGPSFilterState] = useState<TGPSFilter>(GPS_FILTER_DEFAULT);
 	const [hiddenFilter, setHiddenFilterState] = useState<THiddenFilter>(HIDDEN_FILTER_DEFAULT);
+	const [mediaFilter, setMediaFilterState] = useState<TMediaFilter>(MEDIA_FILTER_DEFAULT);
 	const [pageSize, setPageSizeState] = useState(DEFAULT_PAGE_SIZE);
 	const [gridColumns, setGridColumnsState] = useState(DEFAULT_GRID_COLUMNS);
 	const [visibleMarkerLimit, setVisibleMarkerLimitState] = useState(DEFAULT_VISIBLE_MARKER_LIMIT);
@@ -299,6 +317,7 @@ export function useURLState(): TURLState {
 	const liveStateRef = useRef<TURLSyncState>({
 		gpsFilter: GPS_FILTER_DEFAULT,
 		hiddenFilter: HIDDEN_FILTER_DEFAULT,
+		mediaFilter: MEDIA_FILTER_DEFAULT,
 		viewMode: VIEW_MODE_DEFAULT,
 		selectedAlbumID: null,
 		selectedFolderPath: null,
@@ -317,6 +336,10 @@ export function useURLState(): TURLState {
 	const setHiddenFilterRawAction = useCallback((value: THiddenFilter) => {
 		liveStateRef.current.hiddenFilter = value;
 		setHiddenFilterState(value);
+	}, []);
+	const setMediaFilterRawAction = useCallback((value: TMediaFilter) => {
+		liveStateRef.current.mediaFilter = value;
+		setMediaFilterState(value);
 	}, []);
 	const setPageSizeAction = useCallback((value: number) => {
 		liveStateRef.current.pageSize = value;
@@ -360,6 +383,7 @@ export function useURLState(): TURLState {
 		const nextState: TURLSyncState = {
 			gpsFilter: state?.gpsFilter ?? live.gpsFilter,
 			hiddenFilter: state?.hiddenFilter ?? live.hiddenFilter,
+			mediaFilter: state?.mediaFilter ?? live.mediaFilter,
 			viewMode: state?.viewMode ?? live.viewMode,
 			selectedAlbumID: resolveNullableOverride(state, 'selectedAlbumID', live.selectedAlbumID),
 			selectedFolderPath: resolveNullableOverride(state, 'selectedFolderPath', live.selectedFolderPath),
@@ -393,6 +417,7 @@ export function useURLState(): TURLState {
 		const setters: TURLStateSetters = {
 			setGPSFilter: setGPSFilterRawAction,
 			setHiddenFilter: setHiddenFilterRawAction,
+			setMediaFilter: setMediaFilterRawAction,
 			setViewMode: setViewModeAction,
 			setSelectedAlbumID: setSelectedAlbumIDAction,
 			setSelectedFolderPath: setSelectedFolderPathAction,
@@ -417,6 +442,7 @@ export function useURLState(): TURLState {
 		urlSync,
 		setGPSFilterRawAction,
 		setHiddenFilterRawAction,
+		setMediaFilterRawAction,
 		setViewModeAction,
 		setSelectedAlbumIDAction,
 		setSelectedFolderPathAction,
@@ -433,6 +459,8 @@ export function useURLState(): TURLState {
 		setGPSFilterRawAction,
 		hiddenFilter,
 		setHiddenFilterRawAction,
+		mediaFilter,
+		setMediaFilterRawAction,
 		pageSize,
 		setPageSizeAction,
 		gridColumns,

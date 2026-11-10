@@ -7,7 +7,7 @@ import {useView} from '@/shared/context/AppContext';
 import {fetchAssetDayCounts} from '@/shared/services/backendApi';
 
 export function useDayCounts(visibleMonth: Date, open: boolean): Record<string, number> {
-	const {gpsFilter, hiddenFilter, selectedAlbumID, selectedTagID} = useView();
+	const {gpsFilter, hiddenFilter, mediaFilter, selectedAlbumID, selectedTagID} = useView();
 	const [counts, setCounts] = useState<Record<string, number>>({});
 	const abortRef = useRef<AbortController | null>(null);
 
@@ -21,6 +21,7 @@ export function useDayCounts(visibleMonth: Date, open: boolean): Record<string, 
 					rangeEnd,
 					gpsFilter,
 					hiddenFilter,
+					mediaFilter,
 					selectedAlbumID ?? undefined,
 					selectedTagID ?? undefined,
 					{signal}
@@ -32,7 +33,7 @@ export function useDayCounts(visibleMonth: Date, open: boolean): Record<string, 
 				// ignore aborted requests
 			}
 		},
-		[gpsFilter, hiddenFilter, selectedAlbumID, selectedTagID]
+		[gpsFilter, hiddenFilter, mediaFilter, selectedAlbumID, selectedTagID]
 	);
 
 	useEffect(() => {

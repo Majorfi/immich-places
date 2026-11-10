@@ -14,6 +14,7 @@ type TGPXTrackSummary = {
 export type TGPXMatchResult = {
 	assetID: string;
 	fileName: string;
+	type: string;
 	latitude: number;
 	longitude: number;
 	elevation: number;

@@ -94,13 +94,29 @@ export function PhotoCard({
 						onLoad={() => setIsImageLoaded(true)}
 						className={imageClassName}
 					/>
+					{asset.type === 'VIDEO' && (
+						<div
+							className={
+								'absolute top-1 left-1 z-10 flex size-5 items-center justify-center rounded-full bg-black/65 text-white'
+							}
+							title={'Video'}>
+							<svg
+								width={'9'}
+								height={'9'}
+								viewBox={'0 0 24 24'}
+								fill={'currentColor'}
+								aria-hidden={'true'}>
+								<path d={'M7 4.5v15l13-7.5z'} />
+							</svg>
+						</div>
+					)}
 					<button
 						type={'button'}
 						className={
 							'absolute right-1 bottom-1 z-10 flex size-6 items-center justify-center rounded-full bg-black/65 p-0 text-white transition-all duration-150 hover:bg-black/80'
 						}
 						onClick={handlePreviewAction}
-						title={'Open image'}>
+						title={'Open preview'}>
 						<svg
 							width={'13'}
 							height={'13'}

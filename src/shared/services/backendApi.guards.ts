@@ -310,6 +310,7 @@ function isGPXMatchResult(value: unknown): value is TGPXMatchResult {
 	return (
 		isString(value.assetID) &&
 		isString(value.fileName) &&
+		isString(value.type) &&
 		isFiniteNumber(value.latitude) &&
 		isFiniteNumber(value.longitude) &&
 		isFiniteNumber(value.elevation) &&

@@ -178,7 +178,7 @@ func TestSyncAssetsAPIError(t *testing.T) {
 func searchResponseJSON(ids ...string) ImmichSearchResponse {
 	items := make([]ImmichAssetResponse, len(ids))
 	for i, id := range ids {
-		items[i] = ImmichAssetResponse{ID: id}
+		items[i] = ImmichAssetResponse{ID: id, Type: immichAssetTypeImage}
 	}
 	var sr ImmichSearchResponse
 	sr.Assets.Items = items
@@ -1422,11 +1422,11 @@ func TestSearchAssetIDsFollowsNextPage(t *testing.T) {
 		resp := ImmichSearchResponse{}
 		switch page {
 		case 1:
-			resp.Assets.Items = []ImmichAssetResponse{{ID: "a1"}, {ID: "a2"}}
+			resp.Assets.Items = []ImmichAssetResponse{{ID: "a1", Type: immichAssetTypeImage}, {ID: "a2", Type: immichAssetTypeImage}}
 			next := "2"
 			resp.Assets.NextPage = &next
 		case 2:
-			resp.Assets.Items = []ImmichAssetResponse{{ID: "a3"}}
+			resp.Assets.Items = []ImmichAssetResponse{{ID: "a3", Type: immichAssetTypeImage}}
 			// NextPage nil -> terminate.
 		default:
 			t.Errorf("unexpected page requested: %d", page)
@@ -1449,7 +1449,7 @@ func TestSearchAssetIDsFollowsNextPage(t *testing.T) {
 func TestSearchAssetIDsRejectsNonNumericNextPage(t *testing.T) {
 	_, immich := newMockImmichFactory(t, func(w http.ResponseWriter, r *http.Request) {
 		resp := ImmichSearchResponse{}
-		resp.Assets.Items = []ImmichAssetResponse{{ID: "a1"}}
+		resp.Assets.Items = []ImmichAssetResponse{{ID: "a1", Type: immichAssetTypeImage}}
 		token := "not-a-number"
 		resp.Assets.NextPage = &token
 		json.NewEncoder(w).Encode(resp)
@@ -1570,7 +1570,7 @@ func TestBatchUpsertAssets(t *testing.T) {
 		t.Errorf("expected 3 assets, got %d", total)
 	}
 
-	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "")
+	withGPS, err := db.countFilteredAssets(ctx, testUserID, "", "", gpsFilterWithGPS, "all", "", "", mediaTypeAll)
 	if err != nil {
 		t.Fatalf("countFilteredAssets: %v", err)
 	}

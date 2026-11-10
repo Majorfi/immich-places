@@ -30,7 +30,7 @@ import type {TFavoritePlace} from '@/shared/types/favoritePlace';
 import type {TFolderTree} from '@/shared/types/folder';
 import type {THealthResponse} from '@/shared/types/health';
 import type {TLibraryRow} from '@/shared/types/library';
-import type {TGPSFilter, THiddenFilter, TMapMarker} from '@/shared/types/map';
+import type {TGPSFilter, THiddenFilter, TMapMarker, TMediaFilter} from '@/shared/types/map';
 import type {TLocationCluster, TSuggestionsResponse} from '@/shared/types/suggestion';
 import type {TTagRow} from '@/shared/types/tag';
 
@@ -99,6 +99,7 @@ export async function fetchAssets(
 	pageSize: number,
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	albumID?: string,
 	tagID?: string,
 	startDate?: string,
@@ -109,7 +110,8 @@ export async function fetchAssets(
 		page: String(normalizeAssetPage(page)),
 		pageSize: String(normalizePageSize(pageSize)),
 		gpsFilter,
-		hiddenFilter
+		hiddenFilter,
+		mediaType: mediaFilter
 	});
 	if (albumID) {
 		params.set('albumID', albumID);
@@ -143,11 +145,12 @@ export async function fetchAssetDayCounts(
 	endDate: string,
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	albumID?: string,
 	tagID?: string,
 	opts: TRequestOptions = {}
 ): Promise<Record<string, number>> {
-	const params = buildSearchParams({startDate, endDate, gpsFilter, hiddenFilter});
+	const params = buildSearchParams({startDate, endDate, gpsFilter, hiddenFilter, mediaType: mediaFilter});
 	if (albumID) {
 		params.set('albumID', albumID);
 	}
@@ -164,13 +167,14 @@ export async function fetchAssetDayCounts(
 
 export async function fetchMissingLocationCount(
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	albumID: string | undefined,
 	tagID: string | undefined,
 	startDate: string | undefined,
 	endDate: string | undefined,
 	opts: TRequestOptions = {}
 ): Promise<number> {
-	const params = buildSearchParams({hiddenFilter, albumID, tagID, startDate, endDate});
+	const params = buildSearchParams({hiddenFilter, mediaType: mediaFilter, albumID, tagID, startDate, endDate});
 	const url = `${BASE}/assets/missing-location-count?${params.toString()}`;
 	const response = await backendFetch(url, {}, opts);
 	if (!response.ok) {
@@ -207,11 +211,12 @@ export async function fetchTags(opts: TRequestOptions = {}): Promise<TTagRow[]> 
 
 export async function fetchAlbums(
 	gpsFilter: TGPSFilter,
+	mediaFilter: TMediaFilter,
 	startDate?: string,
 	endDate?: string,
 	opts: TRequestOptions = {}
 ): Promise<TAlbumRow[]> {
-	const params = buildSearchParams({gpsFilter, startDate, endDate});
+	const params = buildSearchParams({gpsFilter, mediaType: mediaFilter, startDate, endDate});
 	const response = await backendFetch(`${BASE}/albums?${params.toString()}`, {}, opts);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch albums: ${response.status}`);
@@ -226,12 +231,13 @@ export async function fetchAlbums(
 export async function getFolders(
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	tagID: string | undefined,
 	startDate: string | undefined,
 	endDate: string | undefined,
 	opts: TRequestOptions = {}
 ): Promise<TFolderTree> {
-	const params = buildSearchParams({gpsFilter, hiddenFilter, tagID, startDate, endDate});
+	const params = buildSearchParams({gpsFilter, hiddenFilter, mediaType: mediaFilter, tagID, startDate, endDate});
 	const response = await backendFetch(`${BASE}/folders?${params.toString()}`, {}, opts);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch folders: ${response.status}`);
@@ -243,6 +249,7 @@ export async function getFolderAssets(
 	path: string,
 	gpsFilter: TGPSFilter,
 	hiddenFilter: THiddenFilter,
+	mediaFilter: TMediaFilter,
 	tagID: string | undefined,
 	startDate: string | undefined,
 	endDate: string | undefined,
@@ -256,6 +263,7 @@ export async function getFolderAssets(
 		pageSize: String(normalizePageSize(pageSize)),
 		gpsFilter,
 		hiddenFilter,
+		mediaType: mediaFilter,
 		tagID,
 		startDate,
 		endDate
@@ -269,6 +277,7 @@ export async function getFolderAssets(
 }
 
 export async function fetchMapMarkers(
+	mediaFilter: TMediaFilter,
 	albumID?: string,
 	tagID?: string,
 	startDate?: string,
@@ -277,7 +286,7 @@ export async function fetchMapMarkers(
 	limit: number = DEFAULT_VISIBLE_MARKER_LIMIT,
 	opts: TRequestOptions = {}
 ): Promise<TMapMarker[]> {
-	const params = new URLSearchParams();
+	const params = new URLSearchParams({mediaType: mediaFilter});
 	if (albumID) {
 		params.set('albumID', albumID);
 	}

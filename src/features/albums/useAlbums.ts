@@ -5,7 +5,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {fetchAlbums} from '@/shared/services/backendApi';
 
 import type {TAlbumRow} from '@/shared/types/album';
-import type {TGPSFilter} from '@/shared/types/map';
+import type {TGPSFilter, TMediaFilter} from '@/shared/types/map';
 
 type TUseAlbumsReturnProps = {
 	albums: TAlbumRow[];
@@ -17,6 +17,7 @@ type TUseAlbumsReturnProps = {
 
 export function useAlbums(
 	gpsFilter: TGPSFilter,
+	mediaFilter: TMediaFilter,
 	startDate: string | null,
 	endDate: string | null
 ): TUseAlbumsReturnProps {
@@ -36,7 +37,7 @@ export function useAlbums(
 		setIsLoading(true);
 		setError(null);
 		try {
-			const result = await fetchAlbums(gpsFilter, startDate ?? undefined, endDate ?? undefined, {
+			const result = await fetchAlbums(gpsFilter, mediaFilter, startDate ?? undefined, endDate ?? undefined, {
 				signal: controller.signal
 			});
 			if (requestIDRef.current !== requestID) {
@@ -60,16 +61,21 @@ export function useAlbums(
 				setIsLoading(false);
 			}
 		}
-	}, [gpsFilter, startDate, endDate]);
+	}, [gpsFilter, mediaFilter, startDate, endDate]);
 
-	const prevFilterRef = useRef({gpsFilter, startDate, endDate});
+	const prevFilterRef = useRef({gpsFilter, mediaFilter, startDate, endDate});
 	useEffect(() => {
 		const prev = prevFilterRef.current;
-		if (prev.gpsFilter !== gpsFilter || prev.startDate !== startDate || prev.endDate !== endDate) {
-			prevFilterRef.current = {gpsFilter, startDate, endDate};
+		if (
+			prev.gpsFilter !== gpsFilter ||
+			prev.mediaFilter !== mediaFilter ||
+			prev.startDate !== startDate ||
+			prev.endDate !== endDate
+		) {
+			prevFilterRef.current = {gpsFilter, mediaFilter, startDate, endDate};
 			void load();
 		}
-	}, [gpsFilter, startDate, endDate, load]);
+	}, [gpsFilter, mediaFilter, startDate, endDate, load]);
 
 	useEffect(() => {
 		return () => {

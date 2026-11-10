@@ -12,6 +12,11 @@ func (h *Handlers) handleGetMissingLocationCount(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
+	mediaType, mediaTypeErr := parseMediaTypeParam(r)
+	if mediaTypeErr != nil {
+		writeError(w, http.StatusBadRequest, mediaTypeErr.Error())
+		return
+	}
 
 	albumID := r.URL.Query().Get("albumID")
 	tagID := r.URL.Query().Get("tagID")
@@ -27,7 +32,7 @@ func (h *Handlers) handleGetMissingLocationCount(w http.ResponseWriter, r *http.
 		return
 	}
 
-	count, err := h.db.countFilteredAssets(r.Context(), user.ID, albumID, tagID, gpsFilterNoGPS, hiddenFilter, startDate, endDate)
+	count, err := h.db.countFilteredAssets(r.Context(), user.ID, albumID, tagID, gpsFilterNoGPS, hiddenFilter, startDate, endDate, mediaType)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to count assets missing location")
 		return
