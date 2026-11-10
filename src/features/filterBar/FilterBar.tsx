@@ -225,18 +225,18 @@ export function FilterBar({
 					)}
 					{!isGPXActive && (
 						<>
+							<GPSFilterGroup
+								gpsFilter={gpsFilter}
+								missingCount={missingCount}
+								onGPSFilterAction={onGPSFilterAction}
+							/>
 							<div className={'flex gap-1.5'}>
-								<GPSFilterGroup
-									gpsFilter={gpsFilter}
-									missingCount={missingCount}
-									onGPSFilterAction={onGPSFilterAction}
-								/>
 								<ViewModeGroup
 									viewMode={viewMode}
 									onViewModeAction={onViewModeAction}
 								/>
+								<MediaFilterGroup />
 							</div>
-							<MediaFilterGroup />
 							<DateRangeFilterGroup
 								startDate={startDate}
 								endDate={endDate}
